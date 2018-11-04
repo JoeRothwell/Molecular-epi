@@ -31,10 +31,6 @@ volcano <- function(Cal = F, adj = T) {
   # apply function across metabolite matrix
   multifit <- apply(metabo.log, 2, glm.ob)
   
-  # extract p-values (old way)
-  #p        <- sapply(multifit, function(f) summary(f)$coefficients[ , 4])
-  #p.adj    <- p.adjust(p[2, ], method = "BH")
-  
   library(broom)
   p <- map_df(multifit, tidy) %>% filter(term == "x") %>% select(p.value) %>% pull
   p.adj <- p.adjust(p, method = "BH")
@@ -50,17 +46,15 @@ volcano <- function(Cal = F, adj = T) {
     data_frame(Cmpd = colnames(metabo), Fold_change = meanfc[-1], p.value = p.adj) %>%
     separate(Cmpd, into = c("subclass", "rest"), sep = "_", extra = "merge", remove = F) %>%
     mutate(
+           # variables for Manhattan
            subclass1   = ifelse(str_detect(Cmpd, "Lysopc"), "LysoPC", subclass),
-           tolabel     = ifelse(p.adj < 0.001 & abs(1 - Fold_change) > 0.05, T, F),
-           labname     = ifelse(tolabel == T, Cmpd, NA),
-           direction   = ifelse(Fold_change > 1, "Increased fc", "Decreased fc"),
-           pointcol    = ifelse(tolabel == F, "col1", "col2"),
-           Association = case_when(p.value > 0.001 ~ "None",
-                                   p.value < 0.001 & Fold_change > 1 ~ "Increased score",
-                                   p.value < 0.001 & Fold_change < 1 ~ "Decreased score"),
-           pointcol2   = case_when(tolabel == F ~ "Col1",
-                                   tolabel == T & direction == "Increased fc" ~ "Col2",
-                                   tolabel == T & direction == "Decreased fc" ~ "Col3")
+           direction   = ifelse(Fold_change > 1, "Increased with score", "Decreased with score"),
+           Association = ifelse(p.value < 0.001, direction, "Not significant"),
+           
+           # For Volcano, specify points to label
+           tolabel     = ifelse(p.adj < 0.001 & abs(1 - Fold_change) > 0.05, Cmpd, NA),
+           tocolour    = ifelse(p.adj < 0.001 & abs(1 - Fold_change) > 0.05, direction, "col3")
+
            )
 }
 
@@ -72,25 +66,11 @@ all <- bind_rows(list("Raw" = raw, "Cal" = cal), .id = "id") %>% filter(rest != 
 
 # saveRDS(all, "Wcrf_biocrates1")
 
-# Volcano plot (calibrated and raw data side by side)
-library(ggplot2)
-ggplot(all, aes(x=Fold_change, y = -log10(p.value), colour = pointcol2, shape = pointcol2)) + 
-  #geom_point(shape=1, colour = "dodgerblue", alpha = 0.7) + 
-  geom_point(show.legend = F) +
-  scale_colour_manual(values = c("grey", "limegreen", "red")) +
-  scale_shape_manual(values = c(19,17,19)) +
-  theme_bw() +
-  #xlim(0.91, 1.2) +
-  geom_text(aes(label = labname), hjust = -0.05, vjust = 0, size = 2, colour = "black") +
-  facet_grid(. ~ id) +
-  xlab("Fold change (relative concentration in higher scoring subjects)") +
-  ggtitle("Metabolite association with WCRF score", 
-          subtitle = "Adjusted for sex, EPIC centre, study and smoking intensity")
+# Manhattan ----
 
-# Vertical Manhattan, by subclass, in order of p-value (cal or raw)
+# Vertical, by subclass, in order of p-value (cal or raw)
 ggplot(cal, aes(y = reorder(Cmpd, p.value), x = log10(p.value), shape = direction, colour = direction)) + 
   theme_minimal(base_size = 10) +
-  #scale_colour_manual(values=c("red", "limegreen")) + 
   geom_point() + geom_vline(xintercept = -3, linetype = "dashed") +
   xlab("-log10(p-value)") +
   facet_grid(subclass1 ~ ., scales = "free_y", space = "free_y", switch= "x") +
@@ -100,7 +80,7 @@ ggplot(cal, aes(y = reorder(Cmpd, p.value), x = log10(p.value), shape = directio
         legend.box.background = element_rect(colour="grey")) +
   #ggtitle("Metabolite associations with WCRF score (cal)")
 
-# Horizontal for slide
+# Horizontal, by subclass, in order of p-value (cal or raw)
 ggplot(cal, aes(x = reorder(Cmpd, p.value), y = -log10(p.value), shape = direction, colour = direction)) + 
   theme_minimal(base_size = 10) +
   geom_point(show.legend = F) + 
@@ -111,11 +91,10 @@ ggplot(cal, aes(x = reorder(Cmpd, p.value), y = -log10(p.value), shape = directi
         axis.text.x = element_text(angle = 90, size=7, hjust = 0.95, vjust = 0.5)) +
   #ggtitle("Metabolite associations with WCRF score (cal)") +
   #ggsave("WCRF score associations for slide.svg")
-
-# ---------------------------------------------------------------------------------------------------------------
-
-# Horizontal Manhattan, significant associations coloured
-ggplot(raw, aes(x = reorder(Cmpd, subclass), y = -log10(p.value), colour = Association)) + theme_bw() +
+  
+# Horizontal, significant associations coloured
+  ggplot(raw, aes(x = reorder(Cmpd, subclass), y = -log10(p.value), colour = Association)) + 
+  theme_bw() +
   geom_point() + geom_hline(yintercept = 3, linetype = "dashed") +
   scale_color_manual(values = c("blue", "red", "grey")) +
   ylab("-log10(p-value) for association with WCRF score") + xlab("Compound") +
@@ -123,7 +102,22 @@ ggplot(raw, aes(x = reorder(Cmpd, subclass), y = -log10(p.value), colour = Assoc
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         legend.position = c(0.03,0.75),
-        legend.justification = c(0, 0))
+        legend.justification = c(0, 0))  
+  
+# Volcano plot (facetted by raw/calibrated) ----
+# Needs extra variables
+library(ggplot2)
+ggplot(all, aes(x=Fold_change, y = -log10(p.value), colour = tocolour, shape = tocolour)) + 
+  #geom_point(shape=1, colour = "dodgerblue", alpha = 0.7) + 
+  geom_point(show.legend = F) +
+  scale_colour_manual(values = c("limegreen", "red", "grey")) +
+  scale_shape_manual(values = c(17,19,17)) +
+  theme_bw() +
+  geom_text(aes(label = tolabel), hjust = -0.05, vjust = 0, size = 2, colour = "black") +
+  facet_grid(. ~ id) +
+  xlab("Fold change (relative concentration in higher scoring subjects)") +
+  ggtitle("Metabolite association with WCRF score", 
+          subtitle = "Adjusted for sex, EPIC centre, study and smoking intensity")
 
 # plot(cal$p.value)
 
@@ -133,7 +127,7 @@ raw %>% group_by(subclass) %>%
 table(ctrl$Wcrf_C)
 table(ctrl$Wcrf_C_Cal)
 
-# ----------------------------------------------
+# ----
 
 # Case-control dataset
 library(haven)
