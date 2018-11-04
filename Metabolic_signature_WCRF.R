@@ -4,7 +4,6 @@
 
 wcrf.crc <- function(study = c("large", "small"), fasting = T){
 
-
   library(tidyverse)
   
   # EPIC controls dataset for modelling (controls)
@@ -111,7 +110,7 @@ wcrf.crc <- function(study = c("large", "small"), fasting = T){
   plsdata <- cbind(score, adjmat) %>% filter(!is.na(score))
   
   
-  # ---- PLS model
+  # PLS model ----
   
   
   library(pls)
@@ -149,7 +148,7 @@ wcrf.crc <- function(study = c("large", "small"), fasting = T){
   barplot(tail(coefficients, 10), horiz = T, las=1, col="dodgerblue", xlab="Variable importance")
   
   
-  # ---- Score predictions and model of C/C status on score
+  # Score predictions and model of C/C status on score ----
   
   # Transform data to matrix, impute, log, scale
   if(study == "large") mat <- setA else mat <- setB
@@ -273,16 +272,16 @@ FAs <- fa.crc()
 
 # Models: Biocrates metabolites ----
 
-# Large study
+# Large study, n = 614 and n = 2370
 library(survival)
 fit1 <- clogit(Cncr_Caco_Clrt ~ score.2.comps + strata(Match_Caseset), data = large)
 fit2 <- clogit(Cncr_Caco_Clrt ~ score.2.comps + strata(Match_Caseset), data = large.nofast)
 
-# Calculated scores
+# Calculated scores, n = 609 and n = 2267
 fit3 <- clogit(Cncr_Caco_Clrt ~ Wcrf_C_Cal + strata(Match_Caseset), data = large)
 fit4 <- clogit(Cncr_Caco_Clrt ~ Wcrf_C_Cal + strata(Match_Caseset), data = large.nofast)
 
-# Small study
+# Small study, n = 980 and n = 951
 fit5 <- clogit(Cncr_Caco_Clrt ~ score.2.comps + strata(Match_Caseset), data = small)
 fit6 <- clogit(Cncr_Caco_Clrt ~ Wcrf_C_Cal + strata(Match_Caseset), data = small)
 
@@ -295,18 +294,24 @@ calculated <- clogit(Cncr_Caco_Clrt ~ Wcrf_C_Cal + strata(Match_Caseset), data =
 # Biocrates
 library(broom)
 t1 <- bind_rows(tidy(fit1), tidy(fit2), tidy(fit3), tidy(fit4), tidy(fit5), tidy(fit6))
-nvec <- rev(c(980, 980, 606, 2254, 614, 2370))
-lvec <- c("WCRF score", "Metabolites", "Metabolites (F)", "Metabolites", "WCRF score (F)", "WCRF score")
-study <- c(rep("Small C/C", 2), rep("Large C/C", 4))
+studies <- data.frame(
+  CC = c(rep("Large", 4), rep("Small", 2)),
+  nvec = c(614, 2370, 609, 2267, 980, 951),
+  mod = c("Signature", "Signature", "WCRF score", "WCRF score", "Signature", "WCRF score"),
+  fast = c("Fasting", "All", "Fasting", "All", "All", "All")
+  )
 
 library(metafor)
 par(mar=c(5,4,2,2))
 forest(x = exp(t1$estimate), ci.lb = exp(t1$conf.low), ci.ub = exp(t1$conf.high),
-       refline = 1, xlab = "Odds ratio (per unit increase in WCRF score)", pch = 18, 
-       psize = 1.5, slab = study, ilab = lvec, ilab.xpos = -0.2, xlim = c(-1, 2))
+       refline = 1, xlab = "Odds ratio (per unit increase in score)", pch = 18, 
+       psize = 1.5, slab = studies$CC, ilab = studies[, 2:4], 
+       #rows = c(1:4, 6:7),
+       ilab.pos = 4,
+       ilab.xpos = c(-0.9, -0.6, -0.1), 
+       xlim = c(-1.2, 2))
 
-text(-1, 8, "Study", pos = 4)
-text(-0.2, 8, "Parameter (F = fasting)", pos = 3)
+text(c(-1.2, -0.9, -0.6, -0.1), 8, c("Study", "n", "Model", "Fast"), pos = 4)
 text(2, 8, "OR [95% CI]", pos = 2)
 
 # Fatty acids
@@ -320,6 +325,12 @@ forest(x = exp(t2$estimate), ci.lb = exp(t2$conf.low), ci.ub = exp(t2$conf.high)
        ilab.xpos = -0.2, xlim = c(-0.5, 1.5))
 
 text(nvec, x = 0.1, y=c(1:4))
+
+# Meta-analysis
+# 1 Large fasting, small
+ma1 <- t1[ c(1, 5), ]
+rma(ma1$estimate, vi, data=dat, method="REML")
+
 
 
 
