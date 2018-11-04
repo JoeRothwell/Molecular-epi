@@ -1,0 +1,74 @@
+# SAS datasets
+library(haven)
+# data <- read_sas("D:/obes_metabo.sas7bdat")
+# data1 <- read_sas("D:/obes_metabo_1.sas7bdat")
+# ctrl <- read.csv("D:/obes_metabo.csv")
+# ctrl <- readRDS("Biocrates data controls.rds")
+
+# Outlier removal and adjustment for confounders ----
+
+library(tidyverse)
+ctrl <- readRDS("Biocrates data controls.rds")
+
+# Subset metabolite matrix
+prepdata <- function(plotpca = F) {
+  
+  library(tidyverse)
+  concs <- ctrl %>% select(Acylcarn_C0 : Sugars_H1) %>% as.matrix
+  
+  # replace zero with NA
+  concs[concs == 0] <- NA
+  
+  # Impute missing concentrations with half minimum value (otherwise gives contrasts error for sex and study)
+  library(zoo)
+  concs1 <- na.aggregate(concs, FUN = function(x) min(x)/2)
+  logconcs <- log2(concs1)
+  pcaconcs <- prcomp(logconcs, scale. = T)
+  
+  # Plot with group labels
+  if(plotpca == T){
+    library(pca3d)
+    pca2d(pcaconcs, group = ctrl$Study, show.group.labels = F, legend = "topright")
+    box(which = "plot", lty = "solid")
+  }
+  
+  #PCA reveals two outliers on PC1, 3600 and 3722
+  outliers <- which(pcaconcs$x[, 1] > 40)
+  
+  #subset data and replot
+  #ctrl1 <- ctrl[ -outliers, ]
+  ctrl1 <- ctrl %>% mutate(batch_no = as.numeric(flatten(str_extract_all(Batch_MetBio, "[0-9]+")))) %>% 
+    slice(-outliers)
+  logconcs1 <- logconcs[ -outliers, ]
+  #ctrl1 <- cbind(ctrl1, logconcs1)
+  return(list(ctrl1, logconcs1))
+}
+output <- prepdata()
+
+# first is whole dataset outliers removed, second is matrix of log concs
+ctrl1 <- output[[1]]
+concs <- output[[2]]
+
+# Adjust for different covariates by taking the residuals of a linear model
+library(lme4)
+adj1 <- function(x) residuals(lm(x ~ Sex, data = ctrl1))
+adj2 <- function(x) residuals(lm(x ~ Sex + Study, data = ctrl1))
+adj3 <- function(x) residuals(lm(x ~ Sex + Center, data = ctrl1))
+adj4 <- function(x) residuals(lm(x ~ Sex + Study + Center, data = ctrl1))
+adj5 <- function(x) residuals(lmer(x ~ Center + batch_no + Sex + (1|Study), data = ctrl1))
+
+# Generate the matrices of residuals and rerun and plot PCA
+pcares <- function(adjust = T, covar = "adj1", pca = F) {
+  resmat <- if(adjust == F) concs else apply(concs, 2, covar)
+  if(pca == T) {
+    res.pca <- prcomp(resmat, scale. = T)
+    pca2d(res.pca, group = ctrl1$Study, show.group.labels = F, legend = "bottomleft")
+    box(which = "plot", lty = "solid")
+  }
+  return(resmat)
+}
+
+# Plot adjusted PCAs
+resmat <- pcares(adjust = F)
+# resmat <- pcares(covar = "adj4")
+# resmat <- pcares(covar = "adj5")

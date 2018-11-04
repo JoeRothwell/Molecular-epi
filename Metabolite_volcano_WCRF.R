@@ -1,0 +1,161 @@
+# Performs logistic regression between low and high WCRF score groups for EPIC controls dataset
+# Volcano plot of p-value vs fold change
+source("Biocrates_controls_data_prep.R")
+
+volcano <- function(Cal = F, adj = T) {
+
+  library(tidyverse)
+  ctrl <- read.csv("obes_metabo.csv")
+  # Model scores from Biocrates data. Code 0 and 1 as categories 1 and 2 vs 4 and 5
+
+  ob <- if(Cal == F) {
+    ctrl %>% filter(Wcrf_C     != 3) %>% mutate(score_cat = ifelse(Wcrf_C %in% 1:2, 0, 1))     } else {
+    ctrl %>% filter(Wcrf_C_Cal != 3) %>% mutate(score_cat = ifelse(Wcrf_C_Cal %in% 1:2, 0, 1))
+    }
+  
+  # Subset metabolite matrix, replace zero with NA
+  metabo <- ob %>% select(Acylcarn_C0:Sugars_H1) %>% as.matrix
+  metabo[metabo == 0] <- NA
+  
+  # Impute missings with half minimum value (otherwise gives contrasts error for sex and study)
+  library(zoo)
+  metabo.log <- na.aggregate(metabo, FUN = function(x) min(x)/2) %>% log2
+
+  # logistic regression on categories 1 and 2 vs 4 and 5
+  glm.ob <- if(adj == T) {
+    function(x) glm(score_cat ~ x + Sex + Center + Smoke_Intensity + Study, data = ob, family = "binomial") 
+    } else {
+    function(x) glm(score_cat ~ x,                                          data = ob, family = "binomial")                  
+  }
+
+  # apply function across metabolite matrix
+  multifit <- apply(metabo.log, 2, glm.ob)
+  
+  # extract p-values (old way)
+  #p        <- sapply(multifit, function(f) summary(f)$coefficients[ , 4])
+  #p.adj    <- p.adjust(p[2, ], method = "BH")
+  
+  library(broom)
+  p <- map_df(multifit, tidy) %>% filter(term == "x") %>% select(p.value) %>% pull
+  p.adj <- p.adjust(p, method = "BH")
+
+  # calculation of fold changes for volcano plot
+  df       <- data.frame(ob$score_cat, metabo)
+  means    <- aggregate(. ~ ob.score_cat, data = df, mean) %>% t
+  # Get fold change of high score over low score
+  meanfc   <- means[, 2]/means[, 1]
+  
+  # make final data frame adding extra columns for point labelling
+  volcanodf <- 
+    data_frame(Cmpd = colnames(metabo), Fold_change = meanfc[-1], p.value = p.adj) %>%
+    separate(Cmpd, into = c("subclass", "rest"), sep = "_", extra = "merge", remove = F) %>%
+    mutate(
+           subclass1   = ifelse(str_detect(Cmpd, "Lysopc"), "LysoPC", subclass),
+           tolabel     = ifelse(p.adj < 0.001 & abs(1 - Fold_change) > 0.05, T, F),
+           labname     = ifelse(tolabel == T, Cmpd, NA),
+           direction   = ifelse(Fold_change > 1, "Increased fc", "Decreased fc"),
+           pointcol    = ifelse(tolabel == F, "col1", "col2"),
+           Association = case_when(p.value > 0.001 ~ "None",
+                                   p.value < 0.001 & Fold_change > 1 ~ "Increased score",
+                                   p.value < 0.001 & Fold_change < 1 ~ "Decreased score"),
+           pointcol2   = case_when(tolabel == F ~ "Col1",
+                                   tolabel == T & direction == "Increased fc" ~ "Col2",
+                                   tolabel == T & direction == "Decreased fc" ~ "Col3")
+           )
+}
+
+cal <- volcano(Cal = T, adj = F)
+raw <- volcano(Cal = F)
+
+# Bind datasets, exclude outlier serotonin, add four new columns
+all <- bind_rows(list("Raw" = raw, "Cal" = cal), .id = "id") %>% filter(rest != "Serotonin")
+
+# saveRDS(all, "Wcrf_biocrates1")
+
+# Volcano plot (calibrated and raw data side by side)
+library(ggplot2)
+ggplot(all, aes(x=Fold_change, y = -log10(p.value), colour = pointcol2, shape = pointcol2)) + 
+  #geom_point(shape=1, colour = "dodgerblue", alpha = 0.7) + 
+  geom_point(show.legend = F) +
+  scale_colour_manual(values = c("grey", "limegreen", "red")) +
+  scale_shape_manual(values = c(19,17,19)) +
+  theme_bw() +
+  #xlim(0.91, 1.2) +
+  geom_text(aes(label = labname), hjust = -0.05, vjust = 0, size = 2, colour = "black") +
+  facet_grid(. ~ id) +
+  xlab("Fold change (relative concentration in higher scoring subjects)") +
+  ggtitle("Metabolite association with WCRF score", 
+          subtitle = "Adjusted for sex, EPIC centre, study and smoking intensity")
+
+# Vertical Manhattan, by subclass, in order of p-value (cal or raw)
+ggplot(cal, aes(y = reorder(Cmpd, p.value), x = log10(p.value), shape = direction, colour = direction)) + 
+  theme_minimal(base_size = 10) +
+  #scale_colour_manual(values=c("red", "limegreen")) + 
+  geom_point() + geom_vline(xintercept = -3, linetype = "dashed") +
+  xlab("-log10(p-value)") +
+  facet_grid(subclass1 ~ ., scales = "free_y", space = "free_y", switch= "x") +
+  theme(axis.title.y = element_blank(),
+        axis.text.y = element_text(size=7),
+        legend.position = c(0.25, 0.4),
+        legend.box.background = element_rect(colour="grey")) +
+  #ggtitle("Metabolite associations with WCRF score (cal)")
+
+# Horizontal for slide
+ggplot(cal, aes(x = reorder(Cmpd, p.value), y = -log10(p.value), shape = direction, colour = direction)) + 
+  theme_minimal(base_size = 10) +
+  geom_point(show.legend = F) + 
+  geom_hline(yintercept = 3, linetype = "dashed") +
+  ylab("-log10(p-value)") +
+  facet_grid(. ~ subclass1, scales = "free_x", space = "free_x", switch= "y") +
+  theme(axis.title.x = element_blank(), strip.text.x = element_blank(),
+        axis.text.x = element_text(angle = 90, size=7, hjust = 0.95, vjust = 0.5)) +
+  #ggtitle("Metabolite associations with WCRF score (cal)") +
+  #ggsave("WCRF score associations for slide.svg")
+
+# ---------------------------------------------------------------------------------------------------------------
+
+# Horizontal Manhattan, significant associations coloured
+ggplot(raw, aes(x = reorder(Cmpd, subclass), y = -log10(p.value), colour = Association)) + theme_bw() +
+  geom_point() + geom_hline(yintercept = 3, linetype = "dashed") +
+  scale_color_manual(values = c("blue", "red", "grey")) +
+  ylab("-log10(p-value) for association with WCRF score") + xlab("Compound") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust=0.5, size = 7),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = c(0.03,0.75),
+        legend.justification = c(0, 0))
+
+# plot(cal$p.value)
+
+raw %>% group_by(subclass) %>% 
+  separate(Cmpd, into = c("subclass", "rest"), sep = "_", extra="merge", remove = F)
+
+table(ctrl$Wcrf_C)
+table(ctrl$Wcrf_C_Cal)
+
+# ----------------------------------------------
+
+# Case-control dataset
+library(haven)
+data <- read_sas("clrt_caco_metabo.sas7bdat") 
+concs <- data %>% select(Acylcarn_C0 : Sugars_H1) %>% as.matrix
+
+# Converted to dta
+# write_dta(data, "clrt_caco_metabo.dta")
+
+# subset only observations with Biocrates data
+bioc <- apply(concs, 1, function(x) sum(!is.na(x)) > 0)
+sum(bioc) # 988 observations with biocrates data
+df <- data[bioc, ]
+
+# Remove odd cases or controls
+df1 <- df %>% group_by(Match_Caseset) %>% filter(n() == 2) %>% ungroup
+write.csv(df1, file = "CRC biocrates data.csv")
+
+# Serotonin analysis
+
+boxplot(log10(Biogenic_Serotonin) ~ Cncr_Caco_Clrt, data = df1)
+sum(!is.na(df1$Biogenic_Serotonin))
+df1$Biogenic_Serotonin
+
+
