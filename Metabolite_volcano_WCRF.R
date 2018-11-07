@@ -2,7 +2,7 @@
 # Volcano plot of p-value vs fold change
 source("Biocrates_controls_data_prep.R")
 
-volcano <- function(Cal = F, adj = T) {
+volcano <- function(Cal = F, fasting = T, adj = T) {
 
   library(tidyverse)
   ctrl <- read.csv("obes_metabo.csv")
@@ -12,6 +12,8 @@ volcano <- function(Cal = F, adj = T) {
     ctrl %>% filter(Wcrf_C     != 3) %>% mutate(score_cat = ifelse(Wcrf_C %in% 1:2, 0, 1))     } else {
     ctrl %>% filter(Wcrf_C_Cal != 3) %>% mutate(score_cat = ifelse(Wcrf_C_Cal %in% 1:2, 0, 1))
     }
+  
+  ob <- if(fasting == T) ob %>% filter(Fasting_C == "Yes") else ob
   
   # Subset metabolite matrix, replace zero with NA
   metabo <- ob %>% select(Acylcarn_C0:Sugars_H1) %>% as.matrix
@@ -57,9 +59,62 @@ volcano <- function(Cal = F, adj = T) {
 
            )
 }
+volcano.fa <- function() {
+  
+  #library(haven)
+  library(tidyverse)
+  
+  # Read in fatty acids data and WCRF scores
+  #fa <- read_sas("controls_fas.sas7bdat") 
+  #wcrf <- read_dta("Wcrf_Score.dta") %>% select(Idepic, Wcrf_C_Cal)
+  
+  # Join scores to fatty acids data
+  #fa.scores <- fa %>% left_join(wcrf, by = "Idepic")
+  #saveRDS(fa.scores, "FA_WCRF_scores.rds")
+  fa.scores <- readRDS("FA_WCRF_scores.rds")
+  
+  fa <- fa.scores %>% filter(Wcrf_C_Cal != 3) %>% mutate(score_cat = ifelse(Wcrf_C_Cal %in% 1:2, 0, 1))
+  # check numbers of low and high
+  fa %>% group_by(score_cat) %>% summarise(subjects = n())
+  
+  # Prepare metabolite matrix. Set zeros to NA then impute with half min value
+  concs <- fa %>% select(P14_0 : PCLA_10t_12c) %>% as.matrix
+  concs[concs == 0] <- NA
+  
+  library(zoo)
+  concs <- na.aggregate(concs, FUN = function(x) min(x)/2)
+  logconcs <- log2(concs)
+  
+  #library(corrplot)
+  #corrplot(cor(logconcs), method = "square", tl.col = "black")
+  
+  #logistic regression scores 1 and 2 vs 4 and 5, apply across metabo matrix
+  glm.fa <- function(x) glm(score_cat ~ x + Center, data = fa, family = "binomial")
+  multifit <- apply(logconcs, 2, glm.fa)
+  
+  library(broom)
+  p <- map_df(multifit, tidy) %>% filter(term == "x") #%>% select(p.value) %>% pull
+  p.adj <- data_frame(p.adj = p.adjust(p$p.value, method = "BH"))
+  
+  # calculation of fold changes for volcano plot. Make sure to use non-log data
+  cats  <- data.frame(scorecat = fa$score_cat, concs)
+  
+  # Data frame for results. FAs are roughly categorised by string count. Use factor_key to keep order
+  output <- cats %>% group_by(scorecat) %>% summarise_all(funs(mean)) %>%
+    gather(cmpd, conc, -scorecat, factor_key = T) %>%
+    spread(scorecat, conc) %>%
+    bind_cols(p, p.adj) %>%
+    mutate(meanfc = `1`/`0`, associated = ifelse(meanfc > 1, "incr_score", "decr_score"),
+           Cmpd.length = as.factor(str_count(cmpd)) )
+  
+}
 
+# Biocrates metabolites
 cal <- volcano(Cal = T, adj = F)
 raw <- volcano(Cal = F)
+
+# Fatty acids
+alldf <- volcano.fa()
 
 # Bind datasets, exclude outlier serotonin, add four new columns
 all <- bind_rows(list("Raw" = raw, "Cal" = cal), .id = "id") %>% filter(rest != "Serotonin")
@@ -126,6 +181,33 @@ raw %>% group_by(subclass) %>%
 
 table(ctrl$Wcrf_C)
 table(ctrl$Wcrf_C_Cal)
+
+# Fatty acids
+
+# Volcano plot
+ggplot(alldf, aes(x=meanfc, y = -log10(p.adj))) + geom_point(show.legend = F) + 
+  theme_minimal()
+#geom_point(shape=1, colour = "dodgerblue", alpha = 0.7) + 
+#xlab("Fold change (relative concentration in higher scoring subjects)")
+#scale_colour_manual(values = c("grey", "limegreen", "red")) +
+#scale_shape_manual(values = c(19,17,19)) +
+#xlim(0.91, 1.2) +
+#geom_text(aes(label = labname), hjust = -0.05, 
+#vjust = 0, size = 2, colour = "black") 
+
+
+# Vertical Manhattan
+library(ggplot2)
+ggplot(alldf, 
+       aes(y = reorder(cmpd, -p.adj), x = -log10(p.adj), shape = associated, colour = associated)) + 
+  theme_minimal(base_size = 10) +
+  geom_point(show.legend = F) + 
+  geom_vline(xintercept = 3, linetype = "dashed") +
+  xlab("-log10(FDR-adjusted p-value)") + ylab("") +
+  facet_grid(Cmpd.length ~ ., scales = "free_y", space = "free_y", switch= "x") +
+  theme(strip.text.y = element_blank())
+#axis.text.x(angle = 0, size=7, hjust = 0.95, vjust = 0.5)) +
+#ggsave("WCRF score associations FAs.svg")
 
 # ----
 
