@@ -181,17 +181,25 @@ fa.crc <- function(modonly = F){
   
   # Fatty acid signatures of WCRF score
   library(tidyverse)
-  
-  # Get test dataset (CRC case control from Elom)
   library(haven)
+  
+  # Get WCRF scores
   wcrf <- read_dta("Wcrf_Score.dta") %>% select(Idepic, Wcrf_C_Cal)
   
-  # Join scores to fatty acids data
+  # Get test dataset (CRC case control from Elom) and join WCRF scores
   CRCfa1 <- read_dta("Database_Fatty acids.dta") %>% left_join(wcrf, by = "Idepic")
   CRCfa <- CRCfa1 %>% select(P14_0 : PCLA_9t_11c) 
   
   # Get dataset for PLS modelling (all EPIC controls). Exclude compounds with many missings
-  fa.scores <- readRDS("FA_WCRF_scores.rds")
+  # Note: new version from Carine received 18/11/2018 with covariates
+  fa.scores <- readRDS("FA_WCRF_scores1.rds")
+  
+  # convert categorical variables to factors
+  
+  var.list <- c("Country", "Center", "STUDY", "LABO")
+  fa.scores <- fa.scores %>% mutate_at(vars(var.list), as.factor)
+  
+  
   concs <- fa.scores %>% select(P14_0 : PCLA_9t_11c, -P24_0, -P20_0)
   
   # Check missing values
@@ -219,8 +227,13 @@ fa.crc <- function(modonly = F){
   concs <- na.aggregate(concs, FUN = function(x) min(x)/2)
   logconcs <- log2(concs) %>% scale
   
+  # adjust matrix for study, centre, sex, batch, BMI
+  library(lme4)
+  getresiduals <- function(x) residuals(lm(x ~ STUDY + LABO + Country, data = fa.scores))
+  resmat <- apply(logconcs, 2, getresiduals)
+  
   # Bind WCRF scores to log2 concs
-  plsdata <- data.frame(score = fa.scores$Wcrf_C_Cal, logconcs) %>% filter(!is.na(score))
+  plsdata <- data.frame(score = fa.scores$Wcrf_C_Cal, resmat) %>% filter(!is.na(score))
   
   library(pls)
   mod <- plsr(score ~ ., data = plsdata, validation = "CV")
@@ -267,6 +280,8 @@ fa.crc <- function(modonly = F){
   library(zoo)
   CRCfa <- na.aggregate(CRCfa, FUN = function(x) min(x)/2)
   obs2predict <- log2(CRCfa) %>% scale %>% data.frame
+  
+  
   
   
   #table(CRCfa$Match_Caseset, CRCfa$Cncr_Caco_Clrt)

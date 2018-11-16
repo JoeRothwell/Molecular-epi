@@ -65,13 +65,15 @@ volcano.fa <- function() {
   library(tidyverse)
   
   # Read in fatty acids data and WCRF scores
-  #fa <- read_sas("controls_fas.sas7bdat") 
-  #wcrf <- read_dta("Wcrf_Score.dta") %>% select(Idepic, Wcrf_C_Cal)
+  #fa <- read_sas("controls_fas1.sas7bdat") 
+ # wcrf <- read_dta("Wcrf_Score.dta") %>% select(Idepic, Wcrf_C_Cal)
   
   # Join scores to fatty acids data
   #fa.scores <- fa %>% left_join(wcrf, by = "Idepic")
-  #saveRDS(fa.scores, "FA_WCRF_scores.rds")
-  fa.scores <- readRDS("FA_WCRF_scores.rds")
+  #saveRDS(fa.scores, "FA_WCRF_scores1.rds")
+  
+  # Note: FA_WCRF_scores1 is the new file from Carine with technical covariates (16 Nov 2018)
+  fa.scores <- readRDS("FA_WCRF_scores1.rds")
   
   fa <- fa.scores %>% filter(Wcrf_C_Cal != 3) %>% mutate(score_cat = ifelse(Wcrf_C_Cal %in% 1:2, 0, 1))
   # check numbers of low and high
