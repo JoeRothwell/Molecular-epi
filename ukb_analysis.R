@@ -18,13 +18,13 @@ ukb.stata <- read_dta("D://ukb_cox_analyses_2017.dta") #renamed and recoded for 
 library(readr)
 dat1 <- read_csv("D://ukb_summanalytical2017.csv")
 
-# Data preparation for Cox model -------------------------------------------------------------------------------
+# Data preparation for Cox model ----
 
 ukbprep <- function() {
   
   #saveRDS(ukb, file="D:/UKB Cox dataset.rds")
   #saveRDS(ukb, file="UKB Cox dataset.rds")
-  ukb <- readRDS("UKB Cox dataset.rds") #472526 observations
+  ukb <- readRDS("UKB_Cox_dataset.rds") #472526 observations
   
   #get dropped IDs from file
   droppedIDs <- scan("w25897_20180503.csv")
@@ -88,11 +88,10 @@ ukbprep <- function() {
 }
 ukb <- ukbprep()
 
-# Cox proportional hazards models -------------------------------------------------------------
-
-library(survival)
+# Cox proportional hazards models ----
 
 # Create the survival object. In stata, age at exit, age at birth, age at recruitment, and CRC yes/no are used
+library(survival)
 survobj <- Surv(time = ukb$age_recr, time2 = ukb$age_exit_frst, event = ukb$colorectal_inc)
 
 base <- survobj ~ diabet + fh_crc + alc_freq + smoke_intensity + qualif + redprocmeat_cat + 
@@ -108,6 +107,21 @@ fit2 <- coxph(update(base, .~. + bmi), data = ukb, subset = sex == 1)
 fit3 <- coxph(base,                    data = ukb, subset = bmi == 2)
 fit4 <- coxph(base,                    data = ukb, subset = bmi == 3)
 fit5 <- coxph(base,                    data = ukb, subset = bmi == 4)
+
+library(broom)
+t1 <- map_df(list(fit0, fit1, fit2, fit3, fit4, fit5), tidy) %>% filter(term == "diabet1")
+
+library(metafor)
+par(mar=c(5,4,2,2))
+forest(t1$estimate, ci.lb = t1$conf.low, ci.ub = t1$conf.high,
+       refline = 1, xlab = "Hazard ratio (per unit increase in score)", pch = 18, 
+       transf = exp, psize = 1.5, 
+       slab = c("All", "Female", "Male", "Normal", "Overweight", "Obese")) 
+#ilab = studies[, 2:3], 
+#rows = c(1:3, 5:7, 9:11),
+#ylim = c(0, 14),
+#ilab.pos = 4, ilab.xpos = c(-0.8, -0.6), 
+#xlim = c(-1.2, 2))
 
 summary(fit0)
 
