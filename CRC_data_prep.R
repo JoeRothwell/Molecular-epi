@@ -38,7 +38,7 @@ prepcrc1 <- function(){
 }
 crc1 <- prepcrc1()
 
-prepcrc2 <- function() {
+prepcrc2 <- function(){
   library(haven)
   wcrf <- read_dta("Wcrf_Score.dta") %>% select(ends_with("_Cal"), Idepic)
   crc2 <- read_csv("biocrates_p150.csv")
@@ -48,90 +48,6 @@ prepcrc2 <- function() {
   crc2 <- crc2 %>% mutate_at(vars(var.list), as.factor)
 }
 crc2 <- prepcrc2()
-
-
-# Cox models for score ----
-
-
-# Small case-control, test score and other co-variates
-library(survival)
-
-# 1: total; body fatness; physical activity; etc (see below)
-# Adjusted for ENDB energy intake, highest level of schooling and smoking status
-fit1 <- clogit(Cncr_Caco_Clrt ~ Wcrf_Bmi + Qe_Energy + L_School + Smoke_Stat +  strata(Match_Caseset), data = crc1)
-fit2 <- clogit(Cncr_Caco_Clrt ~ Wcrf_Pa + Qe_Energy + L_School + Smoke_Stat + strata(Match_Caseset), data = crc1)
-fit3 <- clogit(Cncr_Caco_Clrt ~ Wcrf_Fwg_Cal + Qe_Energy + L_School + Smoke_Stat + strata(Match_Caseset), data = crc1)
-fit4 <- clogit(Cncr_Caco_Clrt ~ Wcrf_Pf_Cal + Qe_Energy + L_School + Smoke_Stat + strata(Match_Caseset), data = crc1)
-fit5 <- clogit(Cncr_Caco_Clrt ~ Wcrf_Fv_Cal + Qe_Energy + L_School + Smoke_Stat + strata(Match_Caseset), data = crc1)
-fit6 <- clogit(Cncr_Caco_Clrt ~ Wcrf_Fibt_Cal + Qe_Energy + L_School + Smoke_Stat + strata(Match_Caseset), data = crc1)
-fit7 <- clogit(Cncr_Caco_Clrt ~ Wcrf_Meat_Cal + Qe_Energy + L_School + Smoke_Stat + strata(Match_Caseset), data = crc1)
-fit0 <- clogit(Cncr_Caco_Clrt ~ Wcrf_C_Cal + Qe_Energy + L_School + Smoke_Stat + strata(Match_Caseset), data = crc1)
-
-
-library(broom)
-t1 <- map_df(list(fit1, fit2, fit3, fit4, fit5, fit6, fit7, fit0), tidy) %>% filter(grepl("Wcrf_", term))
-scorecomp <- c("1. Body fatness", "2. Physical activity", "3. Energy density/sugary drinks",
-          "4. FV intake", "5. Foods of plant origin", "6. Fibre intake", "7. Meat intake", 
-          "Overall WCRF score (cal.)")
-
-
-library(metafor)
-par(mar=c(5,4,1,2))
-forest(t1$estimate, ci.lb = t1$conf.low, ci.ub = t1$conf.high,
-       refline = 1, xlab = "Odds ratio (per unit increase in score)", pch = 18, 
-       transf = exp, psize = 1.5, xlim = c(-1.8, 4),
-       slab = scorecomp) 
-       #ilab = studies[, 2:3], rows = c(1:3, 5:7, 9:11),
-       #ylim = c(0, 14),ilab.pos = 4, ilab.xpos = c(-0.8, -0.6))
-hh <- par("usr")
-text(hh[1], nrow(t1) + 2, "Component of score", pos = 4)
-text(hh[2], nrow(t1) + 2, "OR [95% CI]", pos = 2)
-
-
-#write_rds(crcB, "prepdata/CRC_smallerCC.rds")
-
-
-# 1: total; body fatness; physical activity; etc (see below)
-fit1 <- clogit(Cncr_Caco_Clrt ~ Wcrf_Bmi + Qe_Energy + L_School + Smoke_Stat + strata(Match_Caseset), data = crc2)
-fit2 <- clogit(Cncr_Caco_Clrt ~ Wcrf_Pa + Qe_Energy + L_School + Smoke_Stat + strata(Match_Caseset), data = crc2)
-fit3 <- clogit(Cncr_Caco_Clrt ~ Wcrf_Fwg_Cal + Qe_Energy + L_School + Smoke_Stat + strata(Match_Caseset), data = crc2)
-fit4 <- clogit(Cncr_Caco_Clrt ~ Wcrf_Pf_Cal + Qe_Energy + L_School + Smoke_Stat + strata(Match_Caseset), data = crc2)
-fit5 <- clogit(Cncr_Caco_Clrt ~ Wcrf_Fv_Cal + Qe_Energy + L_School + Smoke_Stat + strata(Match_Caseset), data = crc2)
-fit6 <- clogit(Cncr_Caco_Clrt ~ Wcrf_Fibt_Cal + Qe_Energy + L_School + Smoke_Stat + strata(Match_Caseset), data = crc2)
-fit7 <- clogit(Cncr_Caco_Clrt ~ Wcrf_Meat_Cal + Qe_Energy + L_School + Smoke_Stat + strata(Match_Caseset), data = crc2)
-fit0 <- clogit(Cncr_Caco_Clrt ~ Wcrf_C_Cal + Qe_Energy + L_School + Smoke_Stat + strata(Match_Caseset), data = crc2)
-
-
-library(broom)
-t2 <- map_df(list(fit1, fit2, fit3, fit4, fit5, fit6, fit7, fit0), tidy) %>% filter(grepl("Wcrf_", term))
-
-
-par(mar=c(5,4,1,2))
-forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high,
-       refline = 1, xlab = "Odds ratio (per unit increase in score)", pch = 18, 
-       transf = exp, psize = 1.5, alim = c(0,2.5), steps = 6, xlim = c(-1.8, 4),
-       slab = scorecomp) 
-#ilab = studies[, 2:3], rows = c(1:3, 5:7, 9:11), ylim = c(0, 14),
-#ilab.pos = 4, ilab.xpos = c(-0.8, -0.6), xlim = c(-1.2, 2))
-
-hh <- par("usr")
-text(hh[1], nrow(t2) + 2, "Component of score", pos = 4)
-text(hh[2], nrow(t2) + 2, "OR [95% CI]", pos = 2)
-
-# Both plots together
-par(mfrow = c(2,1))
-par(mar=c(5,4,2,2))
-
-t3 <- bind_rows(t1, t2, .id = "Study") %>% arrange(scorecomp)
-
-par(mar=c(5,4,2,2))
-forest(t3$estimate, ci.lb = t3$conf.low, ci.ub = t3$conf.high,
-       refline = 1, xlab = "Odds ratio (per unit increase in score)", pch = 18, 
-       transf = exp, psize = 1.5,
-       slab = rep(scorecomp, 2)) 
-
-
-
 
 # glmnet penalised model -----------------------------------------------------------------------------------------------
 # didn't really work but useful to know how to do

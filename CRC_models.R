@@ -17,7 +17,8 @@ wcrf_vars <- c("Wcrf_Bmi", "Wcrf_Pa", "Wcrf_Fwg_Cal", "Wcrf_Pf_Cal", "Wcrf_Fv_Ca
 # Get variable descriptions (for forest plot)
 scorecomp <- c("1. Body fatness", "2. Physical activity", "3. Energy density/sugary drinks", "4. FV intake", 
                "5. Foods of plant origin", "6. Fibre intake", "7. Meat intake", 
-               "       Overall WCRF score (cal.)", "       Signature metabolites")
+               "       Overall WCRF score (cal.)")
+scorecomp2 <- c(scorecomp, "       Signature metabolites")
 
 library(survival)
 library(broom)
@@ -65,6 +66,14 @@ forest(t4$estimate, ci.lb = t4$conf.low, ci.ub = t4$conf.high, refline = 1,
 hh <- par("usr")
 text(hh[1], nrow(t4) + 2, "Parameter", pos = 4)
 text(hh[2], nrow(t4) + 2, "OR [95% CI]", pos = 2)
+
+# Fixed-effects meta-analysis of signatures
+ma1 <- rma(estimate, sei = std.error, data=t4, method="FE", subset = 2:3)
+# Random-effects meta-analysis of signatures
+ma2 <- rma(estimate, sei = std.error, data=t4, method="REML", subset = 2:3)
+par(mfrow = c(1,2))
+forest(ma1, transf = exp, refline = 1, slab = c("Small", "Large"), xlab = "OR")
+forest(ma2, transf = exp, refline = 1, slab = c("Small", "Large"), xlab = "OR")
 
 
 

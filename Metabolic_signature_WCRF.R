@@ -1,6 +1,7 @@
 # Find metabolic and fatty acids signatures of WCRF score
 
 # Get biocrates and fatty acids controls dataset for PLS model
+# Requires crc1 and crc2 to be prepared from CRC_data_prep.R
 
 wcrf.crc <- function(study = c("large", "small"), fasting = T, modonly = F){
 
@@ -22,27 +23,17 @@ wcrf.crc <- function(study = c("large", "small"), fasting = T, modonly = F){
   colnames(controls) %>% length
   # 147 variables
   
-  
   # ----
   
-  
-  # Prepare CRC dataset (from Jelena, ~ 1200 case-control pairs), call it setA
+  # Large CRC dataset (from Jelena, ~ 1200 case-control pairs), call it setA
   # Join scores and filter out non-fasted samples. Remove odd cases or controls
   
   library(haven)
-  wcrf <- read_dta("Wcrf_Score.dta") %>% select(Idepic, Wcrf_C_Cal)
-  
-  crcA <- read_csv("biocrates_p150.csv")
-  crcA <- crcA %>% left_join(wcrf, by = "Idepic")
+  crcA <- crc2
     
   crcA <- if(fasting == T) crcA %>% filter(Fasting_C == 2) else crcA
-  
-  # Convert variables to factors
-  var.list <- c("Country", "Center", "Sex")
-  crcA <- crcA %>% mutate_at(vars(var.list), as.factor)
-  
   print(paste("number of observations = ", nrow(crcA)))
-  
+  # Variables were converted to factors in CRC_data_prep.R
   
   setA <- crcA %>% select(Acylcarn_C0 : Sugars_H1, -starts_with("Outdq_"))
   colnames(setA) %>% length
@@ -52,14 +43,11 @@ wcrf.crc <- function(study = c("large", "small"), fasting = T, modonly = F){
   common_cols <- intersect(colnames(controls), colnames(setA))
   #126 compounds in common
   
-  
   # ----
   
-  
   # Prepare CRC dataset (from Bertrand, ~ 490 case-control pairs), call it set2b
-  # Remove unpaired observations
-  #crcB <- readRDS("CRC_smallerCC.rds") %>% group_by(Match_Caseset) %>% filter(n() == 2) %>% ungroup
-  crcB <- crc1 %>% group_by(Match_Caseset) %>% filter(n() == 2) %>% ungroup
+  # Don't need to remove unpaired observations
+  crcB <- crc1 #%>% group_by(Match_Caseset) %>% filter(n() == 2) %>% ungroup
   
   print(paste("number of observations = ", nrow(crcB)))
   
@@ -69,18 +57,14 @@ wcrf.crc <- function(study = c("large", "small"), fasting = T, modonly = F){
   # Convert variables to factors
   var.list <- c("Country", "Center", "Sex")
   crcB <- crcB %>% mutate_at(vars(var.list), as.factor)
-  
   #common_cols <- intersect(colnames(controls), colnames(setB))
   #145 compounds in common
   
-  
   # ----
-  
   
   # Get common cols between all three datasets (controls, small CC, big CC)
   common_cols2 <- intersect(common_cols, colnames(setB))
   # Glyceroph_Lysopc_A_C24_0 is removed
-  
   
   # ----  
   
@@ -88,13 +72,9 @@ wcrf.crc <- function(study = c("large", "small"), fasting = T, modonly = F){
   controls <- controls %>% select(one_of(common_cols2))
   setA <- setA %>% select(one_of(common_cols2))
   setB <- setB %>% select(one_of(common_cols2))
-  #dim(controls)
-  #dim(setA)
-  
   
   # check colnames are the same for both sets
   identical(colnames(controls), colnames(setA))
-  
   
   # Perform controls matrix of Biocrates concentrations for PLS
   
@@ -122,7 +102,6 @@ wcrf.crc <- function(study = c("large", "small"), fasting = T, modonly = F){
   
   
   # PLS model to get metabolic signature of WCRF score on controls dataset
-  
   
   library(pls)
   mod <- plsr(score ~ ., data = plsdata, validation = "CV")
@@ -174,7 +153,7 @@ wcrf.crc <- function(study = c("large", "small"), fasting = T, modonly = F){
   # now use predict to predict the scores of new observations (ie case-control study)
   crcscores <- data.frame(predict(mod, ncomp = 2, obs2predict))
   
-  if(study == "large") crc <- cbind(crcscores, crcA) else crc <- cbind(crcscores, crcB)
+  #if(study == "large") crc <- cbind(crcscores, crcA) else crc <- cbind(crcscores, crcB)
 
 }
 fa.crc <- function(modonly = F){
@@ -186,12 +165,17 @@ fa.crc <- function(modonly = F){
   # Get WCRF scores
   wcrf <- read_dta("Wcrf_Score.dta") %>% select(Idepic, Wcrf_C_Cal)
   
-  # Get test dataset (CRC case control from Elom) and join WCRF scores
-  CRCfa1 <- read_dta("Database_Fatty acids.dta") %>% left_join(wcrf, by = "Idepic")
+  # Get CRC dataset from Elom and join WCRF scores. Convert categorical co-variates to factors
+  var.list <- c("L_School", "Smoke_Stat")
+  CRCfa1 <- read_dta("Database_Fatty acids.dta") %>% left_join(wcrf, by = "Idepic") %>% mutate_at(vars(var.list), as.factor)
+  
+  # Subset Biocrates compounds
   CRCfa <- CRCfa1 %>% select(P14_0 : PCLA_9t_11c) 
   
+  # ----
+  
   # Get dataset for PLS modelling (all EPIC controls). Exclude compounds with many missings
-  # Note: new version from Carine received 18/11/2018 with covariates
+  # Note: new version from Carine received 18/11/2018 with technical covariates
   fa.scores <- readRDS("FA_WCRF_scores1.rds")
   
   # convert categorical variables to factors
@@ -199,10 +183,8 @@ fa.crc <- function(modonly = F){
   var.list <- c("Country", "Center", "STUDY", "LABO")
   fa.scores <- fa.scores %>% mutate_at(vars(var.list), as.factor)
   
-  
   concs <- fa.scores %>% select(P14_0 : PCLA_9t_11c, -P24_0, -P20_0)
-  
-  # Check missing values
+
   #library(Amelia)
   #missmap(concs)
   #missmap(CRCfa)
@@ -281,12 +263,6 @@ fa.crc <- function(modonly = F){
   CRCfa <- na.aggregate(CRCfa, FUN = function(x) min(x)/2)
   obs2predict <- log2(CRCfa) %>% scale %>% data.frame
   
-  
-  
-  
-  #table(CRCfa$Match_Caseset, CRCfa$Cncr_Caco_Clrt)
-  #write.csv(df, file = "CRC biocrates data.csv")
-  
   # now use predict to predict the scores of new observations (ie case-control study)
   crcscores <- data.frame(predict(mod, ncomp = 2, obs2predict))
   
@@ -306,33 +282,35 @@ mod <- wcrf.crc(modonly = T)
 mod <- fa.crc(modonly = T)
 
 # Models: Biocrates metabolites ----
+# No longer used, see CRC_models.R
 
 # Large study fasted, n = 614 and n = 609
 library(survival)
 fit1 <- clogit(Cncr_Caco_Clrt ~ score.2.comps + strata(Match_Caseset), data = large)
 fit2 <- clogit(Cncr_Caco_Clrt ~ Wcrf_C_Cal + strata(Match_Caseset), data = large)
-fit3 <- clogit(Cncr_Caco_Clrt ~ Wcrf_C_Cal + Bmi_C + strata(Match_Caseset), data = large)
+fit3 <- clogit(Cncr_Caco_Clrt ~ Wcrf_C_Cal + Qe_Energy + L_School + Smoke_Stat + strata(Match_Caseset), data = large)
 
 # Large study all, n = 2370 and n = 2267
 fit4 <- clogit(Cncr_Caco_Clrt ~ score.2.comps + strata(Match_Caseset), data = large.nofast)
 fit5 <- clogit(Cncr_Caco_Clrt ~ Wcrf_C_Cal + strata(Match_Caseset), data = large.nofast)
-fit6 <- clogit(Cncr_Caco_Clrt ~ Wcrf_C_Cal + Bmi_C + strata(Match_Caseset), data = large.nofast)
+fit6 <- clogit(Cncr_Caco_Clrt ~ Wcrf_C_Cal + Qe_Energy + L_School + Smoke_Stat + strata(Match_Caseset), data = large.nofast)
 
 # Small study, n = 980 and n = 951
 fit7 <- clogit(Cncr_Caco_Clrt ~ score.2.comps + strata(Match_Caseset), data = small)
 fit8 <- clogit(Cncr_Caco_Clrt ~ Wcrf_C_Cal + strata(Match_Caseset), data = small)
-fit9 <- clogit(Cncr_Caco_Clrt ~ Wcrf_C_Cal + Bmi_C + strata(Match_Caseset), data = small)
+fit9 <- clogit(Cncr_Caco_Clrt ~ Wcrf_C_Cal + Qe_Energy + L_School + Smoke_Stat + strata(Match_Caseset), data = small)
 
 # Fatty acids: metabolic and calculated scores
 signature <- clogit(Cncr_Caco_Clrt ~ score.2.comps + strata(Match_Caseset), data = FAs)
+sig.adj  <- clogit(Cncr_Caco_Clrt ~ score.2.comps + Qe_Energy + L_School + Smoke_Stat + strata(Match_Caseset), data = FAs)
 score <- clogit(Cncr_Caco_Clrt ~ Wcrf_C_Cal + strata(Match_Caseset), data = FAs)
-score.adj <- clogit(Cncr_Caco_Clrt ~ Wcrf_C_Cal + Center + Sex + Bmi_C + strata(Match_Caseset), data = FAs)
+score.adj <- clogit(Cncr_Caco_Clrt ~ Wcrf_C_Cal + Qe_Energy + L_School + Smoke_Stat + strata(Match_Caseset), data = FAs)
 
 # Forest plots ----
 
 # Biocrates
 library(broom)
-t1 <- map_df(list(fit1, fit2, fit3, fit4, fit5, fit6, fit7, fit8, fit9), tidy) %>% slice(c(-4, -8, -12))
+t1 <- map_df(list(fit1, fit2, fit3, fit4, fit5, fit6, fit7, fit8, fit9), tidy) %>% slice(c(1:3, 13:15, 25:27))
 studies <- data.frame(
   CC = c(rep("Large, fast", 3), rep("Large, all", 3), rep("Small", 3)),
   nvec = c(614, 609, 609, 2370, 2267, 2267, 980, 951, 951),
@@ -340,7 +318,7 @@ studies <- data.frame(
   )
 
 library(metafor)
-par(mar=c(5,4,2,2))
+par(mar=c(5,4,1,2))
 forest(t1$estimate, ci.lb = t1$conf.low, ci.ub = t1$conf.high,
        refline = 1, xlab = "Odds ratio (per unit increase in score)", pch = 18, 
        transf = exp, psize = 1.5, slab = studies$CC, ilab = studies[, 2:3], 
@@ -352,30 +330,20 @@ forest(t1$estimate, ci.lb = t1$conf.low, ci.ub = t1$conf.high,
 text(c(-1.2, -0.8, -0.6), 13, c("Study", "n", "Model"), pos = 4)
 text(2, 13, "OR [95% CI]", pos = 2)
 
-# Meta-analysis of large and small C/C ----
-# 1 Signature, small + large fasting
-ma1 <- rma(estimate, sei = std.error, data=t1, method="FE", subset = c(7,1))
-forest(ma1, transf = exp, refline = 1, slab = c("Small", "Large (F)"), xlab = "OR")
-
-# 2 Signature, small + large all
-ma2 <- rma(estimate, sei = std.error, data=t1, method="FE", subset = c(7,4))
-forest(ma2, transf = exp, refline = 1, slab = c("Small", "Large"), xlab = "OR")
-
-# 3 Score, Large + small
-ma3 <- rma(estimate, sei = std.error, data=t1, method="REML", subset = c(6,9))
-forest(ma3, transf = exp, refline = 1, slab = c("Large", "Small"), xlab = "OR")
 
 # Fatty acids
-t2 <- map_df(list(signature, score, score.adj), tidy) %>% slice(1:3)
+t2 <- map_df(list(signature, sig.adj, score, score.adj), tidy) %>% slice(c(1:2, 11:12))
 par(mar=c(5,4,2,2))
 forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high,
        refline = 1, xlab = "Odds ratio (per unit increase in score)", pch = 18, 
-       psize = 1.5, transf = exp, ilab = c(922, 902, 902),
-       slab = c("Signature","WCRF score", "WCRF score.adj"),
+       psize = 1.5, transf = exp, ilab = c(922, 922, 902, 902),
+       rows = c(1:2, 4:5),
+       ylim = c(0,8),
+       slab = c("Signature","Signature adjusted", "WCRF score", "WCRF score adjusted"),
        ilab.xpos = 0, ilab.pos = 4, xlim = c(-0.5, 1.5))
 
-text(c(-0.5, 0), 5, c("Study", "n"), pos = 4)
-text(1.5, 5, "OR [95% CI]", pos = 2)
+text(c(-0.5, 0), 7, c("Study", "n"), pos = 4)
+text(1.5, 7, "OR [95% CI]", pos = 2)
 
 
 
