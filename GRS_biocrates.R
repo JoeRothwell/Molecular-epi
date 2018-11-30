@@ -109,8 +109,8 @@ GRStest <- function(CaCo = 0, metabs = T) {
 meta <- GRStest(metabs = F)
 
 # Data for associations between GRS and metabolites for 1. Controls and 2. Cases
-controls <- GRStest()
-cases <- GRStest(CaCo = 1)
+controls <- GRStest(Caco = 0)
+cases    <- GRStest(CaCo = 1)
 
 
 # CLR modelling case-control status from GRS

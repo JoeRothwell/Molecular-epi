@@ -49,43 +49,23 @@ prepcrc2 <- function(){
 }
 crc2 <- prepcrc2()
 
-# glmnet penalised model -----------------------------------------------------------------------------------------------
-# didn't really work but useful to know how to do
+library(haven)
+prepcontrol <- function(){
+  
+  ctrl <- read_dta("obes_metabo.dta")
+  
+  # Convert Study variable to factor and rename levels
+  ctrl$Study <- fct_recode(ctrl$Study, Colonrectum_S = "Colonrectum", Colonrectum_L = "Colonrectum (bbmri)")
+  
+  # Split Batch_MetBio into two columns, then extract numeric variable
+  # Remove 1694 CRC controls
+  ctrl <- ctrl %>% separate(Batch_MetBio, into = c("batch", "rest")) %>%
+    mutate(batch_no = as.numeric(flatten(str_extract_all(batch, "[0-9]+")))) %>% 
+    filter(!(Study %in% c("Colonrectum_L", "Colonrectum_S")), Fasting_C == 2)
+  # 1799 fasted subjects left
+  
+}
+ctrl <- prepcontrol()
 
-#data prep from plsdata. Convert high and low scores to 1 and 0
-filtmat <- plsdata[ plsdata[,1] != 3, ]
-filtmat[1] <- ifelse(filtmat[1] > 3, 1, 0)
-scorehighlow <- filtmat[, 1]
-metabo <- as.matrix(filtmat[, -1])
-
-library(glmnet)
-# response and predictor variables must be matrices
-fit <- glmnet(metabo, scorehighlow, family = "binomial")
-summary(fit)
-
-cv.fit <- cv.glmnet(metabo, scorehighlow, family = "binomial")
-plot(cv.fit)
-lambda.min <- cv.fit$lambda.min
-#First dotted vertical line indicates minimal mse; 2nd indicates one sd from mse
-
-plot(fit)
-coef(fit)
-obs2predict <- as.matrix(obs2predict)
-
-#Predict high or low score from model
-tpred <- predict(fit, obs2predict, family = "binomial", s = lambda.min, type = "class") %>% as.numeric
-names(tpred) <- "glmscore"
-
-# Bind predicted scores from glmnet model to the CRC dataset
-crc <- bind_cols(glmscore = tpred, df)
-
-# Remove odd cases or controls
-crc <- crc %>% group_by(Match_Caseset) %>% filter(n() == 2) %>% ungroup
-
-# CLR Predicted scores
-library(survival)
-fit.clr <- clogit(Cncr_Caco_Clrt ~ glmscore + strata(Match_Caseset), data = crc)
-summary(fit.clr)
-table(status = crc$Cncr_Caco_Clrt, scorehighlow = crc$glmscore)
 
 

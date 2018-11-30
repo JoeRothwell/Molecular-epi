@@ -3,36 +3,51 @@
 # Get biocrates and fatty acids controls dataset for PLS model
 # Requires crc1 and crc2 to be prepared from CRC_data_prep.R
 
+source("CRC_data_prep.R")
+
 wcrf.crc <- function(study = c("large", "small"), fasting = T, modonly = F){
 
   library(tidyverse)
   
-  # EPIC controls dataset for modelling (controls)
-  ctrl <- readRDS("Biocrates data controls.rds")
+  ###
+  
+  # The following data prep for controls is now run from CRC_data_prep.R
+  # library(haven)
+  #ctrl <- readRDS("Biocrates data controls.rds")
+  #ctrl.all <- read_dta("obes_metabo.dta")
   
   #ctrl$Fasting_C[ctrl$Fasting_C == ""] <- NA
-  outliers <- c(3600, 3722)
-  ob <- ctrl[-outliers, ]
-  
+  #outliers <- c(3600, 3722)
+  #ob <- ctrl[-outliers, ]
+
   # make new numeric variable for batch and exclude colorectal controls and non-fasted samples
-  ob <- ob %>% mutate(batch_no = as.numeric(flatten(str_extract_all(Batch_MetBio, "[0-9]+")))) %>% 
-    filter(Fasting_C == "Yes", Study != "Colonrectum")
+  # needs to first convert Batch$MetBio to numeric
+  #ob <- ob %>% mutate(batch_no = as.numeric(flatten(str_extract_all(Batch_MetBio, "[0-9]+")))) 
+  
+  #ctrl <- ctrl %>% separate(Batch_MetBio, into = c("batch", "rest")) %>%
+    #mutate(batch_no = as.numeric(flatten(str_extract_all(batch, "[0-9]+")))) %>% 
+    #filter(Fasting_C == "Yes", Study != "Colonrectum")
+  
+  ###
+  
+  # EPIC controls dataset for modelling (controls)
+  # First dataset, 3771 obs; updated November 2018 7191 obs
+  ob <- ctrl
+  print(paste(nrow(ob), "Controls read"))
   
   # Subset biocrates compounds
   controls <- ob %>% select(Acylcarn_C0 : Sugars_H1)
   colnames(controls) %>% length
   # 147 variables
   
-  # ----
+  # Large CRC subset ----
   
   # Large CRC dataset (from Jelena, ~ 1200 case-control pairs), call it setA
   # Join scores and filter out non-fasted samples. Remove odd cases or controls
-  
-  library(haven)
   crcA <- crc2
     
   crcA <- if(fasting == T) crcA %>% filter(Fasting_C == 2) else crcA
-  print(paste("number of observations = ", nrow(crcA)))
+  print(paste("Subjects in larger case-control: ", nrow(crcA)))
   # Variables were converted to factors in CRC_data_prep.R
   
   setA <- crcA %>% select(Acylcarn_C0 : Sugars_H1, -starts_with("Outdq_"))
@@ -43,13 +58,13 @@ wcrf.crc <- function(study = c("large", "small"), fasting = T, modonly = F){
   common_cols <- intersect(colnames(controls), colnames(setA))
   #126 compounds in common
   
-  # ----
+  # Small CRC subset----
   
   # Prepare CRC dataset (from Bertrand, ~ 490 case-control pairs), call it set2b
   # Don't need to remove unpaired observations
   crcB <- crc1 #%>% group_by(Match_Caseset) %>% filter(n() == 2) %>% ungroup
   
-  print(paste("number of observations = ", nrow(crcB)))
+  print(paste("Subjects in smaller case-control:", nrow(crcB)))
   
   setB <- crcB %>% select(Acylcarn_C0 : Sugars_H1, -Batch_MetBio)
   colnames(setB) %>% length
@@ -76,8 +91,9 @@ wcrf.crc <- function(study = c("large", "small"), fasting = T, modonly = F){
   # check colnames are the same for both sets
   identical(colnames(controls), colnames(setA))
   
-  # Perform controls matrix of Biocrates concentrations for PLS
+  # Prepare controls matrix----
   
+  # Perform controls matrix of Biocrates concentrations for PLS
   concs <- as.matrix(controls)
   
   # replace zero with NA
@@ -101,6 +117,7 @@ wcrf.crc <- function(study = c("large", "small"), fasting = T, modonly = F){
   plsdata <- cbind(score, adjmat) %>% filter(!is.na(score))
   
   
+  # PLS model----
   # PLS model to get metabolic signature of WCRF score on controls dataset
   
   library(pls)
@@ -123,6 +140,7 @@ wcrf.crc <- function(study = c("large", "small"), fasting = T, modonly = F){
   # explained variances
   explvar(mod)
   
+  # Plots ----
   # Plots: prediction, scores, loadings
   plot(mod)
   plot(mod, plottype = "scores")
@@ -140,8 +158,9 @@ wcrf.crc <- function(study = c("large", "small"), fasting = T, modonly = F){
   barplot(tail(coefficients, 10), horiz = T, las=1, col="dodgerblue", xlab="Variable importance")
   barplot(head(coefficients, 10), horiz = T, las=1, col="red", xlab="Variable importance")
   
-  
-  # Score predictions and model of C/C status on score ----
+ 
+  # Score predictions ----
+  # Get signature scores and bind to original dataset
   
   # Transform data to matrix, impute, log, scale
   if(study == "large") mat <- setA else mat <- setB
@@ -153,7 +172,7 @@ wcrf.crc <- function(study = c("large", "small"), fasting = T, modonly = F){
   # now use predict to predict the scores of new observations (ie case-control study)
   crcscores <- data.frame(predict(mod, ncomp = 2, obs2predict))
   
-  #if(study == "large") crc <- cbind(crcscores, crcA) else crc <- cbind(crcscores, crcB)
+  if(study == "large") crc <- cbind(crcscores, crcA) else crc <- cbind(crcscores, crcB)
 
 }
 fa.crc <- function(modonly = F){

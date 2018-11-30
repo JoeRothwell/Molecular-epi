@@ -8,7 +8,10 @@ library(haven)
 # Outlier removal and adjustment for confounders ----
 
 library(tidyverse)
+# First dataset
 ctrl <- readRDS("Biocrates data controls.rds")
+# Expanded dataset with more studies
+#ctrl <- read_dta("obes_metabo.dta")
 
 # Subset metabolite matrix
 prepdata <- function(plotpca = F) {
