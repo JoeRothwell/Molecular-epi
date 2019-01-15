@@ -13,7 +13,7 @@ GRStest <- function(CaCo = 0, metabs = T) {
   # Small CRC dataset
   crcsmall <- readRDS("CRC_smallerCC.rds") 
   
-  # Get CC obs which have case-control data
+  # Get CC obs which have SNP data
   intersect(snps$Idepic, crcsmall$Idepic) %>% length
   
   
@@ -109,7 +109,7 @@ GRStest <- function(CaCo = 0, metabs = T) {
 meta <- GRStest(metabs = F)
 
 # Data for associations between GRS and metabolites for 1. Controls and 2. Cases
-controls <- GRStest(Caco = 0)
+controls <- GRStest(CaCo = 0)
 cases    <- GRStest(CaCo = 1)
 
 
@@ -127,7 +127,6 @@ fit2 <- glm(Cncr_Caco_Clrt ~ GRS + Country + study, data = meta)
 summary(fit2)
 
 st <- stargazer(fit, type = "text", ci = T, apply.coef = exp)
-
 
 
 # Plot results for metabolites vertically
