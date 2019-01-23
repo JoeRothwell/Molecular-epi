@@ -21,12 +21,9 @@ df.bioc <- function(study = c("large", "small"), fasting = T, scorecomp.only = F
   zerocols <- apply(controls, 2, function(x) sum(x, na.rm = T)) != 0
   controls <- controls[, zerocols]
   
-  
   colnames(controls) %>% length # 147 variables
   
-  # Large CRC metabolomics subset ----
-  
-  # (from Jelena, ~ 1200 case-control pairs), call it crcA
+  # Large CRC metabolomics subset from Jelena, ~ 1200 case-control pairs), call it crcA
   # Join scores and filter out non-fasted samples
   crcA <- crc2
   crcA <- if(fasting == T) crcA %>% filter(Fasting_C == 2) else crcA
@@ -52,13 +49,9 @@ df.bioc <- function(study = c("large", "small"), fasting = T, scorecomp.only = F
   var.list <- c("Country", "Center", "Sex")
   crcB <- crcB %>% mutate_at(vars(var.list), as.factor)
   #common_cols <- intersect(colnames(controls), colnames(setB))   # 145 compounds in common
-  
-  # ----
-  
+
   # Get common cols between all three datasets (controls, small CC, big CC)
   common_cols2 <- intersect(common_cols, colnames(setB))   # Glyceroph_Lysopc_A_C24_0 is removed
-  
-  # ----  
   
   # subset and reorder both datasets to get the same 126 compounds in the same order
   controls <- controls %>% select(one_of(common_cols2))
@@ -81,10 +74,10 @@ df.bioc <- function(study = c("large", "small"), fasting = T, scorecomp.only = F
   # now use predict to predict the scores of new observations (ie case-control study)
   crcscores <- data.frame(predict(mod1, ncomp = 2, obs2predict))
   if(scorecomp.only == T) return(crcscores)
-  if(study == "large") crc <- cbind(crcscores, crcA) else crc <- cbind(crcscores, crcB)
+  if(study == "large") output <- cbind(crcscores, crcA) else output <- cbind(crcscores, crcB)
 
 }
-df.FAs  <- function(modonly = F){
+df.FAs  <- function(){
   
   # Fatty acid signatures of WCRF score
   library(tidyverse)
@@ -100,15 +93,12 @@ df.FAs  <- function(modonly = F){
   # Subset Biocrates compounds
   CRCfa <- CRCfa1 %>% select(P14_0 : PCLA_9t_11c) 
   
-  # ----
-  
   # Get dataset for PLS modelling (all EPIC controls). Exclude compounds with many missings
   # Note: new version from Carine received 18/11/2018 with technical covariates
   fa.scores <- readRDS("FA_WCRF_scores1.rds") %>% filter(STUDY != "Colorectum")
   fa.scores$N_Serie <- as.numeric(fa.scores$N_Serie)
   
   # convert categorical variables to factors
-  
   var.list <- c("Country", "Center", "STUDY", "LABO")
   fa.scores <- fa.scores %>% mutate_at(vars(var.list), as.factor)
   
@@ -126,8 +116,7 @@ df.FAs  <- function(modonly = F){
   CRCfa <- read_dta("Database_Fatty acids.dta") %>% select(one_of(common_cols)) 
   identical(colnames(CRCfa), colnames(concs))
   
-  # Predict scores for CRC dataset ---------------------------------------------------------------------
-  
+  # Predict scores for CRC dataset
   CRCfa <- as.matrix(CRCfa)
   CRCfa[CRCfa == 0] <- NA
   library(zoo)
@@ -138,7 +127,7 @@ df.FAs  <- function(modonly = F){
   crcscores <- data.frame(predict(mod2, ncomp = 2, obs2predict))
   
   # Put the predicted scores together with the original data, remove unpaired sample
-  crc <- cbind(crcscores, CRCfa1) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+  output <- cbind(crcscores, CRCfa1) %>% group_by(Match_Caseset) %>% filter(n() == 2)
   
 }
 

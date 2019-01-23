@@ -94,7 +94,7 @@ prepctrl <- function(data = c("old", "new")){
 }
 ctrl <- prepctrl(data = "new")
 
-signature1 <- function(fasting = T, modonly = F, scorecomp.only = F) {
+signature1 <- function(fasting = T) {
 
   library(tidyverse)
   # First dataset, 3771 obs; updated November 2018 7191 obs
@@ -185,9 +185,6 @@ signature1 <- function(fasting = T, modonly = F, scorecomp.only = F) {
   best.dims <- which.min(cv$val[estimate = "adjCV", , ]) - 1
   mod <- plsr(score ~ ., data = plsdata, ncomp = best.dims)
   
-  # Create option to return model details only
-  #if(modonly == T) return(mod)
-  
   # explained variances
   explvar(mod)
   
@@ -207,14 +204,11 @@ signature1 <- function(fasting = T, modonly = F, scorecomp.only = F) {
   # Get top and bottom deciles of compound coefficients
   df <- data.frame(as.list(coefficients)) %>% gather(Cmpd, VIP)
   
-  # option to return coefficients
-  #if(modonly == T) return(df)
-  
   qs <- quantile(coefficients, probs = seq(0, 1, 0.05))
   df1 <- df[df$VIP > qs[18], ]
   df2 <- df[df$VIP < qs[4], ]
   
-  if(modonly == T) return(list(df1, df2))
+  # if(modonly == T) return(list(df1, df2))
   # Vector of colours for plot points
   vec <- ifelse(df$VIP > qs[18] | df$VIP < qs[4], "black", "grey")
   
@@ -244,8 +238,6 @@ signature2 <- function(modonly = F){
   
   # Subset FA concentrations
   CRCfa <- CRCfa1 %>% select(P14_0 : PCLA_9t_11c) 
-  
-  # ----
   
   # Get dataset for PLS modelling (all EPIC controls). Exclude compounds with many missings
   # Note: new version from Carine received 18/11/2018 with technical covariates
@@ -306,8 +298,6 @@ signature2 <- function(modonly = F){
   # Rerun the model with the optimum number of components
   mod <- plsr(score ~ ., data = plsdata, ncomp = best.dims)
   
-  #if(modonly == T) return(mod)
-  
   # explained variances
   explvar(mod)
   
@@ -336,9 +326,11 @@ signature2 <- function(modonly = F){
   text(nrow(df) - nrow(df1):1, df1$VIP, df1$Cmpd, pos=2, cex = 0.6)
   text(1:nrow(df2), df2$VIP, df2$Cmpd, pos=4, cex=0.6)
   abline(a=0, b=0, lty = "dotted")
-  
-  if(modonly == F) return(mod) else return(coefficients)
+
+  output <- mod
 }
 mod2 <- signature2()
+
+
 
 
