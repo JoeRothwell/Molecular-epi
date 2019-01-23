@@ -1,6 +1,6 @@
 # Models for colorectal cancer status and WCRF score. First source CRC_data_prep.R which preps the two CCs.
 source("CRC_data_prep.R")
-source(Metabolic_signature_WCRF.R)
+source("Metabolic_signature_WCRF.R")
 
 library(haven)
 library(tidyverse)
@@ -20,10 +20,12 @@ scorecomp <- c("1. Body fatness", "2. Physical activity", "3. Energy density/sug
            "       Overall WCRF score (cal.)")
 scorecomp2 <- c(scorecomp, "       Signature metabolites")
 xtitle     <- "Odds ratio (per unit increase in score)"
+xtitle2     <- "Hazard ratio (per unit increase in score)"
 
 library(survival)
 library(broom)
 # Function to run model case-control status from main WCRF score components and get tidy output
+# Warning: takes a while to run
 clr_crc <- function(dat, sig = "none") {
   
   # model with covariates
@@ -61,6 +63,8 @@ hh <- par("usr")
 text(hh[1], nrow(t2) + 2, "Component of score", pos = 4)
 text(hh[2], nrow(t2) + 2, "OR [95% CI]", pos = 2)
 
+
+
 # Plot only overall score and signature from each study
 t4 <- bind_rows(t1[nrow(t1), ], t2[(nrow(t2)-1):nrow(t2), ], t3[(nrow(t3)-1):nrow(t3), ])
 
@@ -83,8 +87,6 @@ ma2 <- rma(estimate, sei = std.error, data=t4, method="REML", subset = 2:3)
 ma3 <- rma(estimate, sei = std.error, data=t4, method="FE", subset = c(2,4))
 ma4 <- rma(estimate, sei = std.error, data=t4, method="REML", subset = c(2,4))
 
-
-
 par(mfrow = c(1,2))
 slab <- c("WCRF small \nmetabolomics", "WCRF large \nmetabolomics")
 forest(ma1, transf = exp, refline = 1, slab = slab, xlab = "OR")
@@ -92,6 +94,44 @@ forest(ma2, transf = exp, refline = 1, slab = slab, xlab = "OR")
 forest(ma3, transf = exp, refline = 1, slab = slab, xlab = "OR")
 forest(ma4, transf = exp, refline = 1, slab = slab, xlab = "OR")
 
+
+
+
+#---- Prospective associations WCRF score and CRC
+
+# Cox model for whole dataset
+# Create the survival object. In stata, age at exit, age at birth, age at recruitment, and CRC yes/no are used
+# survobj <- Surv(time = df$Age_Recr, time2 = ..., event = ...)
+# join the WCRF scores
+library(haven)
+library(tidyverse)
+wcrf <- read_dta("wcrf_score.dta")
+fullepic <- read_dta("D:/full epic.dta")
+fullepic <- fullepic %>% left_join(wcrf, by = "Idepic")
+
+# Cox proportional hazards models ----
+# model with covariates
+mat <- fullepic %>% select(wcrf_vars)
+
+library(survival)
+# Create the survival object. In stata, age at exit, age at birth, age at recruitment, and CRC yes/no are used
+survobj <- Surv(time = fullepic$Age_Recr, time2 = fullepic$Agexit, event = fullepic$Cncr_Evt_Clrt)
+
+# Run model and apply across WCRF matrix
+fit <- function(x) coxph(survobj ~ x + Smoke_Intensity + L_School + QE_ENERGY + strata(Sex, Center.x), data = fullepic)
+multifit <- apply(mat, 2, fit)
+  
+# subset risk estimate for score only
+library(broom)
+t1 <- map_df(multifit, tidy) %>% filter(term == "x")
+
+library(metafor)
+par(mar=c(5,4,1,2))
+forest(t1$estimate, ci.lb = t1$conf.low, ci.ub = t1$conf.high, refline = 1, xlab = xtitle2, 
+       transf = exp, pch = 18, psize = 1.5, slab = scorecomp) 
+hh <- par("usr")
+text(hh[1], nrow(t1) + 2, "Component of score", pos = 4)
+text(hh[2], nrow(t1) + 2, "HR [95% CI]", pos = 2)
 
 
 
