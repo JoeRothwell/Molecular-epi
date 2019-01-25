@@ -136,11 +136,7 @@ large   <- df.bioc(study = "large", fasting = F)
 large.F <- df.bioc(study = "large")
 FAs     <- df.FAs()
 
-# Model details only (to get compound signature)        
-mod <- wcrf.crc(modonly = T)
-mod <- fa.crc(modonly = T)
-
-# Model CC status from calculated or signature-predicted score
+# Model CC status from calculated or signature-predicted score for four datasets
 
 library(survival)
 base <- Cncr_Caco_Clrt ~ Qe_Energy + L_School + Smoke_Stat + strata(Match_Caseset)
@@ -150,19 +146,57 @@ fit3 <- clogit(update(base, ~. + score.2.comps), data = large)
 fit4 <- clogit(update(base, ~. + Wcrf_C_Cal), data = large)
 fit5 <- clogit(update(base, ~. + score.2.comps), data = small)
 fit6 <- clogit(update(base, ~. + Wcrf_C_Cal), data = small)
-# Fatty acids
 fit7 <- clogit(update(base, ~. + score.2.comps), data = FAs)
 fit8 <- clogit(update(base, ~. + Wcrf_C_Cal), data = FAs)
 
+
+
 # Forest plots ----
 
+# Signature only for Biocrates small and large (all subjects in study) and fatty acids small
+ll2 <- list(fit3, fit5, fit7)
 library(broom)
-# Data for forest plot: all 8 models above for Biocrates and fatty acids
+t2 <- map_df(ll2, tidy) %>% filter(term == "score.2.comps")
+studies <- data.frame(CC = c("Large", rep("Small", 2)), nvec = map_int(ll2, 10),
+  metabolites = c(rep("Biocrates", 2), "Fatty acids"))
+
+par(mar=c(5,4,1,2))
+forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1, 
+       xlab = "Odds ratio CRC (per unit increase in score)", pch = 18, 
+       transf = exp, psize = 1.5, slab = studies$CC, ilab = studies[, 2:3], 
+       ylim = c(0, 6),
+       ilab.pos = 4, ilab.xpos = c(-0.8, -0.4), xlim = c(-1.2, 2))
+
+text(c(-1.2, -0.8, -0.4), 5, c("Study", "n", "Metabolites"), pos = 4)
+text(2, 5, "OR [95% CI]", pos = 2)
+
+
+# Meta-analysis
+par(mar=c(5,4,0,2))
+ma1 <- rma(estimate, sei = std.error, data=t2, method="FE", subset = 1:2)
+forest(ma1, transf = exp, refline = 1, slab = c("Large", "Small"), xlab = "OR", efac = 4)
+hh <- par("usr")
+
+text(hh[1], 4, "Study", pos = 4)
+text(hh[2], 4, "OR [95% CI]", pos = 2)
+
+ma2 <- rma(estimate, sei = std.error, data=t2, method="REML", subset = 1:2)
+forest(ma2, transf = exp, refline = 1, slab = c("Large", "Small"), xlab = "OR", efac = 4)
+
+text(hh[1], 4, "Study", pos = 4)
+text(hh[2], 4, "OR [95% CI]", pos = 2)
+
+
+
+# All models ----
+
+library(broom)
+# Old: data for forest plot: all 8 models above for Biocrates and fatty acids
 ll <- list(fit7, fit8, fit1, fit2, fit3, fit4, fit5, fit6)
 t1 <- map_df(ll, tidy) %>% filter(term == "score.2.comps" | term == "Wcrf_C_Cal")
 studies <- data.frame(
   CC = c(rep("Small", 2), rep("Large, fast", length(ll)/3), rep("Large, all", length(ll)/3), rep("Small", 2)),
-  nvec = c(fit7$n, fit8$n, fit1$n, fit2$n, fit3$n, fit4$n, fit5$n, fit6$n),
+  nvec = map_int(ll, 10),
   metabolites = c(rep("Fatty acids", 2), rep("Biocrates", 6)),
   mod = rep(c("Signature", "WCRF score"), 4)
   )
@@ -179,7 +213,6 @@ forest(t1$estimate, ci.lb = t1$conf.low, ci.ub = t1$conf.high,
 
 text(c(-1.2, -0.8, -0.6, -0.2), 13, c("Study", "n", "Metabolites", "Predictor"), pos = 4)
 text(2, 13, "OR [95% CI]", pos = 2)
-
 
 
 
