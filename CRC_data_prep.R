@@ -4,6 +4,9 @@
 # Read in small CRC case control dataset (1) and subset the 146 biocrates compounds
 # stored at \\inti\NME\EPIC_Projects\Epic_Colonrectum\Nested_CaCo_Study\2016
 # Missings are already imputed
+# In CRC1, subjects with Biocrates data must first be subset
+
+# Prep three datasets
 
 prepcrc1 <- function(){
 
@@ -94,6 +97,8 @@ prepctrl <- function(data = c("old", "new")){
 }
 ctrl <- prepctrl(data = "new")
 
+# Calculate Biocrates and fatty acid signatures
+
 signature1 <- function(fasting = T) {
 
   library(tidyverse)
@@ -117,18 +122,25 @@ signature1 <- function(fasting = T) {
   print(paste("Subjects in larger case-control: ", nrow(crc2)))
   # Variables were converted to factors in CRC_data_prep.R
   
-  setA <- crc2 %>% select(Acylcarn_C0 : Sugars_H1, -starts_with("Outdq_"))
+  #setA <- crc2 %>% select(Acylcarn_C0 : Sugars_H1, -starts_with("Outdq_"))
+  
+  setA <- crc2 %>% select(matches("Acylcarn_|Aminoacid_|Biogenic_|Glyceroph_|Sphingo_|Sugars_"), 
+                          -starts_with("Outdq"))
+  zerocols1 <- apply(setA, 2, function(x) sum(x, na.rm = T)) != 0
+  setA <- setA[, zerocols1]
   colnames(setA) %>% length
   # 163 variables
   
-  # Get common compound between controls and CRC CC
+  # Get common compounds between controls and CRC CC
   common_cols <- intersect(colnames(controls), colnames(setA))   # 135 compounds in common
   
   # Small CRC metabolomics subset----
   # (from Bertrand, ~ 490 case-control pairs), call it crc1
   print(paste("Subjects in smaller case-control:", nrow(crc1)))
   
-  setB <- crc1 %>% select(Acylcarn_C0 : Sugars_H1, -Batch_MetBio)
+  # setB <- crc1 %>% select(Acylcarn_C0 : Sugars_H1, -Batch_MetBio)
+  setB <- crc1 %>% select(matches("Acylcarn_|Aminoacid_|Biogenic_|Glyceroph_|Sphingo_|Sugars_"), 
+                           -starts_with("Outdq"))
   colnames(setB) %>% length
   
   # Convert variables to factors
@@ -174,6 +186,7 @@ signature1 <- function(fasting = T) {
   # For metabolic signature of WCRF score on controls dataset
   
   library(pls)
+  set.seed(111)
   mod <- plsr(score ~ ., data = plsdata, validation = "CV")
   #summary(mod)
   
@@ -186,7 +199,7 @@ signature1 <- function(fasting = T) {
   mod <- plsr(score ~ ., data = plsdata, ncomp = best.dims)
   
   # explained variances
-  explvar(mod)
+  # explvar(mod)
   
   # Plots ----
   # Prediction, scores, loadings
@@ -194,36 +207,10 @@ signature1 <- function(fasting = T) {
   # plot(mod, plottype = "scores")
   # plot(mod, "loadings", legendpos = "topleft")
   
-  # Coefficients and variable importance
-  coefficients <- coef(mod)
-  sum.coef <- sum(sapply(coefficients, abs))
-  coefficients <- coefficients * 100 / sum.coef
-  coefficients <- sort(coefficients[, 1 , 1])
-  # plot(coefficients)
-  
-  # Get top and bottom deciles of compound coefficients
-  df <- data.frame(as.list(coefficients)) %>% gather(Cmpd, VIP)
-  
-  qs <- quantile(coefficients, probs = seq(0, 1, 0.05))
-  df1 <- df[df$VIP > qs[18], ]
-  df2 <- df[df$VIP < qs[4], ]
-  
-  # if(modonly == T) return(list(df1, df2))
-  # Vector of colours for plot points
-  vec <- ifelse(df$VIP > qs[18] | df$VIP < qs[4], "black", "grey")
-  
-  # Now plot data, adding text
-  plot(coefficients, pch = 17, col=vec, xlab = "", ylab = "Variable Importance",
-       main = paste(nrow(plsdata), "fasted subjects, optimal dimensions =", best.dims))
-  text(nrow(df) - nrow(df1):1, df1$VIP, df1$Cmpd, pos=2, cex = 0.6)
-  text(1:nrow(df2), df2$VIP, df2$Cmpd, pos=4, cex=0.6)
-  abline(a=0, b=0, lty = "dotted")
-  
-  return(mod)
 }
 mod1 <- signature1()
 
-signature2 <- function(modonly = F){
+signature2 <- function(){
   
   # Fatty acid signatures of WCRF score
   library(tidyverse)
@@ -285,6 +272,7 @@ signature2 <- function(modonly = F){
   plsdata <- data.frame(score = fa.scores$Wcrf_C_Cal, resmat) %>% filter(!is.na(score))
   
   library(pls)
+  set.seed(111)
   mod <- plsr(score ~ ., data = plsdata, validation = "CV")
   # summary(mod)
   
@@ -299,37 +287,90 @@ signature2 <- function(modonly = F){
   mod <- plsr(score ~ ., data = plsdata, ncomp = best.dims)
   
   # explained variances
-  explvar(mod)
+  # explvar(mod)
   
   # Plots: prediction, scores, loadings
   #plot(mod)
   #plot(mod, plottype = "scores")
   #plot(mod, "loadings", legendpos = "topleft")
   
-  # Plot the variable importance
-  coefficients <- coef(mod)
-  sum.coef <- sum(sapply(coefficients, abs))
-  coefficients <- coefficients * 100 / sum.coef
-  coefficients <- sort(coefficients[, 1 , 1])
-  
-  # Get top and bottom deciles of compound coefficients
-  df <- data.frame(as.list(coefficients)) %>% gather(Cmpd, VIP)
-  qs <- quantile(coefficients, probs = seq(0, 1, 0.05))
-  df1 <- df[df$VIP > qs[18], ]
-  df2 <- df[df$VIP < qs[4], ]
-  # Vector of colours for plot points
-  vec <- ifelse(df$VIP > qs[18] | df$VIP < qs[4], "black", "grey")
-  
-  # Now plot data, adding text
-  plot(coefficients, pch = 17, col=vec, xlab = "", ylab = "Variable Importance",
-       main = paste("Fatty acids:", nrow(plsdata), "fasted subjects, optimal dimensions =", best.dims))
-  text(nrow(df) - nrow(df1):1, df1$VIP, df1$Cmpd, pos=2, cex = 0.6)
-  text(1:nrow(df2), df2$VIP, df2$Cmpd, pos=4, cex=0.6)
-  abline(a=0, b=0, lty = "dotted")
-
-  output <- mod
 }
 mod2 <- signature2()
+
+# Produce tables of important compounds
+
+plot_sig1 <- function(mod){
+  
+  # Coefficients and variable importance. First subset one-matrix array to get matrix
+  k <- 126
+  coeff <- data.frame(value = coef(mod)[1:k, 1, 1])
+  dat <- coeff %>% mutate(sm  = sum(abs(value)), 
+           VIP = (value*100)/sm, Compound = rownames(coeff))
+  
+  # Subset appropriate columns and print influential compounds
+  dat <- dat %>% select(Compound, Coeff = value, VIP) %>% arrange(VIP)
+  
+  # choose number of influential compounds to plot
+  n_top <- 7
+  
+  df1 <- top_n(dat, n_top)  %>% arrange(-VIP)
+  df2 <- top_n(dat, -n_top) %>% arrange(VIP)
+  
+  print(df1)
+  print(df2)
+  
+  # Vector of black and grey for plot points
+  vec <- c( rep("black", n_top), rep("grey", k-(n_top*2)), rep("black", n_top) )
+  
+  # Now plot data, adding text
+  plot(sort(coeff$value), pch = 17, col=vec, xlab = "", ylab = "Coefficient",
+       main = paste(nrow(mod$scores), "fasted subjects, optimal dimensions =", mod$ncomp))
+  # High labels
+  text(nrow(dat) : (nrow(dat)-n_top), df1$Coeff, df1$Compound, pos=2, cex = 0.6)
+  # Low labels
+  text(1:nrow(df2), df2$Coeff, df2$Compound, pos=4, cex=0.6)
+  abline(a=0, b=0, lty = "dotted")
+  
+  output <- bind_rows(df1, df2)
+  
+}
+table3a <- plot_sig1(mod1)
+
+plot_sig2 <- function(mod){
+  
+  # Plot the variable importance
+  k <- 34
+  coeff <- data.frame(value = coef(mod)[1:k, 1, 1])
+  dat <- coeff %>% mutate(sm  = sum(abs(value)), 
+                          VIP = (value*100)/sm, Compound = rownames(coeff))
+  
+  # Subset appropriate columns and print influential compounds
+  dat <- dat %>% select(Compound, Coeff = value, VIP) %>% arrange(VIP)
+  
+  # choose number of influential compounds to plot
+  n_top <- 5
+  
+  df1 <- top_n(dat, n_top)  %>% arrange(-VIP)
+  df2 <- top_n(dat, -n_top) %>% arrange(VIP)
+  
+  print(df1)
+  print(df2)
+  
+  # Vector of colours for plot points
+  vec <- c( rep("black", n_top), rep("grey", k-(n_top*2)), rep("black", n_top) )
+  
+  # Now plot data, adding text
+  plot(sort(coeff$value), pch = 17, col=vec, xlab = "", ylab = "Coefficient",
+       main = paste("Fatty acids:", nrow(mod$scores), "fasted subjects, optimal dimensions =", mod$ncomp))
+  # High compounds
+  text(nrow(dat) : (nrow(dat)-n_top), df1$Coeff, df1$Compound, pos=2, cex = 0.6)
+  # Low compounds
+  text(1:nrow(df2), df2$Coeff, df2$Compound, pos=4, cex=0.6)
+  abline(a=0, b=0, lty = "dotted")
+
+  output <- bind_rows(df1, df2)
+}
+table3b <- plot_sig2(mod2)
 
 
 
