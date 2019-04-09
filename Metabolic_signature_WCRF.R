@@ -156,11 +156,13 @@ fit8 <- clogit(update(base, ~. + Wcrf_C_Cal), data = FAs)
 # Signature only for Biocrates small and large (all subjects in study) and fatty acids small
 ll2 <- list(fit3, fit5, fit7)
 library(broom)
+library(tidyverse)
 t2 <- map_df(ll2, tidy) %>% filter(term == "score.2.comps")
 studies <- data.frame(CC = c("Large", rep("Small", 2)), nvec = map_int(ll2, 10),
   metabolites = c(rep("Biocrates", 2), "Fatty acids"))
 
 par(mar=c(5,4,1,2))
+library(metafor)
 forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1, 
        xlab = "Odds ratio CRC (per unit increase in score)", pch = 18, 
        transf = exp, psize = 1.5, slab = studies$CC, ilab = studies[, 2:3], 
