@@ -8,11 +8,13 @@ This repository is the codebase for the following projects:
 
 `Biocrates_controls_data_prep.R`: Plots PCAs of EPIC controls data with adjustment for confounders using the residuals method. 
 
-`CRC_data_prep.R`: Prepares three datasets, the EPIC controls and the two CRC case-control datasets for analysis, by subsetting the appropriate observations and joining the necessary variables from other datasets. Also finds Biocrates and fatty acids signatures of WCRF score using a PLS model and stores these as objects to then use for association with CRC risk. Common metabolites between datasets are first determined and this overlap only used for PLS.
+`CRC_data_prep.R`: Prepares three datasets, the EPIC controls and the two CRC case-control datasets for analysis, by subsetting the appropriate observations and joining the necessary variables from other datasets.
 
-`Metabolite_signature_WCRF.R`: Calculates associations between WCRF scores or signatures of WCRF score and CRC and makes forest plots of the results. Also meta-analyses the two CRC case-controls.
+`Biocrates_cmpd_metadata.R`: Extracts coded compound names and full compound names from a Stata .dta file and places them in a data frame.
 
-`CRC_models.R`: Runs Cox models for signature and conditional logistic models for both score and signature and outputs forest plots. Also meta-analyses data.
+`Metabolic_signatures.R`: Finds endogenous (Biocrates) and fatty acids signatures of WCRF score using a PLS model and stores these as objects to subsequently use for association with CRC risk. Common metabolites between datasets are first determined and this overlap only used for PLS.
+
+`CRC_models_calc_score.R` and `CRC_models_signature.R`: Run Cox or conditional logistic models for score and signature respectively. Create forest plots and meta-analyse data using `metafor`.
 
 `Metabolite_volcano_WCRF.R`: Calculates associations between WCRF scores (high and low categories) and Biocrates metabolites or blood fatty acids by logistic regression.
 
@@ -39,4 +41,6 @@ This repository is the codebase for the following projects:
 #### Association of serum metabolites and dietary and lifestyle factors in the Lifepath study
 
 `Lifepath_exploratory.R`: Exploratory analysis of Lifepath NMR metabolomics data.
+
+`baseline_Lifepath.Rmd`: Generates a baseline characteristics file for the study from subject metadata.
 
