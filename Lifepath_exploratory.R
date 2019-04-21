@@ -38,14 +38,6 @@ xl2 <- read_xlsx("C:/J_ROTHWELL/1507_ClusterAnnotation_E3N.xlsx")
 # Metadata and intensities
 xl4 <- read_xlsx("C:/J_ROTHWELL/1603_MatriceY_CohorteE3N_Appar.xlsx", sheet = 6)
 
-# Subset variables in Table 1 manuscript
-meta <- meta %>% 
-  select(AGE, BMI, HANCHE, MENOPAUSE, SMK, DIABETE, Life_Alcohol_Pattern_1, BP, Trait_Horm, 
-         CO, CENTTIMECat2, FASTING, 
-         STOCKTIME, BEHAVIOUR, SUBTYPE, HR, Estro_THM, Pg_seul, SBR, GRADE, STADE, 
-         DIAGSAMPLINGCat1)
-
-
 ints <- read_tsv("C:/J_ROTHWELL/1507_XMetabolite_std_cpmg_E3N.txt")
 ints1 <- read_tsv("C:/J_ROTHWELL/1507_XMetaboliteE3N_cpmg.txt", skip = 1)
 
