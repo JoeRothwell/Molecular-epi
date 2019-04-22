@@ -1,6 +1,6 @@
 ---
 title: "Lifepath NMR metabolomics analysis"
-output: html_document
+output: rmarkdown::github_document
 ---
 
 ```{r setup, include=FALSE}
