@@ -199,7 +199,7 @@ signature2 <- function(){
 }
 mod2 <- signature2()
 
-# Produce tables of important compounds
+# Produce tables of important compounds, using compound metadata to get proper names
 
 plot_sig1 <- function(mod, no.cmpds = 7){
   
@@ -207,13 +207,13 @@ plot_sig1 <- function(mod, no.cmpds = 7){
   
   # Coefficients and variable importance. First subset one-matrix array to get matrix
   k <- 126
-  coeff <- data.frame(value = coef(mod)[1:k, 1, 1])
-  dat <- coeff %>% mutate(sm  = sum(abs(value)), 
-                          VIP = (value*100)/sm, Compound = rownames(coeff))
+  coeff <- data.frame(value = round(coef(mod)[1:k, 1, 1], 3))
+  dat <- coeff %>% mutate(sm  = sum(abs(value)), VIP = round((value*100)/sm, 2), 
+                          Compound = rownames(coeff))
   dat <- dat %>% left_join(cmpd.meta, by = "Compound")
   
   # Subset appropriate columns and print influential compounds
-  dat <- dat %>% select(displayname, Coeff = value, VIP) %>% arrange(VIP)
+  dat <- dat %>% select(compound = displayname, Coefficient = value, VIP) %>% arrange(VIP)
   
   # choose number of influential compounds to plot
   n_top <- no.cmpds
@@ -231,9 +231,9 @@ plot_sig1 <- function(mod, no.cmpds = 7){
   plot(sort(coeff$value), pch = 17, col=vec, xlab = "", ylab = "Coefficient",
        main = paste(nrow(mod$scores), "fasted subjects, optimal dimensions =", mod$ncomp))
   # High labels
-  text(nrow(dat) : (nrow(dat)-n_top), df1$Coeff, df1$displayname, pos=2, cex = 0.6)
+  text(nrow(dat) : (nrow(dat)-n_top), df1$Coefficient, df1$compound, pos=2, cex = 0.6)
   # Low labels
-  text(1:nrow(df2), df2$Coeff, df2$displayname, pos=4, cex=0.6)
+  text(1:nrow(df2), df2$Coefficient, df2$compound, pos=4, cex=0.6)
   abline(a=0, b=0, lty = "dotted")
   
   output <- bind_rows(df1, df2)
@@ -243,14 +243,18 @@ table3a <- plot_sig1(mod1)
 
 plot_sig2 <- function(mod){
   
+  cmpd.meta <- read.csv("FA_compound_data.csv")
+  
   # Plot the variable importance
   k <- 34
-  coeff <- data.frame(value = coef(mod)[1:k, 1, 1])
-  dat <- coeff %>% mutate(sm  = sum(abs(value)), 
-                          VIP = (value*100)/sm, Compound = rownames(coeff))
+  coeff <- data.frame(value = round(coef(mod)[1:k, 1, 1], 3))
+  dat <- coeff %>% mutate(sm  = sum(abs(value)), VIP = round((value*100)/sm, 2), 
+                          Compound = rownames(coeff))
+  
+  dat <- dat %>% left_join(cmpd.meta, by = "Compound")
   
   # Subset appropriate columns and print influential compounds
-  dat <- dat %>% select(Compound, Coeff = value, VIP) %>% arrange(VIP)
+  dat <- dat %>% select(compound = displayname2, Coefficient = value, VIP) %>% arrange(VIP)
   
   # choose number of influential compounds to plot
   n_top <- 5
@@ -268,11 +272,14 @@ plot_sig2 <- function(mod){
   plot(sort(coeff$value), pch = 17, col=vec, xlab = "", ylab = "Coefficient",
        main = paste("Fatty acids:", nrow(mod$scores), "fasted subjects, optimal dimensions =", mod$ncomp))
   # High compounds
-  text(nrow(dat) : (nrow(dat)-n_top), df1$Coeff, df1$Compound, pos=2, cex = 0.6)
+  text(nrow(dat) : (nrow(dat)-n_top), df1$Coefficient, df1$compound, pos=2, cex = 0.6)
   # Low compounds
-  text(1:nrow(df2), df2$Coeff, df2$Compound, pos=4, cex=0.6)
+  text(1:nrow(df2), df2$Coefficient, df2$compound, pos=4, cex=0.6)
   abline(a=0, b=0, lty = "dotted")
   
   output <- bind_rows(df1, df2)
 }
 table3b <- plot_sig2(mod2)
+
+# Save workspace (for .Rmd file)
+# save.image(file="metabolic_signatures.Rdata")

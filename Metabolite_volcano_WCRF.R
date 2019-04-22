@@ -44,20 +44,22 @@ volcano <- function(Cal = F, fasting = T, adj = T) {
   meanfc   <- means[, 2]/means[, 1]
   
   # make final data frame adding extra columns for point labelling
+  cmpd.meta <- read.csv("Biocrates_cmpd_metadata.csv")
   volcanodf <- 
-    data_frame(Cmpd = colnames(metabo), Fold_change = meanfc[-1], p.value = p.adj) %>%
-    separate(Cmpd, into = c("subclass", "rest"), sep = "_", extra = "merge", remove = F) %>%
+    data_frame(Compound = colnames(metabo), Fold_change = meanfc[-1], p.value = p.adj) %>%
+    separate(Compound, into = c("subclass", "rest"), sep = "_", extra = "merge", remove = F) %>%
     mutate(
            # variables for Manhattan
-           subclass1   = ifelse(str_detect(Cmpd, "Lysopc"), "LysoPC", subclass),
+           subclass1   = ifelse(str_detect(Compound, "Lysopc"), "LysoPC", subclass),
            direction   = ifelse(Fold_change > 1, "Increased with score", "Decreased with score"),
            Association = ifelse(p.value < 0.001, direction, "Not significant"),
            
            # For Volcano, specify points to label
-           tolabel     = ifelse(p.adj < 0.001 & abs(1 - Fold_change) > 0.05, Cmpd, NA),
+           tolabel     = ifelse(p.adj < 0.001 & abs(1 - Fold_change) > 0.05, Compound, NA),
            tocolour    = ifelse(p.adj < 0.001 & abs(1 - Fold_change) > 0.05, direction, "col3")
 
-           )
+           ) %>% 
+    left_join(cmpd.meta, by = "Compound")
 }
 volcano.fa <- function() {
   
@@ -101,13 +103,16 @@ volcano.fa <- function() {
   # calculation of fold changes for volcano plot. Make sure to use non-log data
   cats  <- data.frame(scorecat = fa$score_cat, concs)
   
+  cmpd.meta <- read.csv("FA_compound_data.csv")
+  
   # Data frame for results. FAs are roughly categorised by string count. Use factor_key to keep order
   output <- cats %>% group_by(scorecat) %>% summarise_all(funs(mean)) %>%
-    gather(cmpd, conc, -scorecat, factor_key = T) %>%
+    gather(Compound, conc, -scorecat, factor_key = T) %>%
     spread(scorecat, conc) %>%
     bind_cols(p, p.adj) %>%
     mutate(meanfc = `1`/`0`, associated = ifelse(meanfc > 1, "incr_score", "decr_score"),
-           Cmpd.length = as.factor(str_count(cmpd)) )
+           Cmpd.length = as.factor(str_count(Compound)) ) %>%
+    inner_join(cmpd.meta, by = "Compound")
   
 }
 
@@ -126,7 +131,7 @@ all <- bind_rows(list("Raw" = raw, "Cal" = cal), .id = "id") %>% filter(rest != 
 # Manhattan ----
 
 # Vertical, by subclass, in order of p-value (cal or raw)
-ggplot(cal, aes(y = reorder(Cmpd, p.value), x = log10(p.value), shape = direction, colour = direction)) + 
+ggplot(cal, aes(y = reorder(displayname2, p.value), x = log10(p.value), shape = direction, colour = direction)) + 
   theme_minimal(base_size = 10) +
   geom_point() + geom_vline(xintercept = -3, linetype = "dashed") +
   xlab("-log10(p-value)") +
@@ -138,7 +143,7 @@ ggplot(cal, aes(y = reorder(Cmpd, p.value), x = log10(p.value), shape = directio
   #ggtitle("Metabolite associations with WCRF score (cal)")
 
 # Horizontal, by subclass, in order of p-value (cal or raw)
-ggplot(cal, aes(x = reorder(Cmpd, p.value), y = -log10(p.value), shape = direction, colour = direction)) + 
+ggplot(cal, aes(x = reorder(displayname, p.value), y = -log10(p.value), shape = direction, colour = direction)) + 
   theme_minimal(base_size = 10) +
   geom_point(show.legend = F) + 
   geom_hline(yintercept = 3, linetype = "dashed") +
@@ -150,7 +155,7 @@ ggplot(cal, aes(x = reorder(Cmpd, p.value), y = -log10(p.value), shape = directi
   #ggsave("WCRF score associations for slide.svg")
   
 # Horizontal, significant associations coloured
-  ggplot(raw, aes(x = reorder(Cmpd, subclass), y = -log10(p.value), colour = Association)) + 
+  ggplot(raw, aes(x = reorder(Compound, subclass), y = -log10(p.value), colour = Association)) + 
   theme_bw() +
   geom_point() + geom_hline(yintercept = 3, linetype = "dashed") +
   scale_color_manual(values = c("blue", "red", "grey")) +
@@ -179,7 +184,7 @@ ggplot(all, aes(x=Fold_change, y = -log10(p.value), colour = tocolour, shape = t
 # plot(cal$p.value)
 
 raw %>% group_by(subclass) %>% 
-  separate(Cmpd, into = c("subclass", "rest"), sep = "_", extra="merge", remove = F)
+  separate(Compound, into = c("subclass", "rest"), sep = "_", extra="merge", remove = F)
 
 table(ctrl$Wcrf_C)
 table(ctrl$Wcrf_C_Cal)
@@ -201,12 +206,12 @@ ggplot(alldf, aes(x=meanfc, y = -log10(p.adj))) + geom_point(show.legend = F) +
 # Vertical Manhattan
 library(ggplot2)
 ggplot(alldf, 
-       aes(y = reorder(cmpd, -p.adj), x = -log10(p.adj), shape = associated, colour = associated)) + 
+       aes(y = reorder(displayname2, -p.adj), x = -log10(p.adj), shape = associated, colour = associated)) + 
   theme_minimal(base_size = 10) +
   geom_point(show.legend = F) + 
   geom_vline(xintercept = 3, linetype = "dashed") +
   xlab("-log10(FDR-adjusted p-value)") + ylab("") +
-  facet_grid(Cmpd.length ~ ., scales = "free_y", space = "free_y", switch= "x") +
+  facet_grid(sumgroup ~ ., scales = "free_y", space = "free_y", switch= "x") +
   theme(strip.text.y = element_blank())
 #axis.text.x(angle = 0, size=7, hjust = 0.95, vjust = 0.5)) +
 #ggsave("WCRF score associations FAs.svg")

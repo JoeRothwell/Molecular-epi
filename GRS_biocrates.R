@@ -1,5 +1,6 @@
 # Test for overlap between GWAS data and other datasets
 source("CRC_data_prep.R")
+source("Metabolic_signatures.R")
 
 prepdata <- function(group = 0, metabs = T) {
 
@@ -44,8 +45,13 @@ prepdata <- function(group = 0, metabs = T) {
   
   
   # subset Biocrates data from the two datasets and arrange by the common columns
-  mat1 <- crc1 %>% select(Acylcarn_C0 : Sugars_H1, -Batch_MetBio)
-  mat2 <- crc2 %>% select(Acylcarn_C0 : Sugars_H1, -starts_with("Outdq_"))
+  # mat1 <- crc1 %>% select(Acylcarn_C0 : Sugars_H1, -Batch_MetBio)
+  mat1 <- crc1 %>% select(matches("Acylcarn_|Aminoacid_|Biogenic_|Glyceroph_|Sphingo_|Sugars_"), 
+                 -starts_with("Outdq"))
+  # mat2 <- crc2 %>% select(Acylcarn_C0 : Sugars_H1, -starts_with("Outdq_"))
+  mat2 <- crc2 %>% select(matches("Acylcarn_|Aminoacid_|Biogenic_|Glyceroph_|Sphingo_|Sugars_"), 
+                 -starts_with("Outdq"))
+  
   common.cols <- intersect(colnames(mat1), colnames(mat2))
   
   # Prepare matrix of metabolite concentrations to apply model across
@@ -99,7 +105,10 @@ multifit <- apply(logmat1, 2, glm.fa)
 library(broom)
 p <- map_df(multifit, tidy) %>% filter(term == "x") #%>% select(p.value) %>% pull
 p.adj <- p.adjust(p$p.value, method = "fdr")
-alldf <- data_frame(p.adj, cmpd = colnames(logmat1))
+
+# Read in Biocrates compound metadata
+cmpd.meta <- read.csv("Biocrates_cmpd_metadata.csv")
+alldf <- data_frame(p.adj, Compound = colnames(logmat1)) %>% left_join(cmpd.meta, by = "Compound")
 
 # calculation of fold changes for volcano plot (need to use imputed matrix)
 df    <- data.frame(grp = metaGRS$GRSgroup, logmat1)
@@ -110,11 +119,11 @@ alldf$meanfc   <- (means[, 2] - means[, 1])[-1]
 
 # If meanfc  > 0, conc in high GRS > conc in low GRS
 alldf <- alldf %>% mutate(direction = ifelse(meanfc > 0, "high", "low")) %>%
-  separate(cmpd, into = c("subclass", "rest"), sep = "_", extra = "merge", remove = F)
+  separate(Compound, into = c("subclass", "rest"), sep = "_", extra = "merge", remove = F)
 
 # Plot results for metabolites vertically
 library(ggplot2)
-ggplot(alldf, aes(y = reorder(cmpd, p.adj), x = log10(p.adj), shape = direction, colour = direction)) + 
+ggplot(alldf, aes(y = reorder(displayname, p.adj), x = log10(p.adj), shape = direction, colour = direction)) + 
   theme_minimal(base_size = 10) +
   geom_point(show.legend = F) + 
   geom_vline(xintercept = log10(0.05), linetype = "dashed") +
@@ -127,7 +136,7 @@ ggplot(alldf, aes(y = reorder(cmpd, p.adj), x = log10(p.adj), shape = direction,
 
 # or horizontally
 library(ggplot2)
-ggplot(alldf, aes(x = reorder(cmpd, p.adj), y = log10(p.adj), shape = direction, colour = direction)) + 
+ggplot(alldf, aes(x = reorder(displayname, p.adj), y = log10(p.adj), shape = direction, colour = direction)) + 
   theme_minimal(base_size = 10) +
   geom_point(show.legend = F) + 
   geom_hline(yintercept = log10(0.05), linetype = "dashed") +

@@ -57,7 +57,9 @@ GRS.FA <- function(CaCo = 0, metabs = T) {
   library(broom)
   p <- map_df(multifit, tidy) %>% filter(term == "x") #%>% select(p.value) %>% pull
   p.adj <- p.adjust(p$p.value, method = "fdr")
-  alldf <- data_frame(p.adj, cmpd = colnames(concs))
+  
+  cmpd.meta <- read.csv("FA_compound_data.csv")
+  alldf <- data_frame(p.adj, Compound = colnames(concs)) %>% inner_join(cmpd.meta, by = "Compound")
   
   # calculation of fold changes for volcano plot (need to use imputed matrix)
   df       <- data.frame(grp = metaGRS$GRSgroup, logmat1)
@@ -66,7 +68,7 @@ GRS.FA <- function(CaCo = 0, metabs = T) {
   # Get fold change of high score over low score
   alldf$meanfc   <- (means[, 2] - means[, 1])[-1]
   alldf <- alldf %>% mutate(direction = ifelse(meanfc > 0, "high", "low")) %>%
-    separate(cmpd, into = c("subclass", "rest"), sep = "_", extra = "merge", remove = F)
+    separate(Compound, into = c("subclass", "rest"), sep = "_", extra = "merge", remove = F)
   
 }
 
@@ -97,12 +99,12 @@ st <- stargazer(fit, type = "text", ci = T, apply.coef = exp)
 
 # Plot results for metabolites vertically
 library(ggplot2)
-ggplot(controls, aes(y = reorder(cmpd, p.adj), x = log10(p.adj), shape = direction, colour = direction)) + 
+ggplot(controls, aes(y = reorder(displayname2, p.adj), x = log10(p.adj), shape = direction, colour = direction)) + 
   theme_minimal(base_size = 10) +
   geom_point(show.legend = F) + 
   geom_vline(xintercept = log10(0.05), linetype = "dashed") +
   xlab("-log10(FDR-adjusted p-value)") + ylab("") +
-  facet_grid(subclass ~ ., scales = "free_y", space = "free_y", switch= "x") +
+  facet_grid(sumgroup ~ ., scales = "free_y", space = "free_y", switch= "x") +
   theme(strip.text.y = element_blank())
 #axis.text.x(angle = 0, size=7, hjust = 0.95, vjust = 0.5)) +
 #ggtitle("Metabolite associations with WCRF score (cal)") +
@@ -110,11 +112,11 @@ ggplot(controls, aes(y = reorder(cmpd, p.adj), x = log10(p.adj), shape = directi
 
 # or horizontally
 library(ggplot2)
-ggplot(cases, aes(x = reorder(cmpd, p.adj), y = p.adj, shape = direction, colour = direction)) + 
+ggplot(cases, aes(x = reorder(displayname2, p.adj), y = p.adj, shape = direction, colour = direction)) + 
   theme_minimal(base_size = 10) +
   geom_point(show.legend = F) + 
   geom_hline(yintercept = 0.05, linetype = "dashed") +
   ylab("-log10(FDR-adjusted p-value)") + xlab("") +
-  facet_grid(. ~ subclass, scales = "free_x", space = "free_x", switch= "y") +
+  facet_grid(. ~ sumgroup, scales = "free_x", space = "free_x", switch= "y") +
   theme(strip.text.y = element_blank(),
         axis.text.x = element_text(angle = 90, size=7, hjust = 0.95, vjust = 0.5))
