@@ -3,7 +3,7 @@ title: "Lifepath NMR metabolomics analysis"
 output: rmarkdown::github_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=F}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -11,34 +11,34 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Read in metabolomics data from text file. There are 44 compounds measured for 1623 subjects, and subject identifiers in the first column, `CODBMB`.
 
-```{r message = FALSE, warning = FALSE}
+```{r message = FALSE, warning = F}
 library(tidyverse)
 ints <- read_tsv("1507_XMetabolite_std_cpmg_E3N.txt")
 dim(ints)
-head(ints)
+colnames(ints)
 ```
 
 Intensity data are both positive and negative and most values in between -2 and 2. Data appear to be scaled and centered.
-We can plot the total intensity of each metabolite:
+We can plot the total intensity of each metabolite, being sure first to remove the ID column:
 
-```{r totalintensity}
+```{r totalintensity, warning  = F}
 plot(colSums(ints[ , -1]), xlab = "Compound number", ylab = "Scaled intensity",
      pch = 19, col = "dodgerblue")
 ```
 
 Total intensities are similar between compounds and normally distributed.We can now look at correlations between compounds:
 
-```{r}
+```{r warning = F}
 cormat <- cor(ints)
 colnames(cormat) <- NULL
 library(corrplot)
-corrplot(cormat, method = "square", tl.col = "black")
+corrplot(cormat, method = "square", tl.col = "black", tl.cex = 0.8)
 ```
 
 Of note is that the three fatty acid variables are correlated, as well as valine and leucine and NAC1 and NAC2.
 Next we can plot a PCA of the compound profiles:
 
-```{r}
+```{r warning = F}
 ints <- ints[ , -1]
 pca <- prcomp(ints, scale.=F)
 library(pca3d)
