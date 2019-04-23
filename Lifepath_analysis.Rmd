@@ -4,45 +4,79 @@ output: rmarkdown::github_document
 ---
 
 ```{r setup, include=F}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, fig.align = "center")
 ```
 
 ## Exploratory analysis
 
 Read in metabolomics data from text file. There are 44 compounds measured for 1623 subjects, and subject identifiers in the first column, `CODBMB`.
 
-```{r message = FALSE, warning = F}
+```{r message = F, warning = F}
 library(tidyverse)
 ints <- read_tsv("1507_XMetabolite_std_cpmg_E3N.txt")
 dim(ints)
 colnames(ints)
 ```
 
+It is useful to preview the metabolomics data.
+
+```{r message = F, warning = F, results = "asis"}
+library(knitr)
+kable(ints[1:5, 1:10], caption = "Preview of the metabolomics data.")
+```
+
 Intensity data are both positive and negative and most values in between -2 and 2. Data appear to be scaled and centered.
 We can plot the total intensity of each metabolite, being sure first to remove the ID column:
 
-```{r totalintensity, warning  = F}
+```{r totalint, message = F, warning  = F}
 plot(colSums(ints[ , -1]), xlab = "Compound number", ylab = "Scaled intensity",
-     pch = 19, col = "dodgerblue")
+     pch = 19, col = "dodgerblue", main = "Summed intensities of 44 metabolites")
 ```
+
+_Summed intensities of 44 serum metabolites measured by NMR._
 
 Total intensities are similar between compounds and normally distributed.We can now look at correlations between compounds:
 
-```{r warning = F}
+```{r corr, message = F, warning = F}
 cormat <- cor(ints)
 colnames(cormat) <- NULL
 library(corrplot)
 corrplot(cormat, method = "square", tl.col = "black", tl.cex = 0.8)
 ```
 
+_Inter-compound correlations._
+
 Of note is that the three fatty acid variables are correlated, as well as valine and leucine and NAC1 and NAC2.
 Next we can plot a PCA of the compound profiles:
 
-```{r warning = F}
+```{r pca, message = F, warning = F}
 ints <- ints[ , -1]
 pca <- prcomp(ints, scale.=F)
 library(pca3d)
 pca2d(pca, title = "Metabolite profiles of 1623 subjects", xlab = "Score on PC1", ylab = "Score on PC2")
+box(which = "plot", lty = "solid")
 ```
 
-There is one notable outlying profile in the bottom right-hand corner of the plot. This could be caused by a technical issue with the sample.
+_Scores plot of metabolic profiles of 1623 subjects in the Lifepath study._
+
+There is one notable outlying profile in the bottom right-hand corner of the plot. This could be caused by a technical issue with the sample. We can find the identity of this, remove it from the dataset and rerun the PCA. The biplot shows us the variables most strongly loading onto PC1 and PC2.
+
+There are no obvious batch effects or patterns in the data.
+
+```{r outlier-removal, message=F, warning=F}
+which(pca$x[, 2] < -10)
+pca1 <- prcomp(ints[-1409, -1], scale.=F)
+pca2d(pca1, title = "Metabolite profiles of 1623 subjects", xlab = "Score on PC1", ylab = "Score on PC2",
+      biplot = T)
+box(which = "plot", lty = "solid")
+```
+
+_Biplot of metabolic profiles in the Lifepath study (n = 1622)._
+
+PC1 is characterised by relative concentrations of fatty acid, lysine and ornithine. PC2 is characterised by relative concentrations of creatinine, isoleucine and glycerophosphocholine.
+
+## Baseline characteristics of participants
+
+Lifepath is a breast cancer case-control study.The following table shows baseline characteristics for cases and controls.
+
+
