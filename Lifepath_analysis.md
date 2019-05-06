@@ -42,7 +42,7 @@ colnames(ints)
     ## [43] "NAC 2"                    "Pyruvate"                
     ## [45] "Succinate"
 
-It is useful to preview the data.
+It is useful to preview the metabolomics data.
 
 ``` r
 library(knitr)
