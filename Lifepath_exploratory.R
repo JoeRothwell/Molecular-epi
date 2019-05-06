@@ -20,6 +20,12 @@ meta0 <- meta %>%
          SBR, GRADE, STADE, DIAGSAMPLING) %>% 
   mutate_at(vars(-AGE, -BMI, -HANCHE, -DIAGSAMPLING, -STOCKTIME), as.factor)
 
+# subset further for PCPR2
+
+meta1 <- meta %>%
+  select(CODBMB, WEEKS, PLACE, AGE, BMI, MENOPAUSE, FASTING, SMK, DIABETE, CENTTIMECat1, SAMPYEAR, STOCKTIME) %>%
+  mutate_at(vars(-AGE, -BMI, -WEEKS, -STOCKTIME), as.factor)
+
 # ---- Other files
 
 # Rawest feature data
@@ -39,16 +45,45 @@ xl2 <- read_xlsx("C:/J_ROTHWELL/1507_ClusterAnnotation_E3N.xlsx")
 xl4 <- read_xlsx("C:/J_ROTHWELL/1603_MatriceY_CohorteE3N_Appar.xlsx", sheet = 6)
 
 ints <- read_tsv("C:/J_ROTHWELL/1507_XMetabolite_std_cpmg_E3N.txt")
+ints <- ints[, -1]
 ints1 <- read_tsv("C:/J_ROTHWELL/1507_XMetaboliteE3N_cpmg.txt", skip = 1)
 
-pca <- prcomp(ints, scale.=F)
-pca1 <- prcomp(ints, scale.=F)
-plot(pca)
-plot(pca1)
+# ---- Exploratory analysis
 
+# Exploratory analysis. Check total intensities for each metabolite
+plot(colSums(ints[ , -1]), xlab = "Compound number", ylab = "Scaled intensity",
+     pch = 19, col = "dodgerblue", main = "Summed intensities of 44 metabolites")
+
+# Check correlations
+cormat <- cor(ints)
+colnames(cormat) <- NULL
+library(corrplot)
+corrplot(cormat, method = "square", tl.col = "black", tl.cex = 0.8)
+
+# The three fatty acids are highly correlated, valine and leucine, NAC1 and 2
+# The fatty acids are inversely correlated with many compounds
+
+# Run PCA and get proportions of variability for components
+pca <- prcomp(ints[, -1], scale.=F)
+plot(pca)
+
+# Plot 
 library(pca3d)
-pca2d(pca)
-pca2d(pca1)
+pca2d(pca, title = "Metabolite profiles of 1623 subjects", xlab = "Score on PC1", ylab = "Score on PC2")
+box(which = "plot", lty = "solid")
+
+# Remove outlier
+which(pca$x[, 2] < -10) #row 1409
+
+# Rerun PCA and replot
+pca1 <- prcomp(ints[-1409, -1], scale.=F)
+pca2d(pca1, title = "Metabolite profiles of 1623 subjects", xlab = "Score on PC1", ylab = "Score on PC2",
+      biplot = T)
+box(which = "plot", lty = "solid")
+
+# Join to metadata and prepare for PCPR2
+meta0 <- meta0 %>% select()
+meta.ints <- left_join(meta0, ints, by = "CODBMB")
 
 # Food intake data ---- 
 path <- "Y:/RepPerso/Fabienne WILM/02_Demandes_ponctuelles/10_LIFEPATH/TABLES"
