@@ -7,6 +7,21 @@ output: rmarkdown::github_document
 knitr::opts_chunk$set(echo = TRUE, fig.align = "center")
 ```
 
+## The Lifepath breast cancer study
+
+The breast cancer case-control is nested within the E3N cohort, a French multicentre prospective study designed to investigate risk factors for cancer and major non-communicable diseases in women. Of 100,000 women followed by the study, 25,000 gave blood samples at baseline. A total of 812 BC cases have since been diagnosed and matched to 812 healthy cases for the case-control.
+
+The following table shows baseline characteristics of participants.
+
+```{r, results = "asis", echo = F, message = F, warning = F}
+source("baseline_lifepath.R")
+print(st, cnames = c("Controls", "Cases"))
+```
+
+## Some background on NMR metabolomics data
+
+NMR measures the spin and magnetic moment properties of the nuclei in a molecule. These properties can be measured in complex mixtures. The sample is radiated with a short pulse of high-energy radio frequencies (typically in the range 100–1000 MHz depending on the field strength) that excite all nuclei. When they return to the low-energy state, they emit a pattern of frequencies representing the different energy emissions from the different nuclei. An NMR spectrum is generated as the ppm value, or chemical shift, against intensity. Chemical shift is measured in parts per million (ppm) of the radiation frequency emitted. The more shielded a nucleus is, the higher the chemical shift.
+
 ## Exploratory analysis
 
 Read in metabolomics data from text file. There are 44 compounds measured for 1623 subjects, and subject identifiers in the first column, `CODBMB`.
@@ -18,11 +33,11 @@ dim(ints)
 colnames(ints)
 ```
 
-It is useful to preview the metabolomics data.
+The metabolomics data are previewed as follows:
 
 ```{r message = F, warning = F, results = "asis"}
 library(knitr)
-kable(ints[1:5, 1:10], caption = "Preview of the metabolomics data.")
+kable(ints[1:5, 1:10], caption = "Preview of the metabolomics data.", format = "rmarkdown")
 ```
 
 Intensity data are both positive and negative and most values in between -2 and 2. Data appear to be scaled and centered.
@@ -30,7 +45,7 @@ We can plot the total intensity of each metabolite, being sure first to remove t
 
 ```{r totalint, message = F, warning  = F}
 plot(colSums(ints[ , -1]), xlab = "Compound number", ylab = "Scaled intensity",
-     pch = 19, col = "dodgerblue", main = "Summed intensities of 44 metabolites")
+     pch = 19, col = "dodgerblue", main = "Summed intensities of 44 metabolites", font.main = 1)
 ```
 
 _Summed intensities of 44 serum metabolites measured by NMR._
@@ -49,25 +64,26 @@ _Inter-compound correlations._
 Of note is that the three fatty acid variables are correlated, as well as valine and leucine and NAC1 and NAC2.
 Next we can plot a PCA of the compound profiles:
 
-```{r pca, message = F, warning = F}
+```{r pca, message = F, warning = F, fig.width=6, fig.height=6, fig.align="center"}
 ints <- ints[ , -1]
 pca <- prcomp(ints, scale.=F)
 library(pca3d)
-pca2d(pca, title = "Metabolite profiles of 1623 subjects", xlab = "Score on PC1", ylab = "Score on PC2")
+pca2d(pca)
+title("Metabolite profiles of 1623 subjects", font.main = 1)
 box(which = "plot", lty = "solid")
 ```
 
 _Scores plot of metabolic profiles of 1623 subjects in the Lifepath study._
 
-There is one notable outlying profile in the bottom right-hand corner of the plot. This could be caused by a technical issue with the sample. We can find the identity of this, remove it from the dataset and rerun the PCA. The biplot shows us the variables most strongly loading onto PC1 and PC2.
-
 There are no obvious batch effects or patterns in the data.
 
-```{r outlier-removal, message=F, warning=F}
+There is one notable outlying profile in the bottom right-hand corner of the plot. This could be caused by a technical issue with the sample. We can find the identity of this, remove it from the dataset and rerun the PCA. The biplot shows us the variables loading most strongly onto PC1 and PC2.
+
+```{r outlier-removal, message=F, warning=F, fig.height=6, fig.width=6}
 which(pca$x[, 2] < -10)
 pca1 <- prcomp(ints[-1409, -1], scale.=F)
-pca2d(pca1, title = "Metabolite profiles of 1623 subjects", xlab = "Score on PC1", ylab = "Score on PC2",
-      biplot = T)
+pca2d(pca1, biplot = T)
+title("Metabolite profiles of 1623 subjects with loadings", font.main = 1)
 box(which = "plot", lty = "solid")
 ```
 
@@ -75,8 +91,13 @@ _Biplot of metabolic profiles in the Lifepath study (n = 1622)._
 
 PC1 is characterised by relative concentrations of fatty acid, lysine and ornithine. PC2 is characterised by relative concentrations of creatinine, isoleucine and glycerophosphocholine.
 
-## Baseline characteristics of participants
+## PCPR2 analysis of data
 
-Lifepath is a breast cancer case-control study.The following table shows baseline characteristics for cases and controls.
+The following variables have been hypothesised to contribute to variation in metabolomics data: week of NMR analysis, collection centre, age, BMI, menopausal status, smoking status, diabetic status, fasting status, time before centrifugation, storage time, year of collection. PCPR2 was therefore performed on this set of Y-variables and the X-matrix of NMR intensity values.
+
+```{r pcpr2, echo=F, warning=F, message=F, results=F}
+source("PCPR2_lifepath_vec.R")
+print(bp)
+```
 
 
