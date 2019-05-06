@@ -73,6 +73,13 @@ crcmetab <- bind_rows(crc1a, crc2a)
 
 library(qwraps2)
 options(qwraps2_markup = "markdown")
+
+# Generate table autommatically
+#crcsum <- bind_rows(crc1a, crc2a) %>%   qsummary(.,
+#           numeric_summaries = list("Mean (SD)" = "~ mean_sd(%s)"),
+#           n_perc_args = list(digits = 1, show_symbol = TRUE))
+
+# Manually specified
 crc1_summaries <-
   list("Total subjects"   =
          list("N"   =   ~ n()),
