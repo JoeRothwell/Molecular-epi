@@ -7,7 +7,7 @@ output: rmarkdown::github_document
 knitr::opts_chunk$set(echo = TRUE, fig.align = "center")
 ```
 
-## The Lifepath breast cancer study
+### The Lifepath breast cancer study
 
 The breast cancer case-control is nested within the E3N cohort, a French multicentre prospective study designed to investigate risk factors for cancer and major non-communicable diseases in women. Of 100,000 women followed by the study, 25,000 gave blood samples at baseline. A total of 812 BC cases have since been diagnosed and matched to 812 healthy cases for the case-control.
 
@@ -18,11 +18,11 @@ source("baseline_lifepath.R")
 print(st, cnames = c("Controls", "Cases"))
 ```
 
-## Some background on NMR metabolomics data
+### Some background on NMR metabolomics data
 
 NMR measures the spin and magnetic moment properties of the nuclei in a molecule. These properties can be measured in complex mixtures. The sample is radiated with a short pulse of high-energy radio frequencies (typically in the range 100–1000 MHz depending on the field strength) that excite all nuclei. When they return to the low-energy state, they emit a pattern of frequencies representing the different energy emissions from the different nuclei. An NMR spectrum is generated as the ppm value, or chemical shift, against intensity. Chemical shift is measured in parts per million (ppm) of the radiation frequency emitted. The more shielded a nucleus is, the higher the chemical shift.
 
-## Exploratory analysis
+### Exploratory analysis
 
 Read in metabolomics data from text file. There are 44 compounds measured for 1623 subjects, and subject identifiers in the first column, `CODBMB`.
 
@@ -36,8 +36,7 @@ colnames(ints)
 The metabolomics data are previewed as follows:
 
 ```{r message = F, warning = F, results = "asis"}
-library(knitr)
-kable(ints[1:5, 1:10], caption = "Preview of the metabolomics data.", format = "rmarkdown")
+knitr::kable(ints[1:5, 1:10], caption = "Preview of the metabolomics data.", format = "html")
 ```
 
 Intensity data are both positive and negative and most values in between -2 and 2. Data appear to be scaled and centered.
@@ -91,7 +90,7 @@ _Biplot of metabolic profiles in the Lifepath study (n = 1622)._
 
 PC1 is characterised by relative concentrations of fatty acid, lysine and ornithine. PC2 is characterised by relative concentrations of creatinine, isoleucine and glycerophosphocholine.
 
-## PCPR2 analysis of data
+### PCPR2 analysis to find sources of variation in data
 
 The following variables have been hypothesised to contribute to variation in metabolomics data: week of NMR analysis, collection centre, age, BMI, menopausal status, smoking status, diabetic status, fasting status, time before centrifugation, storage time, year of collection. PCPR2 was therefore performed on this set of Y-variables and the X-matrix of NMR intensity values.
 

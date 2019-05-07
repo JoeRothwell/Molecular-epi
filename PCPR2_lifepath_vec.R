@@ -74,10 +74,10 @@ pR2Sums <- colSums(partialR2MatWtProp) * 100
 
 # Plot data
 #par(mfrow = c(1,2))
-bp <- barplot(pR2Sums, ylab = "Weighted Rpartial2", ylim = c(0, 30), xlab = "",
-              col = "red", las=2, cex.main = 0.8, 
+bp <- barplot(pR2Sums, ylab = "Weighted Rpartial2", ylim = c(0, 25), xlab = "",
+              col = "red", las=2, cex.main = 1, 
               main = paste("Sources of variation in", Z_MetaRowN, "BC cases and controls"),
               font.main = 1)
-axis(1, at = bp, labels = c(ColNames, "R2"), cex.axis = 0.8, las=2) 
+axis(1, at = bp, labels = c(ColNames, "R2"), cex.axis = 0.8, las = 2) 
 rounded <- round(pR2Sums, 3)
 text(bp, pR2Sums, labels = rounded, pos = 3, cex = 0.8)

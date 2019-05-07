@@ -3,20 +3,20 @@ meta <- read.csv("Lifepath_meta.csv")
 meta0 <- meta %>% 
   select(CT, AGE, BMI, HANCHE, MENOPAUSE, SMK, DIABETE, Life_Alcohol_Pattern_1, BP, Trait_Horm, 
          CO, CENTTIMECat1, FASTING, STOCKTIME, BEHAVIOUR, SUBTYPE, HR, Estro_THM, Pg_seul, 
-         SBR, GRADE, STADE, DIAGSAMPLING) %>% 
-  mutate_at(vars(-AGE, -BMI, -HANCHE, -DIAGSAMPLING, -STOCKTIME), as.factor)
+         SBR, GRADE, STADE, DIAGSAMPLINGCat1) %>% 
+  mutate_at(vars(-AGE, -BMI, -HANCHE, -STOCKTIME), as.factor)
 
+library(kableExtra)
 library(qwraps2)
 options(qwraps2_markup = "markdown")
 
 # Automatic
 #summ <- meta0 %>% qsummary(., numeric_summaries = list("Mean (SD)" = "~ mean_sd(%s)"),
-#                                    n_perc_args = list(digits = 1, show_symbol = TRUE))
+#                                   n_perc_args = list(digits = 1, show_symbol = TRUE))
 
 # Manually generated
 summ <-
-  list("Total subjects"   =
-         list("N"   =   ~ n()),
+  list("Total subjects"                  = list("N"   =   ~ n()),
        "Age at blood collection (years)" = list("Mean"     =  ~ mean_sd(AGE)),
        "BMI"                             = list("Mean (SD)" = ~ mean_sd(BMI)),
        "Waist circumference"             = list("Mean (SD)" = ~ mean_sd(HANCHE)),
@@ -25,8 +25,8 @@ summ <-
                                                 "Post-menopausal"  =  ~ n_perc0(MENOPAUSE == 1)),
        "Smoking status"                  = list("Yes"  =  ~ n_perc0(SMK == 1),
                                                 "No"   =  ~ n_perc0(SMK == 0)),
-       "Diabetic status"                 = list("No" =  ~ n_perc0(DIABETE == 0),
-                                                "Yes"   =  ~ n_perc0(DIABETE == 1)),
+       "Diabetic status"                 = list("No"   =  ~ n_perc0(DIABETE == 0),
+                                                "Yes"  =  ~ n_perc0(DIABETE == 1)),
        "Lifetime alcohol drinking pattern" =
          list("Non-consumers (0 g/day)"        =  ~ n_perc0(Life_Alcohol_Pattern_1 == 0),
               "Light consumers (1-10 g/day)"   =  ~ n_perc0(Life_Alcohol_Pattern_1 == 1),
@@ -37,7 +37,7 @@ summ <-
               "Hypertension"   =  ~ n_perc0(BP == 1),
               "No information"       =  ~ n_perc0(BP == 9999)),
        "Previous oral contraceptive use" =
-         list("Yes" =  ~ n_perc0(CO == 1),
+         list("Yes"  =  ~ n_perc0(CO == 1),
               "No"   =  ~ n_perc0(CO == 0)),
        "Menopause hormone therapy" =
          list("Yes" =  ~ n_perc0(Trait_Horm == 1),
@@ -56,6 +56,13 @@ summ <-
          list("In situ"   =  ~ n_perc0(BEHAVIOUR == 2),
               "Invasive"  =  ~ n_perc0(BEHAVIOUR == 3),
               "Unknown"   =  ~ n_perc0(BEHAVIOUR == 9999)),
+       "Subtype" =
+         list("Lobular"  =  ~ n_perc0(SUBTYPE == 1),
+              "Ductal"  =  ~ n_perc0(SUBTYPE == 2),
+              "Tubular"  =  ~ n_perc0(SUBTYPE == 3),
+              "Mixed"  =  ~ n_perc0(SUBTYPE == 4),
+              "Others"  =  ~ n_perc0(SUBTYPE == 5),
+              "Unknown"   =  ~ n_perc0(SUBTYPE == 9999)),
        "HER2" =
          list("Negative"  =  ~ n_perc0(HR == 1),
               "Positive"  =  ~ n_perc0(HR == 2),
@@ -85,9 +92,9 @@ summ <-
               "4"    =  ~ n_perc0(STADE == 4),
               "No information"  =  ~ n_perc0(STADE == 9999)),
        "Time between sampling and diagnosis" =
-         list("-< 5 years"     =  ~ n_perc0(DIAGSAMPLINGCat1 == 1),
-              "> 5 years"      =  ~ n_perc0(DIAGSAMPLINGCat1 == 2)
-              "No information" =  ~ n_perc0(DIAGSAMPLINGCat1 == 9999))
+         list("5 years or less"     =  ~ n_perc0(DIAGSAMPLINGCat1 == 1),
+              "More than 5 years"   =  ~ n_perc0(DIAGSAMPLINGCat1 == 2),
+              "No information"      =  ~ n_perc0(DIAGSAMPLINGCat1 == 9999))
   )
 
 st <- summary_table(group_by(meta0, CT), summ)
