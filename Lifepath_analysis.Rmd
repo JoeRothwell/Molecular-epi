@@ -99,4 +99,52 @@ source("PCPR2_lifepath_vec.R")
 print(bp)
 ```
 
+Of the variables included, centre of blood collection (PLACE) contributed most to variation in metabolomics data.
 
+### Risk models for lifestyle variables and serum metabolite concentrations
+
+BC case-control status was modelled by the non-matching factors BMI, smoking status and diabetes status.
+
+```{r clr-model, echo = F, message = F, warning = F, fig.width=8, fig.height=3}
+meta1 <- meta %>%
+  select(CODBMB, CT, MATCH, WEEKS, PLACE, AGE, BMI, MENOPAUSE, FASTING, SMK, DIABETE, CENTTIMECat1, SAMPYEAR, STOCKTIME) %>%
+  mutate_at(vars(-CODBMB, -CT, -AGE, -BMI, -WEEKS, -STOCKTIME), as.factor)
+
+# Conditional logistic regression to get odds ratios for lifestyle factors
+library(survival)
+fit <- clogit(CT ~ BMI + SMK + DIABETE + strata(MATCH), data = meta1) 
+library(broom)
+t1 <- tidy(fit) %>% select(-(std.error:p.value))
+
+library(metafor)
+par(mar=c(5,4,1,2))
+forest(t1$estimate, ci.lb = t1$conf.low, ci.ub = t1$conf.high, refline = 1, 
+       xlab = "Multivariable adjusted odds ratio",
+       transf = exp, pch = 18, psize = 1.5, slab = t1$term, alim = c(0,2), xlim = c(-1, 3))
+text(-1, 5, "Variable", pos = 4)
+text(3, 5, "OR [95% CI]", pos = 2)
+```
+
+None of BMI, smoking status or diabetes status were significantly associated with BC.
+
+The 44 metabolites were then added to the model, adjusting for BMI, smoking status and diabetes status.
+
+
+```{r clr2-model, echo = F, message = F, warning = F, fig.width=8, fig.height=10}
+ints <- read_tsv("1507_XMetabolite_std_cpmg_E3N.txt")
+# CLR models to get odds ratios for metabolites
+data <- left_join(meta1, ints, by = "CODBMB")
+clr <- function(x) clogit(CT ~ x + BMI + SMK + DIABETE + strata(MATCH), data = meta1)
+multifit <- apply(data[, 15:ncol(data)], 2, clr)
+t2 <- map_df(multifit, tidy) %>% filter(term == "x")
+
+par(mar=c(5,4,1,2))
+forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1,
+       xlab = "Multivariable adjusted odds ratio",
+       transf = exp, pch = 18, psize = 1, slab = names(multifit))
+hh <- par("usr")
+text(hh[1], nrow(t2) + 2, "Parameter", pos = 4)
+text(hh[2], nrow(t2) + 2, "OR [95% CI]", pos = 2)
+```
+
+Hypoxanthine and inosine concentrations were associated with increased risk of BC. NAC1 and NAC2 were borderline associated with with increased risk of BC.
