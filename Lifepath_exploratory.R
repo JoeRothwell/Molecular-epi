@@ -6,11 +6,11 @@ library(readxl)
 # Final data files seem to be the following:
 
 # 1623 observations of 44 intensity variables. Looks scaled version of dat 4 and final prepared data
-ints <- read_tsv("C:/J_ROTHWELL/1507_XMetabolite_std_cpmg_E3N.txt")
+#ints <- read_tsv("C:/J_ROTHWELL/1507_XMetabolite_std_cpmg_E3N.txt")
 ints <- read_tsv("1507_XMetabolite_std_cpmg_E3N.txt")
 
 # metadata (from XL or csv)
-meta <- read_xlsx("C:/J_ROTHWELL/1603_MatriceY_CohorteE3N_Appar.xlsx", sheet = 6)
+#meta <- read_xlsx("C:/J_ROTHWELL/1603_MatriceY_CohorteE3N_Appar.xlsx", sheet = 6)
 meta <- read.csv("Lifepath_meta.csv")
 
 # subset for baseline characteristics table
@@ -94,17 +94,28 @@ box(which = "plot", lty = "solid")
 
 meta1 <- meta %>%
   select(CODBMB, CT, MATCH, WEEKS, PLACE, AGE, BMI, MENOPAUSE, FASTING, SMK, DIABETE, CENTTIMECat1, SAMPYEAR, STOCKTIME) %>%
-  mutate_at(vars(-CT, -AGE, -BMI, -WEEKS, -STOCKTIME), as.factor)
+  mutate_at(vars(-CODBMB, -CT, -AGE, -BMI, -WEEKS, -STOCKTIME), as.factor)
 
 # Conditional logistic regression to get odds ratios for lifestyle factors
-
+library(broom)
 library(survival)
 fit <- clogit(CT ~ AGE + BMI + MENOPAUSE + SMK + DIABETE + strata(MATCH), data = meta1) 
+output <- cbind(exp(coef(fit)), exp(confint(fit)))
+tidy(fit) %>% mutate_if(is.numeric, exp) %>% select(-(std.error:p.value))
 # (fasting and place removed as model does not work)
 
-output <- cbind(exp(coef(fit)), exp(confint(fit)))
-# Only menopausal status significant in this model
+# CLR models to get odds ratios for metabolites
+data <- left_join(meta1, ints, by = "CODBMB")
+clr <- function(x) clogit(CT ~ x + AGE + BMI + MENOPAUSE + SMK + DIABETE + strata(MATCH), data = meta1)
+multifit <- apply(data[, 15:ncol(data)], 2, clr)
+output1 <- map_df(multifit, tidy) %>% filter(term == "x")
+output1$cmpd <- 
+
+library(broom)
+output <- 
+
+
 
 library(lme4)
-fit1 <- glmer(CT ~ AGE + BMI + MENOPAUSE + SMK + DIABETE + (1 | MATCH), data = meta1)
+fit1 <- lmer(CT ~ AGE + BMI + MENOPAUSE + SMK + DIABETE + (1 | MATCH), data = meta1)
 
