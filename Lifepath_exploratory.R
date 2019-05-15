@@ -18,6 +18,124 @@ meta0 <- meta %>%
          SBR, GRADE, STADE, DIAGSAMPLING) %>% 
   mutate_at(vars(-AGE, -BMI, -HANCHE, -DIAGSAMPLING, -STOCKTIME), as.factor)
 
+# Exploratory analysis ----
+# Check total intensities for each metabolite
+plot(colSums(ints[ , -1]), xlab = "Compound number", ylab = "Scaled intensity",
+     pch = 19, col = "dodgerblue", main = "Summed intensities of 44 metabolites")
+
+# Check correlations
+cormat <- cor(ints)
+colnames(cormat) <- NULL
+library(corrplot)
+corrplot(cormat, method = "square", tl.col = "black", tl.cex = 0.8)
+
+# The three fatty acids are highly correlated, valine and leucine, NAC1 and 2
+# The fatty acids are inversely correlated with many compounds
+
+# Run PCA of all samples
+pca <- prcomp(ints[, -1], scale.=F)
+plot(pca, xlab = "Principal component", ylab = "Variation explained")
+
+# Plot 
+library(pca3d)
+pca2d(pca)
+title("Metabolite profiles of 1622 samples")
+box(which = "plot", lty = "solid")
+# Note: outlier row 1409
+
+# Run PCPR2
+source("PCPR2_lifepath_vec.R")
+
+# PCA of subject IDs only
+ints1 <- alldata %>% select(`3Hydroxybutyrate`:Succinate)
+pca1 <- prcomp(ints1, scale.=F)
+plt <- pca2d(pca1, group = alldata$CT)
+title("Metabolite profiles of 1582 samples")
+box(which = "plot", lty = "solid")
+legend("topleft", legend = plt$groups, col=plt$colors, pch=plt$pch)
+
+# Adjust using residuals method
+adj <- function(x) residuals(lm(x ~ WEEKS + BMI + SMK + DIABETE, data = alldata))
+adjmat <- apply(ints1, 2, adj)
+# Repeat PCA
+pca2 <- prcomp(adjmat, scale.=F)
+pca2d(pca2, group = alldata$CT)
+
+# Breast cancer risk model. Subset variables needed
+meta1 <- meta %>%
+  select(CODBMB, CT, MATCH, WEEKS, PLACE, AGE, BMI, MENOPAUSE, FASTING, SMK, DIABETE, CENTTIMECat1, SAMPYEAR, STOCKTIME) %>%
+  mutate_at(vars(-CODBMB, -CT, -AGE, -BMI, -WEEKS, -STOCKTIME), as.factor)
+
+# Conditional logistic regression to get odds ratios for lifestyle factors
+library(survival)
+fit <- clogit(CT ~ WEEKS + BMI + SMK + DIABETE + strata(MATCH), data = meta1) 
+# output <- cbind(exp(coef(fit)), exp(confint(fit)))
+library(broom)
+t1 <- tidy(fit) %>% # mutate_if(is.numeric, exp) %>% 
+  select(-(std.error:p.value))
+
+library(metafor)
+par(mar=c(5,4,1,2))
+forest(t1$estimate, ci.lb = t1$conf.low, ci.ub = t1$conf.high, refline = 1, 
+       xlab = "Multivariable adjusted odds ratio",
+       transf = exp, pch = 18, psize = 1.5, slab = t1$term, alim = c(0,2), xlim = c(-1, 3))
+text(-1, nrow(t1) + 2, "Variable", pos = 4)
+text(3, nrow(t1) + 2, "OR [95% CI]", pos = 2)
+# matching factors removed!
+
+# CLR models to get odds ratios for metabolites
+data <- left_join(meta1, ints, by = "CODBMB")
+clr <- function(x) clogit(CT ~ x + WEEKS + BMI + SMK + DIABETE + strata(MATCH), data = meta1)
+ints <- 15:ncol(data)
+multifit <- apply(data[, ints], 2, clr)
+t2 <- map_df(multifit, tidy) %>% filter(term == "x")
+
+par(mar=c(5,4,1,2))
+forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1, #xlab = xtitle, 
+       xlab = "Multivariable adjusted odds ratio",
+       transf = exp, pch = 18, psize = 1, slab = names(multifit))
+hh <- par("usr")
+text(hh[1], nrow(t2) + 2, "Compound", pos = 4)
+text(hh[2], nrow(t2) + 2, "OR [95% CI]", pos = 2)
+       #alim = c(0,2), xlim = c(-1, 3)) 
+
+# Non-metabolite model lme4
+library(lme4)
+fit1 <- lmer(CT ~ BMI + SMK + DIABETE + (1|MATCH), data = meta1)
+
+# O-PLS DA on residual-adjusted concentrations
+library(mixOmics)
+pca.lp <- pca(adjmat, ncomp = 10, center = F, scale = F)
+plot(pca.lp)
+plotIndiv(pca.lp, group = as.factor(alldata$CT), ind.names = F, legend = T)
+
+# Run PLS-DA specifying number of components
+plsda.res <- plsda(adjmat, as.factor(alldata$CT), ncomp = 10)
+
+set.seed(2543) # for reproducibility here, only when the `cpus' argument is not used
+perf.plsda <- perf(plsda.res, validation = "Mfold", folds = 5, 
+                   progressBar = T, auc = T, nrepeat = 10) 
+
+plot(perf.plsda, col = color.mixo(1:3), sd = T, legend.position = "horizontal")
+plot(perf.plsda)
+
+#coeff <- plsda.res$X
+#plot(coeff[1, ])
+perf.plsda$choice.ncomp # 3 components appear to be best
+
+# Rerun the PLS-DA with 3 components
+
+plsda.res1 <- plsda(logmat3, cols, ncomp = 3)
+
+plotVar(plsda.res1)
+
+plotIndiv(plsda.res1, ind.names = FALSE, legend = TRUE, ellipse = TRUE,
+          title = 'PLS-DA')
+
+plotLoadings(plsda.res1, contrib = "max", ndisplay = 50)
+
+
+
 # Other files ----
 
 # Rawest feature data
@@ -49,78 +167,5 @@ meta0 <- meta %>%
 #meta2 <- read_csv("D01_20161018_LIFEPATH.csv")
 #meta3 <- read_csv("D01_20150917_LIFEPATH.csv")
 
-# Exploratory analysis ----
-# Check total intensities for each metabolite
-plot(colSums(ints[ , -1]), xlab = "Compound number", ylab = "Scaled intensity",
-     pch = 19, col = "dodgerblue", main = "Summed intensities of 44 metabolites")
 
-# Check correlations
-cormat <- cor(ints)
-colnames(cormat) <- NULL
-library(corrplot)
-corrplot(cormat, method = "square", tl.col = "black", tl.cex = 0.8)
-
-# The three fatty acids are highly correlated, valine and leucine, NAC1 and 2
-# The fatty acids are inversely correlated with many compounds
-
-# Run PCA and get proportions of variability for components
-pca <- prcomp(ints[, -1], scale.=F)
-plot(pca)
-
-# Plot 
-library(pca3d)
-pca2d(pca)
-title("Metabolite profiles of 1622 subjects")
-box(which = "plot", lty = "solid")
-
-# Find outlier and remove
-which(pca$x[, 2] < -10) #row 1409
-
-# Rerun PCA and replot
-pca1 <- prcomp(ints[-1409, -1], scale.=F)
-pca2d(pca1, biplot = T)
-title("Metabolite profiles of 1622 subjects")
-box(which = "plot", lty = "solid")
-
-# Breast cancer risk model. Subset variables needed
-meta1 <- meta %>%
-  select(CODBMB, CT, MATCH, WEEKS, PLACE, AGE, BMI, MENOPAUSE, FASTING, SMK, DIABETE, CENTTIMECat1, SAMPYEAR, STOCKTIME) %>%
-  mutate_at(vars(-CODBMB, -CT, -AGE, -BMI, -WEEKS, -STOCKTIME), as.factor)
-
-# Conditional logistic regression to get odds ratios for lifestyle factors
-library(survival)
-fit <- clogit(CT ~ BMI + SMK + DIABETE + strata(MATCH), data = meta1) 
-# output <- cbind(exp(coef(fit)), exp(confint(fit)))
-library(broom)
-t1 <- tidy(fit) %>% # mutate_if(is.numeric, exp) %>% 
-  select(-(std.error:p.value))
-
-library(metafor)
-par(mar=c(5,4,1,2))
-forest(t1$estimate, ci.lb = t1$conf.low, ci.ub = t1$conf.high, refline = 1, 
-       xlab = "Multivariable adjusted odds ratio",
-       transf = exp, pch = 18, psize = 1.5, slab = t1$term, alim = c(0,2), xlim = c(-1, 3))
-text(-1, 5, "Variable", pos = 4)
-text(3, 5, "OR [95% CI]", pos = 2)
-# matching factors removed!
-
-# CLR models to get odds ratios for metabolites
-data <- left_join(meta1, ints, by = "CODBMB")
-clr <- function(x) clogit(CT ~ x + BMI + SMK + DIABETE + strata(MATCH), data = meta1)
-multifit <- apply(data[, 15:ncol(data)], 2, clr)
-t2 <- map_df(multifit, tidy) %>% filter(term == "x")
-
-par(mar=c(5,4,1,2))
-forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1, #xlab = xtitle, 
-       transf = exp, pch = 18, psize = 1, slab = names(multifit))
-hh <- par("usr")
-text(hh[1], nrow(t2) + 2, "Parameter", pos = 4)
-text(hh[2], nrow(t2) + 2, "OR [95% CI]", pos = 2)
-       #alim = c(0,2), xlim = c(-1, 3)) 
-
-
-# Non-metabolite model lme4
-
-library(lme4)
-fit1 <- lmer(CT ~ BMI + SMK + DIABETE + (1|MATCH), data = meta1)
 
