@@ -55,20 +55,23 @@ box(which = "plot", lty = "solid")
 legend("topleft", legend = plt$groups, col=plt$colors, pch=plt$pch)
 
 # Adjust using residuals method
-adj <- function(x) residuals(lm(x ~ WEEKS + BMI + SMK + DIABETE, data = alldata))
+adj <- function(x) residuals(lm(x ~ BMI + SMK + DIABETE, data = alldata))
 adjmat <- apply(ints1, 2, adj)
 # Repeat PCA
 pca2 <- prcomp(adjmat, scale.=F)
 pca2d(pca2, group = alldata$CT)
+title("Residuals-adjusted metabolite profiles of 1582 samples")
+box(which = "plot", lty = "solid")
+legend("topleft", legend = plt$groups, col=plt$colors, pch=plt$pch)
 
 # Breast cancer risk model. Subset variables needed
 meta1 <- meta %>%
-  select(CODBMB, CT, MATCH, WEEKS, PLACE, AGE, BMI, MENOPAUSE, FASTING, SMK, DIABETE, CENTTIMECat1, SAMPYEAR, STOCKTIME) %>%
+  select(CODBMB, CT, MATCH, PLACE, AGE, BMI, MENOPAUSE, FASTING, SMK, DIABETE, CENTTIMECat1, SAMPYEAR, STOCKTIME) %>%
   mutate_at(vars(-CODBMB, -CT, -AGE, -BMI, -WEEKS, -STOCKTIME), as.factor)
 
 # Conditional logistic regression to get odds ratios for lifestyle factors
 library(survival)
-fit <- clogit(CT ~ WEEKS + BMI + SMK + DIABETE + strata(MATCH), data = meta1) 
+fit <- clogit(CT ~ BMI + SMK + DIABETE + strata(MATCH), data = meta1) 
 # output <- cbind(exp(coef(fit)), exp(confint(fit)))
 library(broom)
 t1 <- tidy(fit) %>% # mutate_if(is.numeric, exp) %>% 
@@ -85,7 +88,7 @@ text(3, nrow(t1) + 2, "OR [95% CI]", pos = 2)
 
 # CLR models to get odds ratios for metabolites
 data <- left_join(meta1, ints, by = "CODBMB")
-clr <- function(x) clogit(CT ~ x + WEEKS + BMI + SMK + DIABETE + strata(MATCH), data = meta1)
+clr <- function(x) clogit(CT ~ x + BMI + SMK + DIABETE + strata(MATCH), data = meta1)
 ints <- 15:ncol(data)
 multifit <- apply(data[, ints], 2, clr)
 t2 <- map_df(multifit, tidy) %>% filter(term == "x")
@@ -103,36 +106,31 @@ text(hh[2], nrow(t2) + 2, "OR [95% CI]", pos = 2)
 library(lme4)
 fit1 <- lmer(CT ~ BMI + SMK + DIABETE + (1|MATCH), data = meta1)
 
-# O-PLS DA on residual-adjusted concentrations
+# OPLS-DA on residual-adjusted concentrations
 library(mixOmics)
 pca.lp <- pca(adjmat, ncomp = 10, center = F, scale = F)
 plot(pca.lp)
-plotIndiv(pca.lp, group = as.factor(alldata$CT), ind.names = F, legend = T)
+plotIndiv(pca.lp, group = as.factor(alldata$CT), ind.names = T, legend = T, title = "Subject metabolic profiles")
 
 # Run PLS-DA specifying number of components
-plsda.res <- plsda(adjmat, as.factor(alldata$CT), ncomp = 10)
+plsda.res <- plsda(adjmat, as.factor(alldata$CT), ncomp = 5)
 
 set.seed(2543) # for reproducibility here, only when the `cpus' argument is not used
-perf.plsda <- perf(plsda.res, validation = "Mfold", folds = 5, 
-                   progressBar = T, auc = T, nrepeat = 10) 
+perf.plsda <- perf(plsda.res, validation = "Mfold", folds = 5, progressBar = T, auc = T, nrepeat = 10) 
 
 plot(perf.plsda, col = color.mixo(1:3), sd = T, legend.position = "horizontal")
 plot(perf.plsda)
 
 #coeff <- plsda.res$X
 #plot(coeff[1, ])
-perf.plsda$choice.ncomp # 3 components appear to be best
+perf.plsda$choice.ncomp # 2 components appear to be best
 
 # Rerun the PLS-DA with 3 components
-
-plsda.res1 <- plsda(logmat3, cols, ncomp = 3)
-
+plsda.res1 <- plsda(adjmat, as.factor(alldata$CT), ncomp = 2)
 plotVar(plsda.res1)
-
-plotIndiv(plsda.res1, ind.names = FALSE, legend = TRUE, ellipse = TRUE,
-          title = 'PLS-DA')
-
+plotIndiv(plsda.res1, ind.names = F, legend = T, ellipse = T, title = 'PLS-DA')
 plotLoadings(plsda.res1, contrib = "max", ndisplay = 50)
+auroc(plsda.res1)
 
 
 
