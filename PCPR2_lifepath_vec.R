@@ -10,9 +10,9 @@ meta <- read_csv("Lifepath_meta.csv") %>% filter(CODBMB != 11094738)
 alldata <- inner_join(meta, Xdata, by = "CODBMB")
 # 1109473 is not in the metadata anyway
 
-X_DataMatrixScaled <- alldata %>% select(`3Hydroxybutyrate`:Succinate) %>% as.matrix
+X_DataMatrixScaled <- dplyr::select(alldata, `3Hydroxybutyrate`:Succinate) %>% as.matrix
 Z_Meta <- alldata %>%
-  select(WEEKS, PLACE, AGE, BMI, MENOPAUSE, FASTING, SMK, DIABETE, CENTTIMECat1, SAMPYEAR, STOCKTIME) %>%
+  select(CT, WEEKS, PLACE, AGE, BMI, MENOPAUSE, FASTING, SMK, DIABETE, CENTTIMECat1, SAMPYEAR, STOCKTIME) %>%
   mutate_at(vars(-AGE, -BMI, -WEEKS, -STOCKTIME), as.factor)
 
 # Center or scale the data, edit the parameter "pareto" or "unit"
@@ -75,6 +75,7 @@ pR2Sums <- colSums(partialR2MatWtProp) * 100
 
 # Plot data
 #par(mfrow = c(1,2))
+par(mar=c(6,4.1,4.1,2.1))
 bp <- barplot(pR2Sums, ylab = "Weighted Rpartial2", ylim = c(0, 25), xlab = "",
               col = "red", las=2, cex.main = 1, 
               main = paste("Sources of variation in", Z_MetaRowN, "BC cases and controls"),
