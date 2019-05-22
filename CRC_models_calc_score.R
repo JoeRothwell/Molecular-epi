@@ -11,16 +11,27 @@ var.list  <- c("Country", "Center", "Sex", "Match_Caseset", "Smoke_Stat", "L_Sch
 meta      <- meta %>% mutate_at(vars(var.list), as.factor)
 
 # Get names of individual contributor variables to WCRF score
-wcrf_vars <- c("Wcrf_Bmi", "Wcrf_Pa", "Wcrf_Fwg_Cal", "Wcrf_Pf_Cal", "Wcrf_Fv_Cal", "Wcrf_Fibt_Cal",
-               "Wcrf_Meat_Cal", "Wcrf_C_Cal")
+wcrf_vars <- c("Wcrf_Bmi", 
+               "Wcrf_Pa", 
+               "Wcrf_Fwg_Cal", 
+               "Wcrf_Pf_Cal", 
+               "Wcrf_Fv_Cal", 
+               "Wcrf_Fibt_Cal",
+               "Wcrf_Meat_Cal", 
+               "Wcrf_C_Cal")
 
 # Get variable descriptions (for forest plot)
-scorecomp <- c("1. Body fatness", "2. Physical activity", "3. Energy density/sugary drinks", "4. FV intake", 
-               "5. Foods of plant origin", "6. Fibre intake", "7. Meat intake", 
+scorecomp <- c("1. Body fatness", 
+               "2. Physical activity", 
+               "3. Energy density/sugary drinks", 
+               "4. FV intake", 
+               "5. Foods of plant origin", 
+               "6. Fibre intake", 
+               "7. Meat intake", 
            "       Overall WCRF score (cal.)")
 scorecomp2 <- c(scorecomp, "       Signature metabolites")
 xtitle     <- "Odds ratio (per unit increase in score)"
-xtitle2     <- "Hazard ratio (per unit increase in score)"
+xtitle2    <- "Hazard ratio (per unit increase in score)"
 
 library(survival)
 library(broom)

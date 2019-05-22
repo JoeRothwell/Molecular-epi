@@ -24,9 +24,9 @@ plot(colSums(ints[ , -1]), xlab = "Compound number", ylab = "Scaled intensity",
      pch = 19, col = "dodgerblue", main = "Summed intensities of 44 metabolites")
 
 # Check correlations
-cormat <- cor(ints)
-colnames(cormat) <- NULL
 library(corrplot)
+cormat <- cor(ints[, -1])
+colnames(cormat) <- NULL
 corrplot(cormat, method = "square", tl.col = "black", tl.cex = 0.8)
 
 # The three fatty acids are highly correlated, valine and leucine, NAC1 and 2
@@ -67,7 +67,7 @@ legend("topleft", legend = plt$groups, col=plt$colors, pch=plt$pch)
 # Breast cancer risk model. Subset variables needed
 meta1 <- meta %>%
   select(CODBMB, CT, MATCH, PLACE, AGE, BMI, MENOPAUSE, FASTING, SMK, DIABETE, CENTTIMECat1, SAMPYEAR, STOCKTIME) %>%
-  mutate_at(vars(-CODBMB, -CT, -AGE, -BMI, -WEEKS, -STOCKTIME), as.factor)
+  mutate_at(vars(-CODBMB, -CT, -AGE, -BMI, -STOCKTIME), as.factor)
 
 # Conditional logistic regression to get odds ratios for lifestyle factors
 library(survival)
@@ -93,6 +93,7 @@ ints <- 15:ncol(data)
 multifit <- apply(data[, ints], 2, clr)
 t2 <- map_df(multifit, tidy) %>% filter(term == "x")
 
+dev.off()
 par(mar=c(5,4,1,2))
 forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1, #xlab = xtitle, 
        xlab = "Multivariable adjusted odds ratio",
@@ -104,7 +105,8 @@ text(hh[2], nrow(t2) + 2, "OR [95% CI]", pos = 2)
 
 # Non-metabolite model lme4
 library(lme4)
-fit1 <- lmer(CT ~ BMI + SMK + DIABETE + (1|MATCH), data = meta1)
+fit1 <- glmer(CT ~ BMI + SMK + DIABETE + (1|MATCH), data = meta1, family = "binomial")
+summary(fit1)
 
 # OPLS-DA on residual-adjusted concentrations
 library(mixOmics)
