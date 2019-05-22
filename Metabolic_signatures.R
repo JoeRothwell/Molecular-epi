@@ -4,6 +4,9 @@ source("CRC_data_prep.R")
 get.Biocrates.sig <- function(fasting = T){
   
   library(tidyverse)
+  library(lme4)
+  library(zoo)
+  library(pls)
   
   # Prepare controls matrix. Replace zero, impute with half mins, scale
   concs <- as.matrix(controls)
@@ -45,9 +48,10 @@ get.Biocrates.sig <- function(fasting = T){
 }
 mod1 <- get.Biocrates.sig()
 
-get.FA.sig  <- function(){
+get.FA.sig  <- function(cor.data = F){
   
   # Fatty acid signatures of WCRF score
+  library(tidyverse)
   library(lme4)
   library(zoo)
   library(pls)
@@ -59,10 +63,13 @@ get.FA.sig  <- function(){
   common_cols <- output[[2]]
   fa.ctrl <- output[[1]]
   
-  # select common FAs in the same order
-  CRCfa <- read_dta("Database_Fatty acids.dta") %>% select(one_of(common_cols)) 
+  # select common FAs in the same order. FAs is for correlation with Biocrates compounds
+  FAs   <- read_dta("Database_Fatty acids.dta") %>% select(Idepic, one_of(common_cols)) 
+  CRCfa <- FAs %>% select(-Idepic)
   concs <- fa.ctrl %>% select(one_of(common_cols))
   #identical(colnames(CRCfa), colnames(concs))
+  
+  if(cor.data == T) return(FAs)
   
   concs <- as.matrix(concs)
   concs[concs == 0] <- NA
@@ -104,6 +111,8 @@ mod2 <- get.FA.sig()
 
 plot.Biocrates.sig <- function(mod, no.cmpds = 7){
   
+  library(tidyverse)
+  
   cmpd.meta <- read.csv("Biocrates_cmpd_metadata.csv")
   
   # Coefficients and variable importance. First subset one-matrix array to get matrix
@@ -144,6 +153,8 @@ plot.Biocrates.sig <- function(mod, no.cmpds = 7){
 table3a <- plot.Biocrates.sig(mod1)
 
 plot.FA.sig  <- function(mod){
+  
+  library(tidyverse)
   
   cmpd.meta <- read.csv("FA_compound_data.csv")
   
