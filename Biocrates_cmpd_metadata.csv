@@ -1,0 +1,188 @@
+cmpdno,Compound,class,shortname,fullname,displayname
+1,Acylcarn_C0,Acylcarnitines,C0,Carnitine,C0
+2,Acylcarn_C10,Acylcarnitines,C10,Decanoylcarnitine,C10
+3,Acylcarn_C10_1,Acylcarnitines,C10:1,Decenoylcarnitine,C10:1
+4,Acylcarn_C10_2,Acylcarnitines,C10:2,Decadienylcarnitine,C10:2
+5,Acylcarn_C12,Acylcarnitines,C12,Dodecanoylcarnitine,C12
+6,Acylcarn_C12_1,Acylcarnitines,C12:1,Dodecenoylcarnitine,C12:1
+7,Acylcarn_C12_Dc,Acylcarnitines,C12-DC,Dodecanedioylcarnitine,C12-DC
+8,Acylcarn_C14,Acylcarnitines,C14,Tetradecanoylcarnitine,C14
+9,Acylcarn_C14_1,Acylcarnitines,C14:1,Tetradecenoylcarnitine,C14:1
+10,Acylcarn_C14_1_Oh,Acylcarnitines,C14:1-OH,Hydroxytetradecenoylcarnitine,C14:1-OH
+11,Acylcarn_C14_2,Acylcarnitines,C14:2,Tetradecadienylcarnitine,C14:2
+12,Acylcarn_C14_2_Oh,Acylcarnitines,C14:2-OH,Hydroxytetradecadienylcarnitine,C14:2-OH
+13,Acylcarn_C16,Acylcarnitines,C16,Hexadecanoylcarnitine,C16
+14,Acylcarn_C16_1,Acylcarnitines,C16:1,Hexadecenoylcarnitine,C16:1
+15,Acylcarn_C16_1_Oh,Acylcarnitines,C16:1-OH,Hydroxyhexadecenoylcarnitine,C16:1-OH
+16,Acylcarn_C16_2,Acylcarnitines,C16:2,Hexadecadienylcarnitine,C16:2
+17,Acylcarn_C16_2_Oh,Acylcarnitines,C16:2-OH,Hydroxyhexadecadienylcarnitine,C16:2-OH
+18,Acylcarn_C16_Oh,Acylcarnitines,C16-OH,Hydroxyhexadecanoylcarnitine,C16-OH
+19,Acylcarn_C18,Acylcarnitines,C18,Octadecanoylcarnitine,C18
+20,Acylcarn_C18_1,Acylcarnitines,C18:1,Octadecenoylcarnitine,C18:1
+21,Acylcarn_C18_1_Oh,Acylcarnitines,C18:1-OH,Hydroxyoctadecenoylcarnitine,C18:1-OH
+22,Acylcarn_C18_2,Acylcarnitines,C18:2,Octadecadienylcarnitine,C18:2
+23,Acylcarn_C2,Acylcarnitines,C2,Acetylcarnitine,C2
+24,Acylcarn_C3,Acylcarnitines,C3,Propionylcarnitine,C3
+25,Acylcarn_C3_1,Acylcarnitines,C3:1,Propenoylcarnitine,C3:1
+26,Acylcarn_C3_Dc_C4_Oh_,Acylcarnitines,C3-DC (C4-OH),NA,C3-DC (C4-OH)
+27,Acylcarn_C3_Oh,Acylcarnitines,C3-OH,Hydroxypropionylcarnitine,C3-OH
+28,Acylcarn_C4,Acylcarnitines,C4,Butyrylcarnitine,C4
+29,Acylcarn_C4_1,Acylcarnitines,C4:1,Butenylcarnitine,C4:1
+30,Acylcarn_C5,Acylcarnitines,C5,Valerylcarnitine,C5
+31,Acylcarn_C5_1,Acylcarnitines,C5:1,Tiglylcarnitine,C5:1
+32,Acylcarn_C5_1_Dc,Acylcarnitines,C5:1-DC,Glutaconylcarnitine,C5:1-DC
+33,Acylcarn_C5_Dc_C6_Oh_,Acylcarnitines,C5-DC (C6-OH),NA,C5-DC (C6-OH)
+34,Acylcarn_C5_M_Dc,Acylcarnitines,C5-M-DC,Methylglutarylcarnitine,C5-M-DC
+35,Acylcarn_C5_Oh_C3_Dc_M_,Acylcarnitines,C5-OH (C3-DC-M),NA,C5-OH (C3-DC-M)
+36,Acylcarn_C6_1,Acylcarnitines,C6:1,Hexenoylcarnitine,C6:1
+37,Acylcarn_C6_C4_1_Dc_,Acylcarnitines,C6 (C4:1-DC),NA,C6 (C4:1-DC)
+38,Acylcarn_C7_Dc,Acylcarnitines,C7-DC,Pimelylcarnitine,C7-DC
+39,Acylcarn_C8,Acylcarnitines,C8,Octanoylcarnitine,C8
+40,Acylcarn_C8_1,Acylcarnitines,C8:1,NA,C8:1
+41,Acylcarn_C9,Acylcarnitines,C9,Nonaylcarnitine,C9
+42,Aminoacid_Ala,Amino acids,Ala,Alanine,Alanine
+43,Aminoacid_Arg,Amino acids,Arg,Arginine,Arginine
+44,Aminoacid_Asn,Amino acids,Asn,Asparagine,Asparagine
+45,Aminoacid_Asp,Amino acids,Asp,Aspartate,Aspartate
+46,Aminoacid_Cit,Amino acids,Cit,Citrulline,Citrulline
+47,Aminoacid_Gln,Amino acids,Gln,Glutamine,Glutamine
+48,Aminoacid_Glu,Amino acids,Glu,Glutamate,Glutamate
+49,Aminoacid_Gly,Amino acids,Gly,Glycine,Glycine
+50,Aminoacid_His,Amino acids,His,Histidine,Histidine
+51,Aminoacid_Ile,Amino acids,Ile,Isoleucine,Isoleucine
+52,Aminoacid_Leu,Amino acids,Leu,Leucine,Leucine
+53,Aminoacid_Lys,Amino acids,Lys,Lysine,Lysine
+54,Aminoacid_Met,Amino acids,Met,Methionine,Methionine
+55,Aminoacid_Orn,Amino acids,Orn,Ornithine,Ornithine
+56,Aminoacid_Phe,Amino acids,Phe,Phenylalanine,Phenylalanine
+57,Aminoacid_Pro,Amino acids,Pro,Proline,Proline
+58,Aminoacid_Ser,Amino acids,Ser,Serine,Serine
+59,Aminoacid_Thr,Amino acids,Thr,Threonine,Threonine
+60,Aminoacid_Trp,Amino acids,Trp,Tryptophan,Tryptophan
+61,Aminoacid_Tyr,Amino acids,Tyr,Tyrosine,Tyrosine
+62,Aminoacid_Val,Amino acids,Val,Valine,Valine
+63,Aminoacid_Xleu,Amino acids,xLeu,trans-Leucine,trans-Leucine
+64,Biogenic_Ac_Orn,Biogenic amines,Ac-Orn,Acetylornithine,Acetylornithine
+65,Biogenic_Adma,Biogenic amines,ADMA,Asymmetric dimethylarginine,ADMA
+66,Biogenic_Alpha_Aaa,Biogenic amines,alpha-AAA,alpha-Aminoadipic acid,alpha-AAA
+67,Biogenic_Creatinine,Biogenic amines,Creatinine,Creatinine,Creatinine
+68,Biogenic_Kynurenine,Biogenic amines,Kynurenine,Kynurenine,Kynurenine
+69,Biogenic_Met_So,Biogenic amines,Met-SO,Methioninesulfoxide,Methioninesulfoxide
+70,Biogenic_Nitro_Tyr,Biogenic amines,Nitro-Tyr,Nitrotyrosine,Nitrotyrosine
+71,Biogenic_Putrescine,Biogenic amines,Putrescine,Putrescine,Putrescine
+72,Biogenic_Sarcosine,Biogenic amines,Sarcosine,Sarcosine,Sarcosine
+73,Biogenic_Sdma,Biogenic amines,SDMA,Symmetric dimethylarginine,SDMA
+74,Biogenic_Serotonin,Biogenic amines,Serotonin,Serotonin,Serotonin
+75,Biogenic_Spermidine,Biogenic amines,Spermidine,Spermidine,Spermidine
+76,Biogenic_Spermine,Biogenic amines,Spermine,Spermine,Spermine
+77,Biogenic_T4_Oh_Pro,Biogenic amines,t4-OH-Pro,trans-4-Hydroxyproline,trans-Hydroxyproline
+78,Biogenic_Taurine,Biogenic amines,Taurine,Taurine,Taurine
+79,Biogenic_Total_Dma,Biogenic amines,total DMA,total DMA,total DMA
+80,Glyceroph_Lysopc_A_C14_0,Glycerophospholipids,lysoPC a C14:0,NA,lysoPC a C14:0
+81,Glyceroph_Lysopc_A_C16_0,Glycerophospholipids,lysoPC a C16:0,NA,lysoPC a C16:0
+82,Glyceroph_Lysopc_A_C16_1,Glycerophospholipids,lysoPC a C16:1,NA,lysoPC a C16:1
+83,Glyceroph_Lysopc_A_C17_0,Glycerophospholipids,lysoPC a C17:0,NA,lysoPC a C17:0
+84,Glyceroph_Lysopc_A_C18_0,Glycerophospholipids,lysoPC a C18:0,NA,lysoPC a C18:0
+85,Glyceroph_Lysopc_A_C18_1,Glycerophospholipids,lysoPC a C18:1,NA,lysoPC a C18:1
+86,Glyceroph_Lysopc_A_C18_2,Glycerophospholipids,lysoPC a C18:2,NA,lysoPC a C18:2
+87,Glyceroph_Lysopc_A_C20_3,Glycerophospholipids,lysoPC a C20:3,NA,lysoPC a C20:3
+88,Glyceroph_Lysopc_A_C20_4,Glycerophospholipids,lysoPC a C20:4,NA,lysoPC a C20:4
+89,Glyceroph_Lysopc_A_C24_0,Glycerophospholipids,lysoPC a C24:0,NA,lysoPC a C24:0
+90,Glyceroph_Lysopc_A_C26_0,Glycerophospholipids,lysoPC a C26:0,NA,lysoPC a C26:0
+91,Glyceroph_Lysopc_A_C26_1,Glycerophospholipids,lysoPC a C26:1,NA,lysoPC a C26:1
+92,Glyceroph_Lysopc_A_C28_0,Glycerophospholipids,lysoPC a C28:0,NA,lysoPC a C28:0
+93,Glyceroph_Lysopc_A_C28_1,Glycerophospholipids,lysoPC a C28:1,NA,lysoPC a C28:1
+94,Glyceroph_Lysopc_A_C6_0,Glycerophospholipids,lysoPC a C6:0,NA,lysoPC a C6:0
+95,Glyceroph_Pc_Aa_C24_0,Glycerophospholipids,PC aa C24:0,NA,PC aa C24:0
+96,Glyceroph_Pc_Aa_C26_0,Glycerophospholipids,PC aa C26:0,NA,PC aa C26:0
+97,Glyceroph_Pc_Aa_C28_1,Glycerophospholipids,PC aa C28:1,NA,PC aa C28:1
+98,Glyceroph_Pc_Aa_C30_0,Glycerophospholipids,PC aa C30:0,NA,PC aa C30:0
+99,Glyceroph_Pc_Aa_C30_2,Glycerophospholipids,PC aa C30:2,NA,PC aa C30:2
+100,Glyceroph_Pc_Aa_C32_0,Glycerophospholipids,PC aa C32:0,NA,PC aa C32:0
+101,Glyceroph_Pc_Aa_C32_1,Glycerophospholipids,PC aa C32:1,NA,PC aa C32:1
+102,Glyceroph_Pc_Aa_C32_2,Glycerophospholipids,PC aa C32:2,NA,PC aa C32:2
+103,Glyceroph_Pc_Aa_C32_3,Glycerophospholipids,PC aa C32:3,NA,PC aa C32:3
+104,Glyceroph_Pc_Aa_C34_1,Glycerophospholipids,PC aa C34:1,NA,PC aa C34:1
+105,Glyceroph_Pc_Aa_C34_2,Glycerophospholipids,PC aa C34:2,NA,PC aa C34:2
+106,Glyceroph_Pc_Aa_C34_3,Glycerophospholipids,PC aa C34:3,NA,PC aa C34:3
+107,Glyceroph_Pc_Aa_C34_4,Glycerophospholipids,PC aa C34:4,NA,PC aa C34:4
+108,Glyceroph_Pc_Aa_C36_0,Glycerophospholipids,PC aa C36:0,NA,PC aa C36:0
+109,Glyceroph_Pc_Aa_C36_1,Glycerophospholipids,PC aa C36:1,NA,PC aa C36:1
+110,Glyceroph_Pc_Aa_C36_2,Glycerophospholipids,PC aa C36:2,NA,PC aa C36:2
+110,Glyceroph_Pc_Aa_C36_3,Glycerophospholipids,PC aa C36:3,NA,PC aa C36:3
+112,Glyceroph_Pc_Aa_C36_4,Glycerophospholipids,PC aa C36:4,NA,PC aa C36:4
+113,Glyceroph_Pc_Aa_C36_5,Glycerophospholipids,PC aa C36:5,NA,PC aa C36:5
+114,Glyceroph_Pc_Aa_C36_6,Glycerophospholipids,PC aa C36:6,NA,PC aa C36:6
+115,Glyceroph_Pc_Aa_C38_0,Glycerophospholipids,PC aa C38:0,NA,PC aa C38:0
+116,Glyceroph_Pc_Aa_C38_1,Glycerophospholipids,PC aa C38:1,NA,PC aa C38:1
+117,Glyceroph_Pc_Aa_C38_3,Glycerophospholipids,PC aa C38:3,NA,PC aa C38:3
+118,Glyceroph_Pc_Aa_C38_4,Glycerophospholipids,PC aa C38:4,NA,PC aa C38:4
+119,Glyceroph_Pc_Aa_C38_5,Glycerophospholipids,PC aa C38:5,NA,PC aa C38:5
+120,Glyceroph_Pc_Aa_C38_6,Glycerophospholipids,PC aa C38:6,NA,PC aa C38:6
+121,Glyceroph_Pc_Aa_C40_1,Glycerophospholipids,PC aa C40:1,NA,PC aa C40:1
+122,Glyceroph_Pc_Aa_C40_2,Glycerophospholipids,PC aa C40:2,NA,PC aa C40:2
+123,Glyceroph_Pc_Aa_C40_3,Glycerophospholipids,PC aa C40:3,NA,PC aa C40:3
+124,Glyceroph_Pc_Aa_C40_4,Glycerophospholipids,PC aa C40:4,NA,PC aa C40:4
+125,Glyceroph_Pc_Aa_C40_5,Glycerophospholipids,PC aa C40:5,NA,PC aa C40:5
+126,Glyceroph_Pc_Aa_C40_6,Glycerophospholipids,PC aa C40:6,NA,PC aa C40:6
+127,Glyceroph_Pc_Aa_C42_0,Glycerophospholipids,PC aa C42:0,NA,PC aa C42:0
+128,Glyceroph_Pc_Aa_C42_1,Glycerophospholipids,PC aa C42:1,NA,PC aa C42:1
+129,Glyceroph_Pc_Aa_C42_2,Glycerophospholipids,PC aa C42:2,NA,PC aa C42:2
+130,Glyceroph_Pc_Aa_C42_4,Glycerophospholipids,PC aa C42:4,NA,PC aa C42:4
+131,Glyceroph_Pc_Aa_C42_5,Glycerophospholipids,PC aa C42:5,NA,PC aa C42:5
+132,Glyceroph_Pc_Aa_C42_6,Glycerophospholipids,PC aa C42:6,NA,PC aa C42:6
+133,Glyceroph_Pc_Ae_C30_0,Glycerophospholipids,PC ae C30:0,NA,PC ae C30:0
+134,Glyceroph_Pc_Ae_C30_1,Glycerophospholipids,PC ae C30:1,NA,PC ae C30:1
+135,Glyceroph_Pc_Ae_C30_2,Glycerophospholipids,PC ae C30:2,NA,PC ae C30:2
+136,Glyceroph_Pc_Ae_C32_1,Glycerophospholipids,PC ae C32:1,NA,PC ae C32:1
+137,Glyceroph_Pc_Ae_C32_2,Glycerophospholipids,PC ae C32:2,NA,PC ae C32:2
+138,Glyceroph_Pc_Ae_C34_0,Glycerophospholipids,PC ae C34:0,NA,PC ae C34:0
+139,Glyceroph_Pc_Ae_C34_1,Glycerophospholipids,PC ae C34:1,NA,PC ae C34:1
+140,Glyceroph_Pc_Ae_C34_2,Glycerophospholipids,PC ae C34:2,NA,PC ae C34:2
+141,Glyceroph_Pc_Ae_C34_3,Glycerophospholipids,PC ae C34:3,NA,PC ae C34:3
+142,Glyceroph_Pc_Ae_C36_0,Glycerophospholipids,PC ae C36:0,NA,PC ae C36:0
+143,Glyceroph_Pc_Ae_C36_1,Glycerophospholipids,PC ae C36:1,NA,PC ae C36:1
+144,Glyceroph_Pc_Ae_C36_2,Glycerophospholipids,PC ae C36:2,NA,PC ae C36:2
+145,Glyceroph_Pc_Ae_C36_3,Glycerophospholipids,PC ae C36:3,NA,PC ae C36:3
+146,Glyceroph_Pc_Ae_C36_4,Glycerophospholipids,PC ae C36:4,NA,PC ae C36:4
+147,Glyceroph_Pc_Ae_C36_5,Glycerophospholipids,PC ae C36:5,NA,PC ae C36:5
+148,Glyceroph_Pc_Ae_C38_0,Glycerophospholipids,PC ae C38:0,NA,PC ae C38:0
+149,Glyceroph_Pc_Ae_C38_1,Glycerophospholipids,PC ae C38:1,NA,PC ae C38:1
+150,Glyceroph_Pc_Ae_C38_2,Glycerophospholipids,PC ae C38:2,NA,PC ae C38:2
+151,Glyceroph_Pc_Ae_C38_3,Glycerophospholipids,PC ae C38:3,NA,PC ae C38:3
+152,Glyceroph_Pc_Ae_C38_4,Glycerophospholipids,PC ae C38:4,NA,PC ae C38:4
+153,Glyceroph_Pc_Ae_C38_5,Glycerophospholipids,PC ae C38:5,NA,PC ae C38:5
+154,Glyceroph_Pc_Ae_C38_6,Glycerophospholipids,PC ae C38:6,NA,PC ae C38:6
+155,Glyceroph_Pc_Ae_C40_0,Glycerophospholipids,PC ae C40:0,NA,PC ae C40:0
+156,Glyceroph_Pc_Ae_C40_1,Glycerophospholipids,PC ae C40:1,NA,PC ae C40:1
+157,Glyceroph_Pc_Ae_C40_2,Glycerophospholipids,PC ae C40:2,NA,PC ae C40:2
+158,Glyceroph_Pc_Ae_C40_3,Glycerophospholipids,PC ae C40:3,NA,PC ae C40:3
+159,Glyceroph_Pc_Ae_C40_4,Glycerophospholipids,PC ae C40:4,NA,PC ae C40:4
+160,Glyceroph_Pc_Ae_C40_5,Glycerophospholipids,PC ae C40:5,NA,PC ae C40:5
+161,Glyceroph_Pc_Ae_C40_6,Glycerophospholipids,PC ae C40:6,NA,PC ae C40:6
+162,Glyceroph_Pc_Ae_C42_0,Glycerophospholipids,PC ae C42:0,NA,PC ae C42:0
+163,Glyceroph_Pc_Ae_C42_1,Glycerophospholipids,PC ae C42:1,NA,PC ae C42:1
+164,Glyceroph_Pc_Ae_C42_2,Glycerophospholipids,PC ae C42:2,NA,PC ae C42:2
+165,Glyceroph_Pc_Ae_C42_3,Glycerophospholipids,PC ae C42:3,NA,PC ae C42:3
+166,Glyceroph_Pc_Ae_C42_4,Glycerophospholipids,PC ae C42:4,NA,PC ae C42:4
+167,Glyceroph_Pc_Ae_C42_5,Glycerophospholipids,PC ae C42:5,NA,PC ae C42:5
+168,Glyceroph_Pc_Ae_C44_3,Glycerophospholipids,PC ae C44:3,NA,PC ae C44:3
+169,Glyceroph_Pc_Ae_C44_4,Glycerophospholipids,PC ae C44:4,NA,PC ae C44:4
+170,Glyceroph_Pc_Ae_C44_5,Glycerophospholipids,PC ae C44:5,NA,PC ae C44:5
+171,Glyceroph_Pc_Ae_C44_6,Glycerophospholipids,PC ae C44:6,NA,PC ae C44:6
+172,Sphingo_Sm_C16_0,Sphingolipids,SM C16:0,NA,SM C16:0
+173,Sphingo_Sm_C16_1,Sphingolipids,SM C16:1,NA,SM C16:1
+174,Sphingo_Sm_C18_0,Sphingolipids,SM C18:0,NA,SM C18:0
+175,Sphingo_Sm_C18_1,Sphingolipids,SM C18:1,NA,SM C18:1
+176,Sphingo_Sm_C20_2,Sphingolipids,SM C20:2,NA,SM C20:2
+177,Sphingo_Sm_C22_3,Sphingolipids,SM C22:3,NA,SM C22:3
+178,Sphingo_Sm_C24_0,Sphingolipids,SM C24:0,NA,SM C24:0
+179,Sphingo_Sm_C24_1,Sphingolipids,SM C24:1,NA,SM C24:1
+180,Sphingo_Sm_C26_0,Sphingolipids,SM C26:0,NA,SM C26:0
+181,Sphingo_Sm_C26_1,Sphingolipids,SM C26:1,NA,SM C26:1
+182,Sphingo_Sm_Oh_C14_1,Sphingolipids,SM (OH) C14:1,NA,SM (OH) C14:1
+183,Sphingo_Sm_Oh_C16_1,Sphingolipids,SM (OH) C16:1,NA,SM (OH) C16:1
+184,Sphingo_Sm_Oh_C22_1,Sphingolipids,SM (OH) C22:1,NA,SM (OH) C22:1
+185,Sphingo_Sm_Oh_C22_2,Sphingolipids,SM (OH) C22:2,NA,SM (OH) C22:2
+186,Sphingo_Sm_Oh_C24_1,Sphingolipids,SM (OH) C24:1,NA,SM (OH) C24:1
+187,Sugars_H1,Monosaccharides,Sugars H1,Total hexose sugars,Hexoses
