@@ -1,22 +1,29 @@
 # Calculate Biocrates and fatty acid signatures
 source("CRC_data_prep.R")
 
-signature1 <- function(fasting = T) {
+get.sig.bioc <- function(fasting = T){
   
   library(tidyverse)
+  library(lme4)
+  library(pls)
+  library(zoo)
+  
+  # Gets common compounds between CC studies and EPIC controls. Puts them in the same order.
+  # Adjusts EPIC controls data using residuals method
+  # Runs PLS of WCRF score ~ metabolites
   # First dataset, 3771 obs; updated November 2018 7191 obs
   print(paste(nrow(ctrl), "Controls read"))
   
   # Subset biocrates compounds
-  controls <- ctrl %>% select(matches("Acylcarn_|Aminoacid_|Biogenic_|Glyceroph_|Sphingo_|Sugars_"), 
-                              -starts_with("Outdq"))
+  controls <- ctrl %>% 
+    select(matches("Acylcarn_|Aminoacid_|Biogenic_|Glyceroph_|Sphingo_|Sugars_"), -starts_with("Outdq"))
   
   zerocols <- apply(controls, 2, function(x) sum(x, na.rm = T)) != 0
   controls <- controls[, zerocols]
   
   colnames(controls) %>% length # 147 variables
   
-  # Large CRC metabolomics subset ----
+  # Large CRC metabolomics subset
   
   # (from Jelena, ~ 1200 case-control pairs), call it crc2
   # Join scores and filter out non-fasted samples
@@ -24,10 +31,8 @@ signature1 <- function(fasting = T) {
   print(paste("Subjects in larger case-control: ", nrow(crc2)))
   # Variables were converted to factors in CRC_data_prep.R
   
-  #setA <- crc2 %>% select(Acylcarn_C0 : Sugars_H1, -starts_with("Outdq_"))
-  
-  setA <- crc2 %>% select(matches("Acylcarn_|Aminoacid_|Biogenic_|Glyceroph_|Sphingo_|Sugars_"), 
-                          -starts_with("Outdq"))
+  setA <- crc2 %>% 
+    select(matches("Acylcarn_|Aminoacid_|Biogenic_|Glyceroph_|Sphingo_|Sugars_"), -starts_with("Outdq"))
   zerocols1 <- apply(setA, 2, function(x) sum(x, na.rm = T)) != 0
   setA <- setA[, zerocols1]
   colnames(setA) %>% length
@@ -36,13 +41,12 @@ signature1 <- function(fasting = T) {
   # Get common compounds between controls and CRC CC
   common_cols <- intersect(colnames(controls), colnames(setA))   # 135 compounds in common
   
-  # Small CRC metabolomics subset----
+  # Small CRC metabolomics subset
   # (from Bertrand, ~ 490 case-control pairs), call it crc1
   print(paste("Subjects in smaller case-control:", nrow(crc1)))
   
-  # setB <- crc1 %>% select(Acylcarn_C0 : Sugars_H1, -Batch_MetBio)
-  setB <- crc1 %>% select(matches("Acylcarn_|Aminoacid_|Biogenic_|Glyceroph_|Sphingo_|Sugars_"), 
-                          -starts_with("Outdq"))
+  setB <- crc1 %>% 
+    select(matches("Acylcarn_|Aminoacid_|Biogenic_|Glyceroph_|Sphingo_|Sugars_"), -starts_with("Outdq"))
   colnames(setB) %>% length
   
   # Convert variables to factors
@@ -59,22 +63,19 @@ signature1 <- function(fasting = T) {
   
   # subset and reorder both datasets to get the same 126 compounds in the same order
   controls <- controls %>% select(one_of(common_cols2))
-  setA <- setA %>% select(one_of(common_cols2))
-  setB <- setB %>% select(one_of(common_cols2))
+  #setA <- setA %>% select(one_of(common_cols2))
+  #setB <- setB %>% select(one_of(common_cols2))
   
   # check colnames are the same for both sets
   identical(colnames(controls), colnames(setA))
   
-  # Prepare controls matrix----
-  # Replace zero, impute with half mins, scale
+  # Prepare controls matrix. Replace zero, impute with half mins, scale
   concs <- as.matrix(controls)
   concs[concs == 0] <- NA
-  library(zoo)
   concs1 <- na.aggregate(concs, FUN = function(x) min(x)/2)
   logconcs <- log2(concs1) %>% scale
   
   # adjust matrix for study, centre, sex, batch, BMI
-  library(lme4)
   adj5 <- function(x) residuals(lmer(x ~ Center + batch_no + Sex + Bmi_C + (1|Study), data = ctrl))
   adjmat <- apply(logconcs, 2, adj5)
   
@@ -84,13 +85,10 @@ signature1 <- function(fasting = T) {
   # Data setup. Must be a df with Bind scores to log matrix
   plsdata <- cbind(score, adjmat) %>% filter(!is.na(score))
   
-  # PLS model----
+  # PLS model
   # For metabolic signature of WCRF score on controls dataset
-  
-  library(pls)
   set.seed(111)
   mod <- plsr(score ~ ., data = plsdata, validation = "CV")
-  #summary(mod)
   
   # Find the number of dimensions with lowest cross validation error
   cv <- RMSEP(mod)
@@ -103,27 +101,32 @@ signature1 <- function(fasting = T) {
   # explained variances
   # explvar(mod)
   
-  # Plots ----
-  # Prediction, scores, loadings
+  # Prediction, scores, loadings plots
   # plot(mod)
   # plot(mod, plottype = "scores")
   # plot(mod, "loadings", legendpos = "topleft")
   
 }
-mod1 <- signature1()
+mod1 <- get.sig.bioc()
 
-signature2 <- function(){
+get.sig.FAs  <- function(){
   
   # Fatty acid signatures of WCRF score
-  library(tidyverse)
   library(haven)
+  library(tidyverse)
+  library(Amelia)
+  library(lme4)
+  library(zoo)
+  library(pls)
   
   # Get WCRF scores
   wcrf <- read_dta("Wcrf_Score.dta") %>% select(Idepic, Wcrf_C_Cal)
   
   # Get CRC dataset from Elom and join WCRF scores. Convert categorical co-variates to factors
   var.list <- c("L_School", "Smoke_Stat")
-  CRCfa1 <- read_dta("Database_Fatty acids.dta") %>% left_join(wcrf, by = "Idepic") %>% mutate_at(vars(var.list), as.factor)
+  CRCfa1 <- read_dta("Database_Fatty acids.dta") %>% 
+    left_join(wcrf, by = "Idepic") %>% 
+    mutate_at(vars(var.list), as.factor)
   
   # Subset FA concentrations
   CRCfa <- CRCfa1 %>% select(P14_0 : PCLA_9t_11c) 
@@ -134,13 +137,11 @@ signature2 <- function(){
   fa.scores$N_Serie <- as.numeric(fa.scores$N_Serie)
   
   # convert categorical variables to factors
-  
   var.list <- c("Country", "Center", "STUDY", "LABO")
   fa.scores <- fa.scores %>% mutate_at(vars(var.list), as.factor)
   
   concs <- fa.scores %>% select(P14_0 : PCLA_9t_11c, -P24_0, -P20_0)
   
-  #library(Amelia)
   #missmap(concs)
   #missmap(CRCfa)
   
@@ -149,7 +150,7 @@ signature2 <- function(){
   common_cols <- intersect(colnames(concs), colnames(CRCfa))
   
   # select common FAs in the same order
-  CRCfa <- read_dta("Database_Fatty acids.dta") %>% select(one_of(common_cols)) 
+  #CRCfa <- read_dta("Database_Fatty acids.dta") %>% select(one_of(common_cols)) 
   concs <- fa.scores %>% select(one_of(common_cols))
   
   identical(colnames(CRCfa), colnames(concs))
@@ -160,23 +161,18 @@ signature2 <- function(){
   
   concs <- as.matrix(concs)
   concs[concs == 0] <- NA
-  library(zoo)
   concs <- na.aggregate(concs, FUN = function(x) min(x)/2)
   logconcs <- log2(concs) %>% scale
   
   # adjust matrix for study, centre, sex, batch, BMI
-  library(lme4)
   #getresiduals <- function(x) residuals(lm(x ~ STUDY + LABO + Country, data = fa.scores))
   getresiduals <- function(x) residuals(lmer(x ~ (1|STUDY) + LABO + Country, data = fa.scores))
   resmat <- apply(logconcs, 2, getresiduals)
   
   # Bind WCRF scores to log2 concs
   plsdata <- data.frame(score = fa.scores$Wcrf_C_Cal, resmat) %>% filter(!is.na(score))
-  
-  library(pls)
   set.seed(111)
   mod <- plsr(score ~ ., data = plsdata, validation = "CV")
-  # summary(mod)
   
   # Find the number of dimensions with lowest cross validation error
   cv <- RMSEP(mod)
@@ -197,19 +193,21 @@ signature2 <- function(){
   #plot(mod, "loadings", legendpos = "topleft")
   
 }
-mod2 <- signature2()
+mod2 <- git.sig.FAs()
 
 # Produce tables of important compounds, using compound metadata to get proper names
 
-plot_sig1 <- function(mod, no.cmpds = 7){
+plot.sig.bioc <- function(mod, no.cmpds = 7){
   
   cmpd.meta <- read.csv("Biocrates_cmpd_metadata.csv")
   
   # Coefficients and variable importance. First subset one-matrix array to get matrix
   k <- 126
   coeff <- data.frame(value = round(coef(mod)[1:k, 1, 1], 3))
-  dat <- coeff %>% mutate(sm  = sum(abs(value)), VIP = round((value*100)/sm, 2), 
-                          Compound = rownames(coeff))
+  dat <- coeff %>% 
+    mutate(sm  = sum(abs(value)), 
+           VIP = round((value*100)/sm, 2), 
+           Compound = rownames(coeff))
   dat <- dat %>% left_join(cmpd.meta, by = "Compound")
   
   # Subset appropriate columns and print influential compounds
@@ -230,26 +228,27 @@ plot_sig1 <- function(mod, no.cmpds = 7){
   # Now plot data, adding text
   plot(sort(coeff$value), pch = 17, col=vec, xlab = "", ylab = "Coefficient",
        main = paste(nrow(mod$scores), "fasted subjects, optimal dimensions =", mod$ncomp))
-  # High labels
+  # High and low labels
   text(nrow(dat) : (nrow(dat)-n_top), df1$Coefficient, df1$compound, pos=2, cex = 0.6)
-  # Low labels
   text(1:nrow(df2), df2$Coefficient, df2$compound, pos=4, cex=0.6)
   abline(a=0, b=0, lty = "dotted")
   
   output <- bind_rows(df1, df2)
   
 }
-table3a <- plot_sig1(mod1)
+table3a <- plot.sig.bioc(mod1)
 
-plot_sig2 <- function(mod){
+plot.sig.FAs  <- function(mod){
   
   cmpd.meta <- read.csv("FA_compound_data.csv")
   
   # Plot the variable importance
   k <- 34
   coeff <- data.frame(value = round(coef(mod)[1:k, 1, 1], 3))
-  dat <- coeff %>% mutate(sm  = sum(abs(value)), VIP = round((value*100)/sm, 2), 
-                          Compound = rownames(coeff))
+  dat <- coeff %>% 
+    mutate(sm  = sum(abs(value)), 
+           VIP = round((value*100)/sm, 2), 
+           Compound = rownames(coeff))
   
   dat <- dat %>% left_join(cmpd.meta, by = "Compound")
   
@@ -271,15 +270,14 @@ plot_sig2 <- function(mod){
   # Now plot data, adding text
   plot(sort(coeff$value), pch = 17, col=vec, xlab = "", ylab = "Coefficient",
        main = paste("Fatty acids:", nrow(mod$scores), "fasted subjects, optimal dimensions =", mod$ncomp))
-  # High compounds
+  # High and low compounds
   text(nrow(dat) : (nrow(dat)-n_top), df1$Coefficient, df1$compound, pos=2, cex = 0.6)
-  # Low compounds
   text(1:nrow(df2), df2$Coefficient, df2$compound, pos=4, cex=0.6)
   abline(a=0, b=0, lty = "dotted")
   
   output <- bind_rows(df1, df2)
 }
-table3b <- plot_sig2(mod2)
+table3b <- plot.sig.FAs(mod2)
 
 # Save workspace (for .Rmd file)
 # save.image(file="metabolic_signatures.Rdata")
