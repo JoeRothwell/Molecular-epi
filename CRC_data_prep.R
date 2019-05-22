@@ -9,6 +9,8 @@
 # Prep three datasets
 
 prepcrc1 <- function(){
+  
+  # Reads in small CC and WCRF scores and subsets biocrates data
 
   library(tidyverse)
   library(haven)
@@ -103,7 +105,9 @@ prepctrl <- function(data = c("old", "new")){
 }
 ctrl <- prepctrl(data = "new")
 
-get.common.Bioc <- function(fasting = T){
+# Get common compounds between CC and controls and order
+
+get.common.Bioc <- function(cor.data = F, fasting = T){
   
   library(tidyverse)
   # ets common compounds between CC studies and EPIC controls. Puts them in the same order.G
@@ -157,6 +161,11 @@ get.common.Bioc <- function(fasting = T){
   controls <- controls %>% select(one_of(common_cols2))
   setA <- setA %>% select(one_of(common_cols2))
   #setB <- setB %>% select(one_of(common_cols2))
+  
+  # Make dataset for correlation with FAs
+  Biocrates <- crc1 %>% select(Idepic, one_of(common_cols2))
+  
+  if(cor.data == T) return(Biocrates)
   
   # check colnames are the same for both sets
   identical(colnames(controls), colnames(setA))
