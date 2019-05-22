@@ -34,12 +34,12 @@ corrplot(cormat, method = "square", tl.col = "black", tl.cex = 0.8)
 
 # Run PCA of all samples
 pca <- prcomp(ints[, -1], scale.=F)
-plot(pca, xlab = "Principal component", ylab = "Variation explained")
+plot(pca)
 
 # Plot 
 library(pca3d)
 pca2d(pca)
-title("Metabolite profiles of 1622 samples")
+title("Metabolite profiles of 1622 samples", font.main = 1)
 box(which = "plot", lty = "solid")
 # Note: outlier row 1409
 
@@ -49,8 +49,10 @@ source("PCPR2_lifepath_vec.R")
 # PCA of subject IDs only
 ints1 <- alldata %>% select(`3Hydroxybutyrate`:Succinate)
 pca1 <- prcomp(ints1, scale.=F)
+
+par(mfrow = c(1,2))
 plt <- pca2d(pca1, group = alldata$CT)
-title("Metabolite profiles of 1582 samples")
+title("Metabolite profiles of 1582 samples", font.main = 1)
 box(which = "plot", lty = "solid")
 legend("topleft", legend = plt$groups, col=plt$colors, pch=plt$pch)
 
@@ -60,7 +62,7 @@ adjmat <- apply(ints1, 2, adj)
 # Repeat PCA
 pca2 <- prcomp(adjmat, scale.=F)
 pca2d(pca2, group = alldata$CT)
-title("Residuals-adjusted metabolite profiles of 1582 samples")
+title("Residuals-adjusted metabolite\nprofiles of 1582 samples", font.main = 1)
 box(which = "plot", lty = "solid")
 legend("topleft", legend = plt$groups, col=plt$colors, pch=plt$pch)
 
@@ -78,6 +80,7 @@ t1 <- tidy(fit) %>% # mutate_if(is.numeric, exp) %>%
   select(-(std.error:p.value))
 
 library(metafor)
+dev.off()
 par(mar=c(5,4,1,2))
 forest(t1$estimate, ci.lb = t1$conf.low, ci.ub = t1$conf.high, refline = 1, 
        xlab = "Multivariable adjusted odds ratio",
@@ -102,6 +105,10 @@ hh <- par("usr")
 text(hh[1], nrow(t2) + 2, "Compound", pos = 4)
 text(hh[2], nrow(t2) + 2, "OR [95% CI]", pos = 2)
        #alim = c(0,2), xlim = c(-1, 3)) 
+
+# Funnel plots for metabolites
+funnel(x = t2$estimate, sei = t2$std.error)
+funnel(x = t2$estimate, sei = t2$std.error, yaxis = "vi")
 
 # Non-metabolite model lme4
 library(lme4)
