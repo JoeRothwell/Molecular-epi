@@ -156,20 +156,14 @@ colnames(ints)
     ## [43] "NAC 2"                    "Pyruvate"                
     ## [45] "Succinate"
 
-The metabolomics data are previewed as
-follows:
+The metabolomics data are previewed as follows:
 
 ``` r
-knitr::kable(ints[1:5, 1:10], caption = "Preview of the metabolomics data.", format = "html")
+library(kableExtra)
+knitr::kable(ints[1:5, 1:10], format = "html")
 ```
 
 <table>
-
-<caption>
-
-Preview of the metabolomics data.
-
-</caption>
 
 <thead>
 
