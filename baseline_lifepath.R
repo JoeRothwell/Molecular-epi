@@ -14,7 +14,7 @@ options(qwraps2_markup = "markdown")
 #summ <- meta0 %>% qsummary(., numeric_summaries = list("Mean (SD)" = "~ mean_sd(%s)"),
 #                                   n_perc_args = list(digits = 1, show_symbol = TRUE))
 
-# Manually generated
+# Manually generated ----
 summ <-
   list("Total subjects"                  = list("N"   =   ~ n()),
        "Age at blood collection (years)" = list("Mean"     =  ~ mean_sd(AGE)),
@@ -97,4 +97,5 @@ summ <-
               "No information"      =  ~ n_perc0(DIAGSAMPLINGCat1 == 9999))
   )
 
+# ----
 st <- summary_table(group_by(meta0, CT), summ)
