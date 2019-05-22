@@ -1,73 +1,9 @@
-# Calculate Biocrates and fatty acid signatures
+# Compute Biocrates and fatty acid signatures of WCRF score
 source("CRC_data_prep.R")
 
-get.sig.bioc <- function(fasting = T){
+get.Biocrates.sig <- function(fasting = T){
   
   library(tidyverse)
-  library(lme4)
-  library(pls)
-  library(zoo)
-  
-  # Gets common compounds between CC studies and EPIC controls. Puts them in the same order.
-  # Adjusts EPIC controls data using residuals method
-  # Runs PLS of WCRF score ~ metabolites
-  # First dataset, 3771 obs; updated November 2018 7191 obs
-  print(paste(nrow(ctrl), "Controls read"))
-  
-  # Subset biocrates compounds
-  controls <- ctrl %>% 
-    select(matches("Acylcarn_|Aminoacid_|Biogenic_|Glyceroph_|Sphingo_|Sugars_"), -starts_with("Outdq"))
-  
-  zerocols <- apply(controls, 2, function(x) sum(x, na.rm = T)) != 0
-  controls <- controls[, zerocols]
-  
-  colnames(controls) %>% length # 147 variables
-  
-  # Large CRC metabolomics subset
-  
-  # (from Jelena, ~ 1200 case-control pairs), call it crc2
-  # Join scores and filter out non-fasted samples
-  crc2 <- if(fasting == T) crc2 %>% filter(Fasting_C == 2) else crc2
-  print(paste("Subjects in larger case-control: ", nrow(crc2)))
-  # Variables were converted to factors in CRC_data_prep.R
-  
-  setA <- crc2 %>% 
-    select(matches("Acylcarn_|Aminoacid_|Biogenic_|Glyceroph_|Sphingo_|Sugars_"), -starts_with("Outdq"))
-  zerocols1 <- apply(setA, 2, function(x) sum(x, na.rm = T)) != 0
-  setA <- setA[, zerocols1]
-  colnames(setA) %>% length
-  # 163 variables
-  
-  # Get common compounds between controls and CRC CC
-  common_cols <- intersect(colnames(controls), colnames(setA))   # 135 compounds in common
-  
-  # Small CRC metabolomics subset
-  # (from Bertrand, ~ 490 case-control pairs), call it crc1
-  print(paste("Subjects in smaller case-control:", nrow(crc1)))
-  
-  setB <- crc1 %>% 
-    select(matches("Acylcarn_|Aminoacid_|Biogenic_|Glyceroph_|Sphingo_|Sugars_"), -starts_with("Outdq"))
-  colnames(setB) %>% length
-  
-  # Convert variables to factors
-  var.list <- c("Country", "Center", "Sex")
-  crc1 <- crc1 %>% mutate_at(vars(var.list), as.factor)
-  #common_cols <- intersect(colnames(controls), colnames(setB))   # 145 compounds in common
-  
-  # ----
-  
-  # Get common cols between all three datasets (controls, small CC, big CC)
-  common_cols2 <- intersect(common_cols, colnames(setB))   # Glyceroph_Lysopc_A_C24_0 is removed
-  
-  # ----  
-  
-  # subset and reorder both datasets to get the same 126 compounds in the same order
-  controls <- controls %>% select(one_of(common_cols2))
-  #setA <- setA %>% select(one_of(common_cols2))
-  #setB <- setB %>% select(one_of(common_cols2))
-  
-  # check colnames are the same for both sets
-  identical(colnames(controls), colnames(setA))
   
   # Prepare controls matrix. Replace zero, impute with half mins, scale
   concs <- as.matrix(controls)
@@ -107,57 +43,26 @@ get.sig.bioc <- function(fasting = T){
   # plot(mod, "loadings", legendpos = "topleft")
   
 }
-mod1 <- get.sig.bioc()
+mod1 <- get.Biocrates.sig()
 
-get.sig.FAs  <- function(){
+get.FA.sig  <- function(){
   
   # Fatty acid signatures of WCRF score
-  library(haven)
-  library(tidyverse)
-  library(Amelia)
   library(lme4)
   library(zoo)
   library(pls)
   
-  # Get WCRF scores
-  wcrf <- read_dta("Wcrf_Score.dta") %>% select(Idepic, Wcrf_C_Cal)
-  
-  # Get CRC dataset from Elom and join WCRF scores. Convert categorical co-variates to factors
-  var.list <- c("L_School", "Smoke_Stat")
-  CRCfa1 <- read_dta("Database_Fatty acids.dta") %>% 
-    left_join(wcrf, by = "Idepic") %>% 
-    mutate_at(vars(var.list), as.factor)
-  
-  # Subset FA concentrations
-  CRCfa <- CRCfa1 %>% select(P14_0 : PCLA_9t_11c) 
-  
-  # Get dataset for PLS modelling (all EPIC controls). Exclude compounds with many missings
-  # Note: new version from Carine received 18/11/2018 with technical covariates
-  fa.scores <- readRDS("FA_WCRF_scores1.rds") %>% filter(STUDY != "Colorectum")
-  fa.scores$N_Serie <- as.numeric(fa.scores$N_Serie)
-  
-  # convert categorical variables to factors
-  var.list <- c("Country", "Center", "STUDY", "LABO")
-  fa.scores <- fa.scores %>% mutate_at(vars(var.list), as.factor)
-  
-  concs <- fa.scores %>% select(P14_0 : PCLA_9t_11c, -P24_0, -P20_0)
-  
-  #missmap(concs)
-  #missmap(CRCfa)
-  
-  length(colnames(concs))
-  length(colnames(CRCfa))
-  common_cols <- intersect(colnames(concs), colnames(CRCfa))
-  
-  # select common FAs in the same order
-  #CRCfa <- read_dta("Database_Fatty acids.dta") %>% select(one_of(common_cols)) 
-  concs <- fa.scores %>% select(one_of(common_cols))
-  
-  identical(colnames(CRCfa), colnames(concs))
-  
   # PLS to get signature of fatty acid metabolism for high and low scorers
   # Set zeros to NA and impute with half miminum conc, log transform
   # Bind to data frame
+  
+  common_cols <- output[[2]]
+  fa.ctrl <- output[[1]]
+  
+  # select common FAs in the same order
+  CRCfa <- read_dta("Database_Fatty acids.dta") %>% select(one_of(common_cols)) 
+  concs <- fa.ctrl %>% select(one_of(common_cols))
+  #identical(colnames(CRCfa), colnames(concs))
   
   concs <- as.matrix(concs)
   concs[concs == 0] <- NA
@@ -166,11 +71,11 @@ get.sig.FAs  <- function(){
   
   # adjust matrix for study, centre, sex, batch, BMI
   #getresiduals <- function(x) residuals(lm(x ~ STUDY + LABO + Country, data = fa.scores))
-  getresiduals <- function(x) residuals(lmer(x ~ (1|STUDY) + LABO + Country, data = fa.scores))
+  getresiduals <- function(x) residuals(lmer(x ~ (1|STUDY) + LABO + Country, data = fa.ctrl))
   resmat <- apply(logconcs, 2, getresiduals)
   
   # Bind WCRF scores to log2 concs
-  plsdata <- data.frame(score = fa.scores$Wcrf_C_Cal, resmat) %>% filter(!is.na(score))
+  plsdata <- data.frame(score = fa.ctrl$Wcrf_C_Cal, resmat) %>% filter(!is.na(score))
   set.seed(111)
   mod <- plsr(score ~ ., data = plsdata, validation = "CV")
   
@@ -193,11 +98,11 @@ get.sig.FAs  <- function(){
   #plot(mod, "loadings", legendpos = "topleft")
   
 }
-mod2 <- git.sig.FAs()
+mod2 <- get.FA.sig()
 
 # Produce tables of important compounds, using compound metadata to get proper names
 
-plot.sig.bioc <- function(mod, no.cmpds = 7){
+plot.Biocrates.sig <- function(mod, no.cmpds = 7){
   
   cmpd.meta <- read.csv("Biocrates_cmpd_metadata.csv")
   
@@ -236,9 +141,9 @@ plot.sig.bioc <- function(mod, no.cmpds = 7){
   output <- bind_rows(df1, df2)
   
 }
-table3a <- plot.sig.bioc(mod1)
+table3a <- plot.Biocrates.sig(mod1)
 
-plot.sig.FAs  <- function(mod){
+plot.FA.sig  <- function(mod){
   
   cmpd.meta <- read.csv("FA_compound_data.csv")
   
@@ -277,7 +182,7 @@ plot.sig.FAs  <- function(mod){
   
   output <- bind_rows(df1, df2)
 }
-table3b <- plot.sig.FAs(mod2)
+table3b <- plot.FA.sig(mod2)
 
 # Save workspace (for .Rmd file)
 # save.image(file="metabolic_signatures.Rdata")
