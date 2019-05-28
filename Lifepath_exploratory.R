@@ -2,14 +2,14 @@
 library(tidyverse)
 library(readxl)
 
-# Final data files seem to be the following:
-# 1623 observations of 44 intensity variables. Looks scaled version of dat 4 and final prepared data
-#ints <- read_tsv("C:/J_ROTHWELL/1507_XMetabolite_std_cpmg_E3N.txt")
+# Read 1623 observations of 44 intensity variables. Appears to be final scaled data
 ints <- read_tsv("1507_XMetabolite_std_cpmg_E3N.txt")
 
-# metadata (from XL or csv)
-#meta <- read_xlsx("C:/J_ROTHWELL/1603_MatriceY_CohorteE3N_Appar.xlsx", sheet = 6)
+# metadata
 meta <- read.csv("Lifepath_meta.csv")
+
+# subset IDs to get subjects included in case-control
+samples <- intersect(ints$CODBMB, meta$CODBMB)
 
 # subset for baseline characteristics table
 meta0 <- meta %>% 
@@ -20,8 +20,11 @@ meta0 <- meta %>%
 
 # Exploratory analysis ----
 # Check total intensities for each metabolite
+ints <- ints[samples, ]
 plot(colSums(ints[ , -1]), xlab = "Compound number", ylab = "Scaled intensity",
-     pch = 19, col = "dodgerblue", main = "Summed intensities of 44 metabolites")
+     pch = 19, col = "dodgerblue", font.main = 1,
+     main = "Summed intensities of 44 metabolites for 1582 subjects")
+plot(colSums(ints[, -1]))
 
 # Check correlations
 library(corrplot)
