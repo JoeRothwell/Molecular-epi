@@ -8,8 +8,9 @@ ints <- read_tsv("1507_XMetabolite_std_cpmg_E3N.txt")
 # metadata
 meta <- read.csv("Lifepath_meta.csv")
 
-# subset IDs to get subjects included in case-control
-samples <- intersect(ints$CODBMB, meta$CODBMB)
+# subset IDs to get subjects included in case-control. Get positions of final CC samples in 
+# metadata
+samples <- ints$CODBMB %in% meta$CODBMB
 
 # subset for baseline characteristics table
 meta0 <- meta %>% 
@@ -41,8 +42,9 @@ plot(pca)
 
 # Plot 
 library(pca3d)
+par(mfrow=c(1,2))
 pca2d(pca)
-title("Metabolite profiles of 1622 samples", font.main = 1)
+title("A", font.main = 1)
 box(which = "plot", lty = "solid")
 # Note: outlier row 1409
 
