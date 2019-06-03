@@ -2,22 +2,40 @@
 library(tidyverse)
 library(readxl)
 
-# Read 1623 observations of 44 intensity variables. Appears to be final scaled data
+# Read 1623 observations of 44 intensity variables (appears to be final scaled data) and metadata
 ints <- read_tsv("1507_XMetabolite_std_cpmg_E3N.txt")
-
-# metadata
 meta <- read.csv("Lifepath_meta.csv")
 
-# subset IDs to get subjects included in case-control. Get positions of final CC samples in 
-# metadata
+# subset IDs to get subjects included in CC. Get positions of final CC samples in metadata
 samples <- ints$CODBMB %in% meta$CODBMB
 
-# subset for baseline characteristics table
+# subset for baseline characteristics table (same order as manuscript)
 meta0 <- meta %>% 
-  select(CT, AGE, BMI, HANCHE, MENOPAUSE, SMK, DIABETE, Life_Alcohol_Pattern_1, BP, Trait_Horm, 
-         CO, CENTTIMECat1, FASTING, STOCKTIME, BEHAVIOUR, SUBTYPE, HR, Estro_THM, Pg_seul, 
-         SBR, GRADE, STADE, DIAGSAMPLING) %>% 
-  mutate_at(vars(-AGE, -BMI, -HANCHE, -DIAGSAMPLING, -STOCKTIME), as.factor)
+  select(CT,                    # case-control status
+         AGE,                   
+         BMICat1, 
+         RTHCat1,               # Waist-hip ratio categorical
+         MENOPAUSE,             # menopausal status at blood collection
+         SMK, 
+         DIABETE, 
+         Life_Alcohol_Pattern_1, 
+         BP, 
+         CO,                    # taking oral contraceptives
+         Trait_Horm,            # menopausal treatment therapy taken 24h before blood collection
+         DURTHSDIAG,            # Duration of use of therapy at date of diagnosis
+         CENTTIMECat1,          # time before centrifugation (?)
+         FASTING, 
+         STOCKTIME,             # Storage time (years)
+         BEHAVIOUR,             # Tumour behaviour
+         SUBTYPE, 
+         CERB2,                 # HER2 receptor
+         ER,                    # Estrogen receptor
+         PR,                    # Progesterone receptor
+         SBR, 
+         GRADE, 
+         STADE, 
+         DIAGSAMPLINGCat1) %>% 
+  mutate_at(vars(-AGE, -STOCKTIME), as.factor)
 
 # Exploratory analysis ----
 # Check total intensities for each metabolite
@@ -25,7 +43,6 @@ ints <- ints[samples, ]
 plot(colSums(ints[ , -1]), xlab = "Compound number", ylab = "Scaled intensity",
      pch = 19, col = "dodgerblue", font.main = 1,
      main = "Summed intensities of 44 metabolites for 1582 subjects")
-plot(colSums(ints[, -1]))
 
 # Check correlations
 library(corrplot)
@@ -42,14 +59,22 @@ plot(pca)
 
 # Plot 
 library(pca3d)
-par(mfrow=c(1,2))
+par(mfrow = c(1, 2))
 pca2d(pca)
-title("A", font.main = 1)
+title("A", font.main = 1, adj = 0)
 box(which = "plot", lty = "solid")
-# Note: outlier row 1409
 
 # Run PCPR2
-source("PCPR2_lifepath_vec.R")
+library(pcpr2)
+alldata <- inner_join(meta, ints, by = "CODBMB")
+X_DataMatrixScaled <- select(alldata, `3Hydroxybutyrate`:Succinate) %>% as.matrix
+Z_Meta <- alldata %>%
+  select(WEEKS, PLACE, AGE, BMI, MENOPAUSE, FASTING, SMK, DIABETE, CENTTIMECat1, SAMPYEAR, STOCKTIME) %>%
+  mutate_at(vars(-AGE, -BMI, -WEEKS, -STOCKTIME), as.factor)
+
+par(mar=c(6,5,4,2))
+props <- runPCPR2(X_DataMatrixScaled, Z_Meta)
+plotProp(props, main = "B", font.main = 1, adj = 0)
 
 # PCA of subject IDs only
 ints1 <- alldata %>% select(`3Hydroxybutyrate`:Succinate)
@@ -64,6 +89,7 @@ legend("topleft", legend = plt$groups, col=plt$colors, pch=plt$pch)
 # Adjust using residuals method
 adj <- function(x) residuals(lm(x ~ BMI + SMK + DIABETE, data = alldata))
 adjmat <- apply(ints1, 2, adj)
+
 # Repeat PCA
 pca2 <- prcomp(adjmat, scale.=F)
 pca2d(pca2, group = alldata$CT)
@@ -73,12 +99,12 @@ legend("topleft", legend = plt$groups, col=plt$colors, pch=plt$pch)
 
 # Breast cancer risk model. Subset variables needed
 meta1 <- meta %>%
-  select(CODBMB, CT, MATCH, PLACE, AGE, BMI, MENOPAUSE, FASTING, SMK, DIABETE, CENTTIMECat1, SAMPYEAR, STOCKTIME) %>%
-  mutate_at(vars(-CODBMB, -CT, -AGE, -BMI, -STOCKTIME), as.factor)
+  select(CODBMB, CT, MATCH, PLACE, AGE, BMI, BP, RTH, ALCOHOL, MENOPAUSE, FASTING, SMK, DIABETE, CENTTIMECat1, SAMPYEAR, STOCKTIME) %>%
+  mutate_at(vars(-CODBMB, -CT, -AGE, -BMI, -STOCKTIME, -RTH, -ALCOHOL), as.factor)
 
 # Conditional logistic regression to get odds ratios for lifestyle factors
 library(survival)
-fit <- clogit(CT ~ BMI + SMK + DIABETE + strata(MATCH), data = meta1) 
+fit <- clogit(CT ~ BMI + SMK + DIABETE + BP + RTH + CENTTIMECat1 + STOCKTIME + strata(MATCH), data = meta1) 
 # output <- cbind(exp(coef(fit)), exp(confint(fit)))
 library(broom)
 t1 <- tidy(fit) %>% # mutate_if(is.numeric, exp) %>% 
