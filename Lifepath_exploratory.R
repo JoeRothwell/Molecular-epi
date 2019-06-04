@@ -9,33 +9,7 @@ meta <- read.csv("Lifepath_meta.csv")
 # subset IDs to get subjects included in CC. Get positions of final CC samples in metadata
 samples <- ints$CODBMB %in% meta$CODBMB
 
-# subset for baseline characteristics table (same order as manuscript)
-meta0 <- meta %>% 
-  select(CT,                    # case-control status
-         AGE,                   
-         BMICat1, 
-         RTHCat1,               # Waist-hip ratio categorical
-         MENOPAUSE,             # menopausal status at blood collection
-         SMK, 
-         DIABETE, 
-         Life_Alcohol_Pattern_1, 
-         BP, 
-         CO,                    # taking oral contraceptives
-         Trait_Horm,            # menopausal treatment therapy taken 24h before blood collection
-         DURTHSDIAG,            # Duration of use of therapy at date of diagnosis
-         CENTTIMECat1,          # time before centrifugation (?)
-         FASTING, 
-         STOCKTIME,             # Storage time (years)
-         BEHAVIOUR,             # Tumour behaviour
-         SUBTYPE, 
-         CERB2,                 # HER2 receptor
-         ER,                    # Estrogen receptor
-         PR,                    # Progesterone receptor
-         SBR, 
-         GRADE, 
-         STADE, 
-         DIAGSAMPLINGCat1) %>% 
-  mutate_at(vars(-AGE, -STOCKTIME), as.factor)
+# baseline characteristics table: see baseline_lifepath.R
 
 # Exploratory analysis ----
 # Check total intensities for each metabolite
@@ -64,7 +38,7 @@ pca2d(pca)
 title("A", font.main = 1, adj = 0)
 box(which = "plot", lty = "solid")
 
-# Run PCPR2
+# Run PCPR2 to compare sources of variability
 library(pcpr2)
 alldata <- inner_join(meta, ints, by = "CODBMB")
 X_DataMatrixScaled <- select(alldata, `3Hydroxybutyrate`:Succinate) %>% as.matrix
@@ -99,12 +73,20 @@ legend("topleft", legend = plt$groups, col=plt$colors, pch=plt$pch)
 
 # Breast cancer risk model. Subset variables needed
 meta1 <- meta %>%
-  select(CODBMB, CT, MATCH, PLACE, AGE, BMI, BP, RTH, ALCOHOL, MENOPAUSE, FASTING, SMK, DIABETE, CENTTIMECat1, SAMPYEAR, STOCKTIME) %>%
-  mutate_at(vars(-CODBMB, -CT, -AGE, -BMI, -STOCKTIME, -RTH, -ALCOHOL), as.factor)
+  select(CODBMB, CT, MATCH, PLACE, AGE, BMI, BP, RTH, ALCOHOL, MENOPAUSE, FASTING, SMK, DIABETE, CENTTIMECat1, 
+         CENTTIME, SAMPYEAR, STOCKTIME, DURTHSDIAG) %>%
+  mutate_at(vars(-CODBMB, -CT, -AGE, -BMI, -STOCKTIME, -RTH, -ALCOHOL, -CENTTIME, -DURTHSDIAG), as.factor)
+
+# Replace 9999 with NA (for just numeric or all columns)
+meta2 <- meta1 %>% mutate_if(is.numeric, list( ~ na_if(., 9999))) %>% mutate(BP = na_if(BP, 9999))
+meta3 <- meta1 %>% mutate_all(list( ~ na_if(., 9999)))
 
 # Conditional logistic regression to get odds ratios for lifestyle factors
+# Same co-variates as in original manuscript
 library(survival)
-fit <- clogit(CT ~ BMI + SMK + DIABETE + BP + RTH + CENTTIMECat1 + STOCKTIME + strata(MATCH), data = meta1) 
+fit <- clogit(CT ~ scale(BMI) + SMK + DIABETE + #BP + 
+                scale(RTH) + scale(ALCOHOL) + scale(DURTHSDIAG) + 
+                scale(CENTTIME) + STOCKTIME + strata(MATCH), data = meta2) 
 # output <- cbind(exp(coef(fit)), exp(confint(fit)))
 library(broom)
 t1 <- tidy(fit) %>% # mutate_if(is.numeric, exp) %>% 
@@ -115,14 +97,21 @@ dev.off()
 par(mar=c(5,4,1,2))
 forest(t1$estimate, ci.lb = t1$conf.low, ci.ub = t1$conf.high, refline = 1, 
        xlab = "Multivariable adjusted odds ratio",
-       transf = exp, pch = 18, psize = 1.5, slab = t1$term, alim = c(0,2), xlim = c(-1, 3))
+       transf = exp, pch = 18, psize = 1.5, slab = t1$term, alim = c(0,2.25), 
+       xlim = c(-1, 3))
 text(-1, nrow(t1) + 2, "Variable", pos = 4)
 text(3, nrow(t1) + 2, "OR [95% CI]", pos = 2)
 # matching factors removed!
 
 # CLR models to get odds ratios for metabolites
-data <- left_join(meta1, ints, by = "CODBMB")
-clr <- function(x) clogit(CT ~ x + BMI + SMK + DIABETE + strata(MATCH), data = meta1)
+data <- left_join(meta2, ints, by = "CODBMB")
+
+clr <- function(x) { 
+  clogit(CT ~ x + scale(BMI) + SMK + DIABETE + #BP + 
+        scale(RTH) + scale(ALCOHOL) + scale(DURTHSDIAG) + 
+        scale(CENTTIME) + STOCKTIME + strata(MATCH), data = meta2)
+}
+
 ints <- 15:ncol(data)
 multifit <- apply(data[, ints], 2, clr)
 t2 <- map_df(multifit, tidy) %>% filter(term == "x")
