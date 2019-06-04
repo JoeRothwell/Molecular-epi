@@ -11,7 +11,7 @@ samples <- ints$CODBMB %in% meta$CODBMB
 
 # baseline characteristics table: see baseline_lifepath.R
 
-# Exploratory analysis ----
+# Exploratory analysis --------------------------------------------
 # Check total intensities for each metabolite
 ints <- ints[samples, ]
 plot(colSums(ints[ , -1]), xlab = "Compound number", ylab = "Scaled intensity",
@@ -71,6 +71,8 @@ title("Residuals-adjusted metabolite\nprofiles of 1582 samples", font.main = 1)
 box(which = "plot", lty = "solid")
 legend("topleft", legend = plt$groups, col=plt$colors, pch=plt$pch)
 
+# Risk models ----------------------------------------------------
+
 # Breast cancer risk model. Subset variables needed
 meta1 <- meta %>%
   select(CODBMB, CT, MATCH, PLACE, AGE, BMI, BP, RTH, ALCOHOL, MENOPAUSE, FASTING, SMK, DIABETE, CENTTIMECat1, 
@@ -79,28 +81,32 @@ meta1 <- meta %>%
 
 # Replace 9999 with NA (for just numeric or all columns)
 meta2 <- meta1 %>% mutate_if(is.numeric, list( ~ na_if(., 9999))) %>% mutate(BP = na_if(BP, 9999))
-meta3 <- meta1 %>% mutate_all(list( ~ na_if(., 9999)))
+meta2.pm <- meta2 %>% filter(MENOPAUSE == 1)
+#meta3 <- meta1 %>% mutate_all(list( ~ na_if(., 9999)))
 
 # Conditional logistic regression to get odds ratios for lifestyle factors
 # Same co-variates as in original manuscript
 library(survival)
 fit <- clogit(CT ~ scale(BMI) + SMK + DIABETE + #BP + 
                 scale(RTH) + scale(ALCOHOL) + scale(DURTHSDIAG) + 
-                scale(CENTTIME) + STOCKTIME + strata(MATCH), data = meta2) 
+                scale(CENTTIME) + STOCKTIME + strata(MATCH), data = meta2.pm) 
 # output <- cbind(exp(coef(fit)), exp(confint(fit)))
 library(broom)
-t1 <- tidy(fit) %>% # mutate_if(is.numeric, exp) %>% 
-  select(-(std.error:p.value))
+t1 <- tidy(fit) %>% select(-(std.error:p.value))
+
+t1 <- tidy(fit) %>% select(-(std.error:p.value))
 
 library(metafor)
 dev.off()
 par(mar=c(5,4,1,2))
 forest(t1$estimate, ci.lb = t1$conf.low, ci.ub = t1$conf.high, refline = 1, 
        xlab = "Multivariable adjusted odds ratio",
-       transf = exp, pch = 18, psize = 1.5, slab = t1$term, alim = c(0,2.25), 
-       xlim = c(-1, 3))
-text(-1, nrow(t1) + 2, "Variable", pos = 4)
-text(3, nrow(t1) + 2, "OR [95% CI]", pos = 2)
+       transf = exp, pch = 18, psize = 1.5, slab = t1$term)  #, 
+       #alim = c(0.5,2.5), )
+       #xlim = c(-1, 3)
+hh <- par("usr")
+text(hh[1], nrow(t1) + 2, "Variable", pos = 4)
+text(hh[2], nrow(t1) + 2, "OR [95% CI]", pos = 2)
 # matching factors removed!
 
 # CLR models to get odds ratios for metabolites
@@ -112,8 +118,8 @@ clr <- function(x) {
         scale(CENTTIME) + STOCKTIME + strata(MATCH), data = meta2)
 }
 
-ints <- 15:ncol(data)
-multifit <- apply(data[, ints], 2, clr)
+metabs <- data %>% select(`3Hydroxybutyrate`:Succinate) %>% as.matrix
+multifit <- apply(metabs, 2, clr)
 t2 <- map_df(multifit, tidy) %>% filter(term == "x")
 
 dev.off()
@@ -134,6 +140,8 @@ funnel(x = t2$estimate, sei = t2$std.error, yaxis = "vi")
 library(lme4)
 fit1 <- glmer(CT ~ BMI + SMK + DIABETE + (1|MATCH), data = meta1, family = "binomial")
 summary(fit1)
+
+# OPLS multivariate models -------------------------------------------
 
 # OPLS-DA on residual-adjusted concentrations
 library(mixOmics)
