@@ -1,3 +1,5 @@
+# Generate R markdown for baseline characteristics table
+
 library(tidyverse)
 meta <- read.csv("Lifepath_meta.csv")
 meta0 <- meta %>% 
@@ -129,3 +131,4 @@ summ <-
 
 # ----
 st <- summary_table(group_by(meta0, CT), summ)
+# Copy and paste output into an Rmarkdown file and render to word/pdf etc
