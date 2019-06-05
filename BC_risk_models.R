@@ -1,5 +1,4 @@
-# BC risk models
-
+# BC risk models for metabolites
 library(tidyverse)
 library(readxl)
 
@@ -26,7 +25,7 @@ meta2.post <- meta2 %>% filter(MENOPAUSE == 1)
 library(survival)
 fit <- clogit(CT ~ scale(BMI) + SMK + DIABETE + #BP + 
                 scale(RTH) + scale(ALCOHOL) + scale(DURTHSDIAG) + 
-                scale(CENTTIME) + STOCKTIME + strata(MATCH), data = meta2.pre) 
+                scale(CENTTIME) + STOCKTIME + strata(MATCH), data = meta2) 
 # output <- cbind(exp(coef(fit)), exp(confint(fit)))
 
 library(broom)
@@ -49,35 +48,42 @@ text(hh[2], nrow(t1) + 2, "OR [95% CI]", pos = 2)
 
 # CLR models to get odds ratios for metabolites
 
-data <- left_join(meta2, ints, by = "CODBMB")
-
-clr <- function(x) { 
-  clogit(CT ~ x + BMI + SMK + DIABETE + #BP + 
-           RTH + ALCOHOL + DURTHSDIAG + 
-           CENTTIME + STOCKTIME + strata(MATCH), data = meta2)
+clr.metabo <- function(dat = meta2) {
+  data <- left_join(dat, ints, by = "CODBMB")
+  
+  library(survival)
+  clr <- function(x) { 
+    clogit(CT ~ x + BMI + SMK + DIABETE + #BP + 
+             RTH + ALCOHOL + DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH), data = dat)
+  }
+  
+  metabs <- data %>% select(`3Hydroxybutyrate`:Succinate) %>% as.matrix
+  multifit <- apply(metabs, 2, clr)
+  library(broom)
+  t2 <- map_df(multifit, tidy) %>% filter(term == "x")
+  
+  #dev.off()
+  par(mar=c(5,4,1,2))
+  library(metafor)
+  forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1, #xlab = xtitle, 
+         xlab = "Multivariable adjusted odds ratio",
+         transf = exp, pch = 18, psize = 1, slab = names(multifit))
+  hh <- par("usr")
+  text(hh[1], nrow(t2) + 2, "Compound", pos = 4)
+  text(hh[2], nrow(t2) + 2, "OR [95% CI]", pos = 2)
 }
-
-metabs <- data %>% select(`3Hydroxybutyrate`:Succinate) %>% as.matrix
-multifit <- apply(metabs, 2, clr)
-t2 <- map_df(multifit, tidy) %>% filter(term == "x")
-
-dev.off()
-par(mar=c(5,4,1,2))
-library(metafor)
-forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1, #xlab = xtitle, 
-       xlab = "Multivariable adjusted odds ratio",
-       transf = exp, pch = 18, psize = 1, slab = names(multifit))
-hh <- par("usr")
-text(hh[1], nrow(t2) + 2, "Compound", pos = 4)
-text(hh[2], nrow(t2) + 2, "OR [95% CI]", pos = 2)
 #alim = c(0,2), xlim = c(-1, 3)) 
 
+clr.metabo()
+clr.metabo(meta2.pre)
+clr.metabo(meta2.post)
 
 # Funnel plots for metabolites
 funnel(x = t2$estimate, sei = t2$std.error)
 funnel(x = t2$estimate, sei = t2$std.error, yaxis = "vi")
 
 # Investigation of Ethanol
+data <- left_join(meta2, ints, by = "CODBMB")
 boxplot(data$Ethanol ~ data$CT + data$MENOPAUSE, varwidth = T, outline = F,
         names = c("Control, pre", "Case, pre", "Control, post", "Case, post"),
         col = "dodgerblue", ylab = "Plasma ethanol conc (scaled)")
