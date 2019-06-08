@@ -15,12 +15,12 @@ meta0 <- meta %>%
          CO,                    # previous oral contraceptive use
          Trait_Horm,            # menopausal treatment therapy taken 24h before blood collection
          DURTHSDIAG,            # Duration of use of therapy at date of diagnosis
-         CENTTIMECat1,          # time before centrifugation (?)
+         #CENTTIMECat1,          # time before centrifugation (?) OMIT not of interest
          FASTING, 
          STOCKTIME,             # Storage time (years)
          BEHAVIOUR,             # Tumour behaviour
          SUBTYPE, 
-         CERB2,                 # HER2 receptor
+         #CERB2,                 # HER2 receptor OMIT mostly unknown
          ER,                    # Estrogen receptor
          PR,                    # Progesterone receptor
          SBR, 
@@ -72,33 +72,37 @@ summ <-
        "Menopause hormone therapy at blood collection" =
          list("Yes"  =  ~ n_perc0(Trait_Horm == 1),
               "No"   =  ~ n_perc0(Trait_Horm == 0)),
-       "Duration of use of menopause hormonal treatments" =
-         list("Mean"     =  ~ mean_sd(DURTHSDIAG)),
-       "Time before centrifugation" =
-          list("< 12h"   =  ~ n_perc0(CENTTIMECat1 == 1),
-              "> 12-24h" =  ~ n_perc0(CENTTIMECat1 == 2),
-              "> 24h"    =  ~ n_perc0(CENTTIMECat1 == 3),
-              "Unknown"  =  ~ n_perc0(CENTTIMECat1 == 9999)),
+       "Duration of use of menopause hormonal treatment" =
+         list("Mean (SD)"     =  ~ mean_sd(DURTHSDIAG)),
+       #"Time before centrifugation" =
+       #  list("< 12h"   =  ~ n_perc0(CENTTIMECat1 == 1),
+       #      "> 12-24h" =  ~ n_perc0(CENTTIMECat1 == 2),
+       #      "> 24h"    =  ~ n_perc0(CENTTIMECat1 == 3),
+       #      "Unknown"  =  ~ n_perc0(CENTTIMECat1 == 9999)),
        "Fasting status" =
-         list("Fasting" =  ~ n_perc0(FASTING == 1),
-              "Non-fasting"     =  ~ n_perc0(FASTING == 0)),
-       "Storage time (years)" =
+         list("Fasting"       =  ~ n_perc0(FASTING == 1),
+              "Non-fasting"   =  ~ n_perc0(FASTING == 0)),
+       "Biobank storage time (years)" =
          list("Mean (SD)" = ~ mean_sd(STOCKTIME)),
-       "Behavior" =
+       "Time between sampling and diagnosis" =
+         list("5 years or less"     =  ~ n_perc0(DIAGSAMPLINGCat1 == 1),
+              "More than 5 years"   =  ~ n_perc0(DIAGSAMPLINGCat1 == 2),
+              "No information"      =  ~ n_perc0(DIAGSAMPLINGCat1 == 9999)),
+       "Tumor behavior" =
          list("In situ"   =  ~ n_perc0(BEHAVIOUR == 2),
               "Invasive"  =  ~ n_perc0(BEHAVIOUR == 3),
               "Unknown"   =  ~ n_perc0(BEHAVIOUR == 9999)),
        "Subtype" =
          list("Lobular"  =  ~ n_perc0(SUBTYPE == 1),
-              "Ductal"  =  ~ n_perc0(SUBTYPE == 2),
+              "Ductal"   =  ~ n_perc0(SUBTYPE == 2),
               "Tubular"  =  ~ n_perc0(SUBTYPE == 3),
-              "Mixed"  =  ~ n_perc0(SUBTYPE == 4),
-              "Others"  =  ~ n_perc0(SUBTYPE == 5),
-              "Unknown"   =  ~ n_perc0(SUBTYPE == 9999)),
-       "HER2" =
-         list("Negative"  =  ~ n_perc0(CERB2 == 1),
-              "Positive"  =  ~ n_perc0(CERB2 == 2),
-              "Unknown"   =  ~ n_perc0(CERB2 == 9999)),
+              "Mixed"    =  ~ n_perc0(SUBTYPE == 4),
+              "Others"   =  ~ n_perc0(SUBTYPE == 5),
+              "Unknown"  =  ~ n_perc0(SUBTYPE == 9999)),
+       #"HER2" =
+      #  list("Negative"  =  ~ n_perc0(CERB2 == 1),
+       #       "Positive"  =  ~ n_perc0(CERB2 == 2),
+        #      "Unknown"   =  ~ n_perc0(CERB2 == 9999)),
        "Estrogen receptor" =
          list("Negative"  =  ~ n_perc0(ER == 0),
               "Positive"  =  ~ n_perc0(ER == 1),
@@ -122,11 +126,7 @@ summ <-
               "2"    =  ~ n_perc0(STADE == 2),
               "3"    =  ~ n_perc0(STADE == 3),
               "4"    =  ~ n_perc0(STADE == 4),
-              "No information"  =  ~ n_perc0(STADE == 9999)),
-       "Time between sampling and diagnosis" =
-         list("5 years or less"     =  ~ n_perc0(DIAGSAMPLINGCat1 == 1),
-              "More than 5 years"   =  ~ n_perc0(DIAGSAMPLINGCat1 == 2),
-              "No information"      =  ~ n_perc0(DIAGSAMPLINGCat1 == 9999))
+              "No information"  =  ~ n_perc0(STADE == 9999))
   )
 
 # ----
