@@ -9,8 +9,10 @@ ints1 <- dat %>% select(`3Hydroxybutyrate`:Succinate) %>% as.matrix
 
 # Adjust using residuals method (mixed effects works better)
 library(lme4)
-adj <- function(x) residuals(lm(x ~ PLACE + AGE + BMI + DIABETE + CENTTIMECat1, data = dat))
-adj1 <- function(x) residuals(lmer(x ~ AGE + BMI + DIABETE + SAMPYEAR + (1|PLACE), data = dat)) 
+adj <- function(x) residuals(lm(x ~ PLACE + AGE + BMI + DIABETE + 
+                                  CENTTIMECat1, data = dat))
+adj1 <- function(x) residuals(lmer(x ~ AGE + BMI + DIABETE + SAMPYEAR + 
+                  (1|PLACE), data = dat)) 
 
 adjmat <- apply(ints1, 2, adj1)
 
