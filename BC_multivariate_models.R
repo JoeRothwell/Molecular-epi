@@ -9,10 +9,8 @@ ints1 <- dat %>% select(`3Hydroxybutyrate`:Succinate) %>% as.matrix
 
 # Adjust using residuals method (mixed effects works better)
 library(lme4)
-adj <- function(x) residuals(lm(x ~ PLACE + AGE + BMI + DIABETE + 
-                                  CENTTIMECat1, data = dat))
-adj1 <- function(x) residuals(lmer(x ~ AGE + BMI + DIABETE + SAMPYEAR + 
-                  (1|PLACE), data = dat)) 
+#adj <- function(x) residuals(lm(x ~ PLACE + AGE + BMI + DIABETE + CENTTIMECat1, data = dat))
+adj1 <- function(x) residuals(lmer(x ~ AGE + BMI + DIABETE + SAMPYEAR + (1|PLACE), data = dat)) 
 
 adjmat <- apply(ints1, 2, adj1)
 
@@ -30,7 +28,41 @@ plotProp(props.raw, main = "No adjustment to metabolite concentrations", font.ma
 plotProp(props.adj, main = "Residual-adjusted metabolite matrix", font.main = 1)
 
 
-# OPLS-DA on residual-adjusted concentrations
+# Multivariate PLS with caret
+
+library(caret)
+
+# Compile cross-validation settings
+set.seed(100)
+
+# Outcome needs to be factor
+dat$CT <- as.factor(dat$CT)
+myfolds <- createMultiFolds(dat$CT, k = 5, times = 10)
+control <- trainControl("repeatedcv", index = myfolds, selectionFunction = "oneSE")
+
+# Train PLS model
+dat1 <- data.frame(CT = as.factor(dat$CT), adjmat)
+
+# Split into training and test sets
+inTrain <- createDataPartition(dat1$CT, p=0.75, list = F)
+training <- dat1[inTrain, ]
+testing <- dat1[-inTrain, ]
+
+# Run model on training set
+# Note: works with tcControl but not trControl (gives strange error)
+mod1 <- train(CT ~ ., data = training, method = "pls", metric = "Accuracy",
+              tuneLength = 20, tcControl = control)  
+
+plot(mod1) 
+plot(varImp(mod1, scale = F), 10, main = "PLS-DA")  
+
+predictions <- predict(mod1, newdata = testing)
+confusionMatrix(predictions, testing$CT)
+# Model is not better than random chance.
+
+
+
+# With mixOmics
 library(mixOmics)
 pca.lp <- pca(adjmat, ncomp = 10, center = F, scale = F)
 plot(pca.lp)
@@ -55,26 +87,5 @@ plotVar(plsda.res1)
 plotIndiv(plsda.res1, ind.names = F, legend = T, ellipse = T, title = 'PLS-DA')
 plotLoadings(plsda.res1, contrib = "max", ndisplay = 50)
 auroc(plsda.res1)
-
-# With caret
-library(caret)
-# Compile cross-validation settings
-set.seed(100)
-
-# Outcome needs to be factor
-dat$CT <- as.factor(dat$CT)
-myfolds <- createMultiFolds(dat$CT, k = 5, times = 10)
-control <- trainControl("repeatedcv", index = myfolds, selectionFunction = "oneSE")
-
-# Train PLS model
-dat1 <- data.frame(CT = as.factor(dat$CT), adjmat)
-mod1 <- train(CT ~ ., data = dat1,
-              method = "pls",
-              metric = "Accuracy",
-              tuneLength = 20,
-              trControl = control)  
-
-plot(mod1) 
-plot(varImp(mod1), 10, main = "PLS-DA")  
 
 
