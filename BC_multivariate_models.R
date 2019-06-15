@@ -34,10 +34,10 @@ plotProp(props.adj, main = "Residual-adjusted metabolite matrix", font.main = 1)
 library(mixOmics)
 pca.lp <- pca(adjmat, ncomp = 10, center = F, scale = F)
 plot(pca.lp)
-plotIndiv(pca.lp, group = as.factor(alldata$CT), ind.names = T, legend = T, title = "Subject metabolic profiles")
+plotIndiv(pca.lp, group = as.factor(dat$CT), ind.names = T, legend = T, title = "Subject metabolic profiles")
 
 # Run PLS-DA specifying number of components
-plsda.res <- plsda(adjmat, as.factor(alldata$CT), ncomp = 5)
+plsda.res <- plsda(adjmat, as.factor(dat$CT), ncomp = 5)
 
 set.seed(2543) # for reproducibility here, only when the `cpus' argument is not used
 perf.plsda <- perf(plsda.res, validation = "Mfold", folds = 5, progressBar = T, auc = T, nrepeat = 10) 
@@ -50,8 +50,31 @@ plot(perf.plsda)
 perf.plsda$choice.ncomp # 2 components appear to be best
 
 # Rerun the PLS-DA with 3 components
-plsda.res1 <- plsda(adjmat, as.factor(alldata$CT), ncomp = 2)
+plsda.res1 <- plsda(adjmat, as.factor(dat$CT), ncomp = 2)
 plotVar(plsda.res1)
 plotIndiv(plsda.res1, ind.names = F, legend = T, ellipse = T, title = 'PLS-DA')
 plotLoadings(plsda.res1, contrib = "max", ndisplay = 50)
 auroc(plsda.res1)
+
+# With caret
+library(caret)
+# Compile cross-validation settings
+set.seed(100)
+
+# Outcome needs to be factor
+dat$CT <- as.factor(dat$CT)
+myfolds <- createMultiFolds(dat$CT, k = 5, times = 10)
+control <- trainControl("repeatedcv", index = myfolds, selectionFunction = "oneSE")
+
+# Train PLS model
+dat1 <- data.frame(CT = as.factor(dat$CT), adjmat)
+mod1 <- train(CT ~ ., data = dat1,
+              method = "pls",
+              metric = "Accuracy",
+              tuneLength = 20,
+              trControl = control)  
+
+plot(mod1) 
+plot(varImp(mod1), 10, main = "PLS-DA")  
+
+
