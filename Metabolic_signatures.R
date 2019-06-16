@@ -1,7 +1,7 @@
 # Compute Biocrates and fatty acid signatures of WCRF score
 source("CRC_data_prep.R")
 
-get.Biocrates.sig <- function(fasting = T){
+get.Biocrates.sig <- function(){
   
   library(tidyverse)
   library(lme4)
@@ -44,6 +44,14 @@ get.Biocrates.sig <- function(fasting = T){
   # plot(mod)
   # plot(mod, plottype = "scores")
   # plot(mod, "loadings", legendpos = "topleft")
+  
+  #library(caret)
+  #mod.new <- train(score ~ ., data = plsdata, method = "pls",
+               # metric = "RMSE", tuneLength = 20) 
+  #mod.new
+  # 2 LVs were used for the final model
+  #plot(mod.new)
+  #plot(varImp(mod.new))
   
 }
 mod1 <- get.Biocrates.sig()
