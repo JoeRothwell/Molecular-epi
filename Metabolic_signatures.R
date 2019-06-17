@@ -1,7 +1,7 @@
 # Compute Biocrates and fatty acid signatures of WCRF score
 source("CRC_data_prep.R")
 
-get.Biocrates.sig <- function(){
+get.Biocrates.sig <- function(which.mod = "plsmod"){
   
   library(tidyverse)
   library(lme4)
@@ -26,37 +26,43 @@ get.Biocrates.sig <- function(){
   
   # PLS model
   # For metabolic signature of WCRF score on controls dataset
-  set.seed(111)
-  mod <- plsr(score ~ ., data = plsdata, validation = "CV")
   
-  # Find the number of dimensions with lowest cross validation error
-  cv <- RMSEP(mod)
-  plot(RMSEP(mod), legendpos = "topright")
-  
-  # Calculate optimal number of dimensions and rerun model
-  best.dims <- which.min(cv$val[estimate = "adjCV", , ]) - 1
-  mod <- plsr(score ~ ., data = plsdata, ncomp = best.dims)
-  
-  # explained variances
-  # explvar(mod)
-  
-  # Prediction, scores, loadings plots
-  # plot(mod)
-  # plot(mod, plottype = "scores")
-  # plot(mod, "loadings", legendpos = "topleft")
-  
-  #library(caret)
-  #mod.new <- train(score ~ ., data = plsdata, method = "pls",
-               # metric = "RMSE", tuneLength = 20) 
-  #mod.new
-  # 2 LVs were used for the final model
-  #plot(mod.new)
-  #plot(varImp(mod.new))
+  if(which.mod == "plsmod"){
+    
+    set.seed(111)
+    mod <- plsr(score ~ ., data = plsdata, validation = "CV")
+    # Find the number of dimensions with lowest cross validation error
+    cv <- RMSEP(mod)
+    plot(RMSEP(mod), legendpos = "topright")
+    
+    # Calculate optimal number of dimensions and rerun model
+    best.dims <- which.min(cv$val[estimate = "adjCV", , ]) - 1
+    print(paste("optimal dimensions:", best.dims))
+    mod <- plsr(score ~ ., data = plsdata, ncomp = best.dims)
+    
+    # explained variances
+    # explvar(mod)
+    # Prediction, scores, loadings plots
+    # plot(mod)
+    # plot(mod, plottype = "scores")
+    # plot(mod, "loadings", legendpos = "topleft")
+    
+  } else if(which.mod == "caretmod") {  
+    
+    library(caret)
+    set.seed(111)
+    mod <- train(score ~ ., data = plsdata, method = "pls", metric = "RMSE", tuneLength = 20) 
+    #mod.new
+    # 2 LVs were used for the final model
+    #plot(mod.new)
+    #plot(varImp(mod.new))
+  }
   
 }
-mod1 <- get.Biocrates.sig()
+mod0 <- get.Biocrates.sig()
+mod1 <- get.Biocrates.sig(which.mod = "caretmod")
 
-get.FA.sig  <- function(cor.data = F){
+get.FA.sig  <- function(which.mod = "plsmod", cor.data = F){
   
   # Fatty acid signatures of WCRF score
   library(tidyverse)
@@ -91,29 +97,43 @@ get.FA.sig  <- function(cor.data = F){
   
   # Bind WCRF scores to log2 concs
   plsdata <- data.frame(score = fa.ctrl$Wcrf_C_Cal, resmat) %>% filter(!is.na(score))
-  set.seed(111)
-  mod <- plsr(score ~ ., data = plsdata, validation = "CV")
   
-  # Find the number of dimensions with lowest cross validation error
-  cv <- RMSEP(mod)
-  plot(RMSEP(mod), legendpos = "topright")
+  if(which.mod == "plsmod"){
+    set.seed(111)
+    mod <- plsr(score ~ ., data = plsdata, validation = "CV")
+    
+    # Find the number of dimensions with lowest cross validation error
+    cv <- RMSEP(mod)
+    plot(RMSEP(mod), legendpos = "topright")
+    
+    # Calculate optimal number of dimensions
+    best.dims <- which.min(cv$val[estimate = "adjCV", , ]) - 1
+    
+    # Rerun the model with the optimum number of components
+    mod <- plsr(score ~ ., data = plsdata, ncomp = best.dims)
+    
+    # explained variances
+    # explvar(mod)
+    
+    # Plots: prediction, scores, loadings
+    #plot(mod)
+    #plot(mod, plottype = "scores")
+    #plot(mod, "loadings", legendpos = "topleft")
   
-  # Calculate optimal number of dimensions
-  best.dims <- which.min(cv$val[estimate = "adjCV", , ]) - 1
+  } else if(which.mod == "caretmod") {  
   
-  # Rerun the model with the optimum number of components
-  mod <- plsr(score ~ ., data = plsdata, ncomp = best.dims)
-  
-  # explained variances
-  # explvar(mod)
-  
-  # Plots: prediction, scores, loadings
-  #plot(mod)
-  #plot(mod, plottype = "scores")
-  #plot(mod, "loadings", legendpos = "topleft")
+    library(caret)
+    set.seed(111)
+    mod <- train(score ~ ., data = plsdata, method = "pls", metric = "RMSE", tuneLength = 20) 
+    mod
+    # 2 LVs were used for the final model
+    #plot(mod.new)
+    #plot(varImp(mod.new))
+  }
   
 }
 mod2 <- get.FA.sig()
+mod2a <- get.FA.sig(which.mod = "caretmod")
 
 # Produce tables of important compounds, using compound metadata to get proper names
 
@@ -124,32 +144,38 @@ plot.Biocrates.sig <- function(mod, no.cmpds = 7){
   cmpd.meta <- read.csv("Biocrates_cmpd_metadata.csv")
   
   # Coefficients and variable importance. First subset one-matrix array to get matrix
-  k <- 126
-  coeff <- data.frame(value = round(coef(mod)[1:k, 1, 1], 3))
-  dat <- coeff %>% 
-    mutate(sm  = sum(abs(value)), 
-           VIP = round((value*100)/sm, 2), 
-           Compound = rownames(coeff))
-  dat <- dat %>% left_join(cmpd.meta, by = "Compound")
+  # Extract coefficients from pls or caret objects, 1st LV: (pls gives an mvr object)
+  if(class(mod) == "mvr"){
+  coeff <- data.frame(value = round(coef(mod)[ , 1, 1], 3))
+  } else {
+  coeff <- data.frame(value = mod$finalModel$coefficients[, 1, 1])
+  }
   
-  # Subset appropriate columns and print influential compounds
-  dat <- dat %>% select(compound = displayname, Coefficient = value, VIP) %>% arrange(VIP)
+  dat <- coeff %>%
+    rownames_to_column(var = "Compound") %>%
+    mutate(sm = sum(abs(value)), Importance = round((value*100)/sm, 2)) %>%
+    left_join(cmpd.meta, by = "Compound") %>%
+    
+    # Subset appropriate columns and print influential compounds
+    select(compound = displayname, Coefficient = value, Importance) %>% arrange(Importance)
   
   # choose number of influential compounds to plot
   n_top <- no.cmpds
   
-  df1 <- top_n(dat, n_top)  %>% arrange(-VIP)
-  df2 <- top_n(dat, -n_top) %>% arrange(VIP)
+  df1 <- top_n(dat, n_top)  %>% arrange(-Importance)
+  df2 <- top_n(dat, -n_top) %>% arrange(Importance)
   
   print(df1)
   print(df2)
   
   # Vector of black and grey for plot points
-  vec <- c( rep("black", n_top), rep("grey", k-(n_top*2)), rep("black", n_top) )
+  vec <- c( rep("black", n_top), rep("grey", nrow(dat) - (n_top*2)), rep("black", n_top) )
+  
+  lv <- if(class(mod) == "mvr") mod$ncomp else mod$finalModel$ncomp
   
   # Now plot data, adding text
   plot(sort(coeff$value), pch = 17, col=vec, xlab = "", ylab = "Coefficient",
-       main = paste(nrow(mod$scores), "fasted subjects, optimal dimensions =", mod$ncomp))
+       main = paste(nrow(mod$scores), "fasted subjects, optimal dimensions =", lv))
   # High and low labels
   text(nrow(dat) : (nrow(dat)-n_top), df1$Coefficient, df1$compound, pos=2, cex = 0.6)
   text(1:nrow(df2), df2$Coefficient, df2$compound, pos=4, cex=0.6)
@@ -158,6 +184,7 @@ plot.Biocrates.sig <- function(mod, no.cmpds = 7){
   output <- bind_rows(df1, df2)
   
 }
+table3a <- plot.Biocrates.sig(mod0)
 table3a <- plot.Biocrates.sig(mod1)
 
 plot.FA.sig  <- function(mod){
@@ -166,34 +193,37 @@ plot.FA.sig  <- function(mod){
   
   cmpd.meta <- read.csv("FA_compound_data.csv")
   
-  # Plot the variable importance
-  k <- 34
-  coeff <- data.frame(value = round(coef(mod)[1:k, 1, 1], 3))
-  dat <- coeff %>% 
-    mutate(sm  = sum(abs(value)), 
-           VIP = round((value*100)/sm, 2), 
-           Compound = rownames(coeff))
+  if(class(mod) == "mvr"){
+    coeff <- data.frame(value = round(coef(mod)[ , 1, 1], 3))
+  } else {
+    coeff <- data.frame(value = mod$finalModel$coefficients[, 1, 1])
+  }
   
-  dat <- dat %>% left_join(cmpd.meta, by = "Compound")
-  
-  # Subset appropriate columns and print influential compounds
-  dat <- dat %>% select(compound = displayname2, Coefficient = value, VIP) %>% arrange(VIP)
+  dat <- coeff %>%
+    rownames_to_column(var = "Compound") %>%
+    mutate(sm = sum(abs(value)), Importance = round((value*100)/sm, 2)) %>%
+    left_join(cmpd.meta, by = "Compound") %>%
+    
+    # Subset appropriate columns and print influential compounds
+    select(compound = displayname2, Coefficient = value, Importance) %>% arrange(Importance)
   
   # choose number of influential compounds to plot
   n_top <- 5
   
-  df1 <- top_n(dat, n_top)  %>% arrange(-VIP)
-  df2 <- top_n(dat, -n_top) %>% arrange(VIP)
+  df1 <- top_n(dat, n_top)  %>% arrange(-Importance)
+  df2 <- top_n(dat, -n_top) %>% arrange(Importance)
   
   print(df1)
   print(df2)
   
   # Vector of colours for plot points
-  vec <- c( rep("black", n_top), rep("grey", k-(n_top*2)), rep("black", n_top) )
+  vec <- c( rep("black", n_top), rep("grey", nrow(dat)-(n_top*2)), rep("black", n_top) )
+  
+  lv <- if(class(mod) == "mvr") mod$ncomp else mod$finalModel$ncomp
   
   # Now plot data, adding text
   plot(sort(coeff$value), pch = 17, col=vec, xlab = "", ylab = "Coefficient",
-       main = paste("Fatty acids:", nrow(mod$scores), "fasted subjects, optimal dimensions =", mod$ncomp))
+       main = paste("Fatty acids:", nrow(mod$scores), "fasted subjects, optimal dimensions:", lv))
   # High and low compounds
   text(nrow(dat) : (nrow(dat)-n_top), df1$Coefficient, df1$compound, pos=2, cex = 0.6)
   text(1:nrow(df2), df2$Coefficient, df2$compound, pos=4, cex=0.6)
@@ -202,6 +232,7 @@ plot.FA.sig  <- function(mod){
   output <- bind_rows(df1, df2)
 }
 table3b <- plot.FA.sig(mod2)
+table3b1 <- plot.FA.sig(mod2a)
 
 # Save workspace (for .Rmd file)
 # save.image(file="metabolic_signatures.Rdata")
