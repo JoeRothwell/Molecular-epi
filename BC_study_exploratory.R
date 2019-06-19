@@ -18,6 +18,14 @@ plot(colSums(ints[ , -1]), xlab = "Compound number", ylab = "Scaled intensity",
      pch = 19, col = "dodgerblue", font.main = 1,
      main = "Summed intensities of 44 metabolites for 1582 subjects")
 
+# Time to centrifugation vs fasting status
+
+boxplot(CENTTIME ~ FASTING, data = meta, varwidth = T)
+meta1 <- meta[meta$CENTTIME < 100, ]
+library(gplots)
+boxplot2(CENTTIME ~ FASTING, data = meta1, varwidth = T, col = "dodgerblue",
+         xlab = "Fasting status", ylab = "TBC")
+
 # Check correlations
 library(corrplot)
 cormat <- cor(ints[, -1])
@@ -76,7 +84,7 @@ legend("topleft", legend = plt$groups, col=plt$colors, pch=plt$pch)
 # Other files ----
 
 # Rawest feature data
-#raw <- read_delim("C:/J_ROTHWELL/X_AlignedCohorteE3NData_cpmg_ssCitPEG_0612.txt", delim = ";")
+raw <- read_delim("D:/J_ROTHWELL/X_AlignedCohorteE3NData_cpmg_ssCitPEG_0612.txt", delim = ";")
 
 # Excel files with intermediate steps
 # List of 54 compounds and IDs
