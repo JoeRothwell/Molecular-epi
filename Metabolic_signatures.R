@@ -37,9 +37,6 @@ get.Biocrates.sig <- function(which.mod = "plsmod"){
     cv <- RMSEP(mod)
     plot(RMSEP(mod), legendpos = "topright")
     
-    ncomp.onesigma <- selectNcomp(mod, method = "onesigma", plot = T)
-    ncomp.permut <- selectNcomp(mod, method = "randomization", plot = T)
-    
     # Calculate optimal number of dimensions and rerun model
     # See PLS vignette p12 for how to choose number of components
     
@@ -116,7 +113,7 @@ get.FA.sig  <- function(which.mod = "plsmod", cor.data = F){
   
   if(which.mod == "plsmod"){
     set.seed(111)
-    mod <- plsr(score ~ ., data = plsdata, validation = "CV")
+    mod <- plsr(score ~ ., ncomp = 10, data = plsdata, validation = "CV")
     
     # Find the number of dimensions with lowest cross validation error
     cv <- RMSEP(mod)
