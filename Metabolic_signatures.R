@@ -1,4 +1,4 @@
-# Compute Biocrates and fatty acid signatures of WCRF score
+# Compute Biocrates and fatty acid signatures of WCRF score by PLS
 source("CRC_data_prep.R")
 
 get.Biocrates.sig <- function(which.mod = "plsmod"){
@@ -30,14 +30,30 @@ get.Biocrates.sig <- function(which.mod = "plsmod"){
   if(which.mod == "plsmod"){
     
     set.seed(111)
-    mod <- plsr(score ~ ., data = plsdata, validation = "CV")
+    
+    # Start with a sensible number of components eg 10
+    mod <- plsr(score ~ ., ncomp = 10, data = plsdata, validation = "CV")
     # Find the number of dimensions with lowest cross validation error
     cv <- RMSEP(mod)
     plot(RMSEP(mod), legendpos = "topright")
     
+    ncomp.onesigma <- selectNcomp(mod, method = "onesigma", plot = T)
+    ncomp.permut <- selectNcomp(mod, method = "randomization", plot = T)
+    
     # Calculate optimal number of dimensions and rerun model
+    # See PLS vignette p12 for how to choose number of components
+    
+    # Simply choosing which component has the lowest RMSEP
     best.dims <- which.min(cv$val[estimate = "adjCV", , ]) - 1
-    print(paste("optimal dimensions:", best.dims))
+    
+    # Validating using "one SE" and "permutation" methods
+    ncomp.onesigma <- selectNcomp(mod, method = "onesigma", plot = T)
+    ncomp.permut <- selectNcomp(mod, method = "randomization", plot = T)
+    
+    print(paste("Lowest RMSEP from", best.dims, "comp(s);", 
+                "one SE method suggests", ncomp.onesigma, "comp(s);",
+                "permutation method suggests", ncomp.permut, "comp(s)"))
+    
     mod <- plsr(score ~ ., data = plsdata, ncomp = best.dims)
     
     # explained variances
@@ -59,8 +75,8 @@ get.Biocrates.sig <- function(which.mod = "plsmod"){
   }
   
 }
-mod0 <- get.Biocrates.sig()
-mod1 <- get.Biocrates.sig(which.mod = "caretmod")
+mod1 <- get.Biocrates.sig()
+mod1a <- get.Biocrates.sig(which.mod = "caretmod")
 
 get.FA.sig  <- function(which.mod = "plsmod", cor.data = F){
   
@@ -106,8 +122,16 @@ get.FA.sig  <- function(which.mod = "plsmod", cor.data = F){
     cv <- RMSEP(mod)
     plot(RMSEP(mod), legendpos = "topright")
     
-    # Calculate optimal number of dimensions
+    # Calculate number of dimensions with lowest RMSEP
     best.dims <- which.min(cv$val[estimate = "adjCV", , ]) - 1
+    
+    # Calculate optimal components by 2 methods
+    ncomp.onesigma <- selectNcomp(mod, method = "onesigma", plot = T)
+    ncomp.permut <- selectNcomp(mod, method = "randomization", plot = T)
+    
+    print(paste("Lowest RMSEP from", best.dims, "comp(s);", 
+                "one SE method suggests", ncomp.onesigma, "comp(s);",
+                "permutation method suggests", ncomp.permut, "comp(s)"))
     
     # Rerun the model with the optimum number of components
     mod <- plsr(score ~ ., data = plsdata, ncomp = best.dims)
@@ -184,8 +208,8 @@ plot.Biocrates.sig <- function(mod, no.cmpds = 7){
   output <- bind_rows(df1, df2)
   
 }
-table3a <- plot.Biocrates.sig(mod0)
 table3a <- plot.Biocrates.sig(mod1)
+table3a <- plot.Biocrates.sig(mod1a)
 
 plot.FA.sig  <- function(mod){
   
