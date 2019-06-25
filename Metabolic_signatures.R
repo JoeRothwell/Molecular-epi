@@ -32,7 +32,7 @@ get.Biocrates.sig <- function(which.mod = "plsmod"){
     set.seed(111)
     
     # Start with a sensible number of components eg 10
-    mod <- plsr(score ~ ., ncomp = 10, data = plsdata, validation = "CV")
+    mod <- plsr(score ~ ., ncomp = 20, data = plsdata, validation = "CV")
     # Find the number of dimensions with lowest cross validation error
     cv <- RMSEP(mod)
     plot(RMSEP(mod), legendpos = "topright")
@@ -105,7 +105,8 @@ get.FA.sig  <- function(which.mod = "plsmod", cor.data = F){
   
   # adjust matrix for study, centre, sex, batch, BMI
   #getresiduals <- function(x) residuals(lm(x ~ STUDY + LABO + Country, data = fa.scores))
-  getresiduals <- function(x) residuals(lmer(x ~ (1|STUDY) + LABO + Country, data = fa.ctrl))
+  #getresiduals <- function(x) residuals(lmer(x ~ (1|STUDY) + LABO + Country, data = fa.ctrl))
+  getresiduals <- function(x) residuals(lmer(x ~ LABO + STUDY + (1|Center), data = fa.ctrl))
   resmat <- apply(logconcs, 2, getresiduals)
   
   # Bind WCRF scores to log2 concs
