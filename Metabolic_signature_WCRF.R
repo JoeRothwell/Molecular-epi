@@ -74,7 +74,7 @@ df.bioc <- function(study = c("large", "small"), fasting = T, scorecomp.only = F
   # now use predict to predict the scores of new observations (ie case-control study)
   #crcscores <- data.frame(predict(mod1a, #ncomp = 2, 
                                   #obs2predict))
-  score.2.comps <- predict(mod1a, obs2predict)
+  score.2.comps <- predict(mod1, obs2predict)
   #if(scorecomp.only == T) return(crcscores)
   if(study == "large") output <- cbind(score.2.comps, crcA) else output <- cbind(score.2.comps, crcB)
   #if(study == "large") output <- cbind(crcscores, crcA) else output <- cbind(crcscores, crcB)
@@ -127,11 +127,14 @@ df.FAs  <- function(){
   obs2predict <- log2(CRCfa) %>% scale %>% data.frame
   
   # now use predict to predict the scores of new observations (ie case-control study)
-  crcscores <- data.frame(predict(mod2, #ncomp = 2, 
-                                  obs2predict))
+  #crcscores <- data.frame(predict(mod2, #ncomp = 2, 
+                                  #obs2predict))
+  
+  score.2.comps <- predict(mod2, obs2predict)
   
   # Put the predicted scores together with the original data, remove unpaired sample
-  output <- cbind(crcscores, CRCfa1) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+  # output <- cbind(crcscores, CRCfa1) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+  output <- cbind(score.2.comps, CRCfa1) %>% group_by(Match_Caseset) %>% filter(n() == 2)
   
 }
 
