@@ -6,7 +6,7 @@ library(tidyverse)
 library(readxl)
 
 # 1694 obs. of 8501 NMR variables (outliers removed, one NA variable in 8501st col)
-raw <- read_tsv("1510_XAlignedE3NcpmgssCitPEGfinal.txt")
+raw <- read_tsv("1510_XAlignedE3NcpmgssCitPEGfinal.txt") %>% select(-8501)
 
 # 1739 obs. of 8500 NMR variables (all samples)
 # raw1 <- read_delim("X_AlignedE3NData_cpmg_ssCitPEG_1112.txt", delim = ";")
@@ -15,16 +15,28 @@ raw <- read_tsv("1510_XAlignedE3NcpmgssCitPEGfinal.txt")
 # (hope it's in the same order as the NMR data!)
 metaQC <- read_xlsx("1510_MatriceY_CohorteE3N_Appar.xlsx", sheet = 4)
 
-# Remove QCs from metadata and select columns
-meta <- metaQC[samp, ] %>% select(ID, RACK, WEEKS, CT, MATCH, PLACE, CENTTIME, CENTTIMECat1, FASTING, SMK, BMI, BMICat1, SAMPYEAR,
-                                  AGE, BP, RTH, ALCOHOL, Trait_Horm, MENOPAUSE, DIABETE, STOCKTIME)
-
 #remove QCs and erroneous column from raw data
 samp <- metaQC$TYPE_ECH == 1
-samples <- raw[samp, -8501] %>% as.matrix
+samples <- raw[samp, ] %>% as.matrix
+
+# remove zero variance columns
+sum(apply(samples, 2, var) == 0)
+
+# There are 1116. Place in logical vector
+nonzerovar <- apply(samples, 2, var) != 0
+which(nonzerovar)
+
+samples0 <- samples[ , nonzerovar]
+dim(samples0)
+
+# Remove QCs from metadata and select columns
+meta <- metaQC[samp, ] %>% 
+  select(ID, RACK, WEEKS, CT, MATCH, PLACE, CENTTIME, CENTTIMECat1, FASTING, SMK, BMI, BMICat1, SAMPYEAR,
+        AGE, BP, RTH, ALCOHOL, Trait_Horm, MENOPAUSE, DIABETE, STOCKTIME)
+
 
 # pca0 <- prcomp(raw, scale. = F, center = T)
-pca <- prcomp(samples, scale. = F, center = T)
+pca <- prcomp(samples0, scale. = F, center = F)
 library(pca3d)
 pca2d(pca, group = as.factor(meta$PLACE), show.labels = T)
 box(which = "plot", lty = "solid")
@@ -32,9 +44,7 @@ box(which = "plot", lty = "solid")
 scores <- data.frame(pca$x) %>% bind_cols(meta)
 
 library(ggplot2)
-ggplot(scores, aes(PC1, PC2)) + #geom_point() + 
-  theme_bw() +
-  geom_text(aes(label = ID))
+ggplot(scores, aes(PC1, PC2)) + theme_bw() + geom_text(aes(label = ID))
 
 # Remove QCs from metadata
 
