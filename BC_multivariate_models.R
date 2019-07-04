@@ -1,4 +1,4 @@
-# OPLS multivariate models
+# OPLS multivariate models (on annotated compounds)
 library(tidyverse)
 
 # Read 1623 observations of 44 intensity variables (appears to be final scaled data) and metadata
