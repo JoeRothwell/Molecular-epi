@@ -70,9 +70,11 @@ dat <- explore.data(data.only = T)
 
 concs <- dat[[1]]
 
-Z_Meta <- dat[[2]] %>%
-  select(MATCH, WEEKS, PLACE, AGE, BMI, MENOPAUSE, FASTING, SMK, DIABETE, CENTTIMECat1, CENTTIME, SAMPYEAR, STOCKTIME) %>%
+meta <- dat[[2]] %>%
+  select(CT, MATCH, WEEKS, PLACE, AGE, BMI, MENOPAUSE, FASTING, SMK, DIABETE, CENTTIMECat1, CENTTIME, SAMPYEAR, STOCKTIME) %>%
   mutate_at(vars(-AGE, -BMI, -WEEKS, -STOCKTIME, -CENTTIME), as.factor)
+
+Z_Meta <- meta %>% select(-MATCH)
 
 library(pcpr2)
 props.raw <- runPCPR2(concs, Z_Meta)
@@ -80,7 +82,11 @@ plotProp(props.raw)
 
 # Transform each column to the residuals of a linear model of concentration on confounders
 library(lme4)
-adj <- function(x) residuals(lmer(x ~ AGE + BMI + DIABETE + FASTING + SAMPYEAR + (1|PLACE) + (1|MATCH), data = Z_Meta))
+adj <- function(x) residuals(lmer(x ~ AGE + BMI + DIABETE + FASTING + SAMPYEAR + (1|PLACE) + (1|MATCH), data = meta))
+
+# Samples were matched on age and menopausal status (at blood collection), collection centre, fasting status,
+# blood collection data. Need to avoid including linearly dependent variables
+adj <- function(x) residuals(lmer(x ~ BMI + DIABETE + (1|MATCH), data = meta))
 adjmat <- apply(concs, 2, adj)
 
 props.adj <- runPCPR2(adjmat, Z_Meta)
