@@ -5,7 +5,7 @@
 
 
 # Subset samples only and plot PCA with pareto scaling
-explore.data <- function(dataset = "QCs", data.only = F) {
+explore.data <- function(dataset = "QCs", data.only = F, exclude.tbc = F) {
   
   library(tidyverse)
   library(readxl)
@@ -21,7 +21,7 @@ explore.data <- function(dataset = "QCs", data.only = F) {
     metaQC <- read_xlsx("1510_MatriceY_CohorteE3N_Appar.xlsx", sheet = 4, na = ".")
     
     # Subset samples only
-    samp <- metaQC$TYPE_ECH == 1
+    samp <- if(exclude.tbc == F) metaQC$TYPE_ECH == 1 else metaQC$TYPE_ECH == 1 & metaQC$CENTTIME < 100
     mat <- dat[samp, ] %>% as.matrix
     
     # Subset samples only from metadata   
@@ -64,37 +64,49 @@ library(pca3d)
 pca2d(as.matrix(scores[, 1:10]), group = scores$WEEKS)
 box(which = "plot", lty = "solid")
 
-# Output data for PCPR2
+# ----------------------------------------------------------------------------------------------------------
 
-dat <- explore.data(data.only = T)
+# Output Pareto-scaled data and perform PCPR2
+
+dat1 <- explore.data(data.only = T, exclude.tbc = T)
 
 concs <- dat[[1]]
+concs1 <- dat1[[1]]
 
 meta <- dat[[2]] %>%
   select(CT, MATCH, WEEKS, PLACE, AGE, BMI, MENOPAUSE, FASTING, SMK, DIABETE, CENTTIMECat1, CENTTIME, SAMPYEAR, STOCKTIME) %>%
-  mutate_at(vars(-AGE, -BMI, -WEEKS, -STOCKTIME, -CENTTIME), as.factor)
+  mutate_at(vars(-AGE, -BMI, -STOCKTIME, -CENTTIME), as.factor)
 
-Z_Meta <- meta %>% select(-MATCH)
+Z_Meta <- meta %>% select(-MATCH, -CT, -CENTTIME)
 
 library(pcpr2)
 props.raw <- runPCPR2(concs, Z_Meta)
 plotProp(props.raw)
 
-# Transform each column to the residuals of a linear model of concentration on confounders
-library(lme4)
-adj <- function(x) residuals(lmer(x ~ AGE + BMI + DIABETE + FASTING + SAMPYEAR + (1|PLACE) + (1|MATCH), data = meta))
+# Greatest sources of variability are BMI > DIABETE > PLACE
+# Adjust for fixed effects only. FASTING covers CENTTIME
+adj <- function(x) residuals(lm(x ~ PLACE + WEEKS + AGE + BMI + DIABETE + FASTING + SAMPYEAR, data = meta))
+
+
+# Random effects model does not work, either boundary fit or does not converge
+#library(lme4)
+#adj <- function(x) residuals(lmer(x ~ BMI + DIABETE + 1|PLACE, data = meta))
 
 # Samples were matched on age and menopausal status (at blood collection), collection centre, fasting status,
 # blood collection data. Need to avoid including linearly dependent variables
-adj <- function(x) residuals(lmer(x ~ BMI + DIABETE + (1|MATCH), data = meta))
 adjmat <- apply(concs, 2, adj)
 
 props.adj <- runPCPR2(adjmat, Z_Meta)
-plotProp(props.adj)
 
-par(mfrow = c(1,2))
+par(mfrow = c(2,1))
 plotProp(props.raw, main = "Raw feature intensities", font.main = 1)
-plotProp(props.adj, main = "Raw features intensities adjusted to residuals of random effects model", font.main = 1)
+plotProp(props.adj, main = "Transformed to residuals of linear model of 
+  intensity on BMI, place, diabetes status, fasting status", font.main = 1)
+
+# Check PCA of transformed matrix
+library(pca3d)
+scores.adj <- prcomp(adjmat, scale. = F)
+pca2d(scores.adj, group = scores$WEEKS)
 
 #--------------------------------------------------------------------------------------------------
 
