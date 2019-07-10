@@ -3,9 +3,8 @@
 # Data from Elodie Jobard 27-6-2019
 # Read in data with outliers and QCs (n=1739) or with QCs only
 
-
 # Subset samples only and plot PCA with pareto scaling
-explore.data <- function(dataset = "QCs", data.only = F, exclude.tbc = F) {
+prep.data <- function(dataset = "QCs", data.only = F, exclude.tbc = F) {
   
   library(tidyverse)
   library(readxl)
@@ -21,11 +20,13 @@ explore.data <- function(dataset = "QCs", data.only = F, exclude.tbc = F) {
     metaQC <- read_xlsx("1510_MatriceY_CohorteE3N_Appar.xlsx", sheet = 4, na = ".")
     
     # Subset samples only
-    samp <- if(exclude.tbc == F) metaQC$TYPE_ECH == 1 else metaQC$TYPE_ECH == 1 & metaQC$CENTTIME < 100
+    samp <- if(exclude.tbc == F) metaQC$TYPE_ECH == 1 else metaQC$TYPE_ECH == 1 & !is.na(metaQC$CENTTIME)
     mat <- dat[samp, ] %>% as.matrix
+    #mat1 <- dat[samp1, ] %>% as.matrix
     
     # Subset samples only from metadata   
     meta <- metaQC[samp, ]
+    #meta1 <- metaQC[samp1, ]
   }
   
   
@@ -53,7 +54,7 @@ explore.data <- function(dataset = "QCs", data.only = F, exclude.tbc = F) {
   output <- data.frame(pca$x) %>% bind_cols(meta)
 }
 
-scores <- explore.data()
+scores <- prep.data()
 #scores1 <- explore.data(dataset = "All")
 
 # Plot data
@@ -68,32 +69,24 @@ box(which = "plot", lty = "solid")
 
 # Output Pareto-scaled data and perform PCPR2
 
-dat1 <- explore.data(data.only = T, exclude.tbc = T)
+dat <- prep.data(data.only = T, exclude.tbc = T)
 
 concs <- dat[[1]]
-concs1 <- dat1[[1]]
-
 meta <- dat[[2]] %>%
-  select(CT, MATCH, WEEKS, PLACE, AGE, BMI, MENOPAUSE, FASTING, SMK, DIABETE, CENTTIMECat1, CENTTIME, SAMPYEAR, STOCKTIME) %>%
-  mutate_at(vars(-AGE, -BMI, -STOCKTIME, -CENTTIME), as.factor)
+  select(CT, MATCH, WEEKS, PLACE, AGE, BMI, MENOPAUSE, FASTING, SMK, DIABETE, CENTTIMECat1, CENTTIME, SAMPYEAR, 
+         DIAGSAMPLINGCat1, STOCKTIME) %>%
+  mutate_at(vars(-AGE, -BMI, -CENTTIME), as.factor)
 
-Z_Meta <- meta %>% select(-MATCH, -CT, -CENTTIME)
+Z_Meta <- meta %>% select(-MATCH, -CT, -CENTTIME, -DIAGSAMPLINGCat1)
 
 library(pcpr2)
 props.raw <- runPCPR2(concs, Z_Meta)
 plotProp(props.raw)
 
 # Greatest sources of variability are BMI > DIABETE > PLACE
-# Adjust for fixed effects only. FASTING covers CENTTIME
-adj <- function(x) residuals(lm(x ~ PLACE + WEEKS + AGE + BMI + DIABETE + FASTING + SAMPYEAR, data = meta))
-
-
-# Random effects model does not work, either boundary fit or does not converge
-#library(lme4)
-#adj <- function(x) residuals(lmer(x ~ BMI + DIABETE + 1|PLACE, data = meta))
-
-# Samples were matched on age and menopausal status (at blood collection), collection centre, fasting status,
-# blood collection data. Need to avoid including linearly dependent variables
+# Adjust for fixed effects only. Random effects model with lme4 did not work, boundary fit or didn't converge
+adj <- function(x) residuals(lm(x ~ PLACE + WEEKS + AGE + BMI + DIABETE + FASTING + SAMPYEAR + 
+                                  CENTTIMECat1 + STOCKTIME, data = meta))
 adjmat <- apply(concs, 2, adj)
 
 props.adj <- runPCPR2(adjmat, Z_Meta)
@@ -101,16 +94,42 @@ props.adj <- runPCPR2(adjmat, Z_Meta)
 par(mfrow = c(2,1))
 plotProp(props.raw, main = "Raw feature intensities", font.main = 1)
 plotProp(props.adj, main = "Transformed to residuals of linear model of 
-  intensity on BMI, place, diabetes status, fasting status", font.main = 1)
+  intensity on confounders*", font.main = 1)
 
 # Check PCA of transformed matrix
 library(pca3d)
 scores.adj <- prcomp(adjmat, scale. = F)
 pca2d(scores.adj, group = scores$WEEKS)
 
+# Final data matrix is adjmat, n = 1572
+
 #--------------------------------------------------------------------------------------------------
 
-# Descriptions of files
+# Multivariate analysis. Subsets to be made:
+# 1. All samples; 2. Pre-menopausal only; 3. Post-menopausal only; 4. Diagnosed < 5 years only; 5. Diagnosed > 5 years only
+
+# First give each control the time to diagnosis time of the corresponding case
+meta <- meta %>% group_by(MATCH) %>% mutate(tdiag = max(as.numeric(DIAGSAMPLINGCat1), na.rm = T))
+all <- data.frame(class = as.factor(meta$CT), adjmat)
+
+# Logical vectors (need to group for diagnosed > and < 5 years)
+pre   <- meta$MENOPAUSE == 0
+post  <- meta$MENOPAUSE == 1 
+early <- meta$tdiag == 1
+late  <- meta$tdiag == 2
+
+# Get logical vectors for pre and post menopaual, < 5 and > 5 years
+
+library(caret)
+set.seed(111)
+mod <- train(class ~ ., data = all, method = "pls", metric = "RMSE", tuneLength = 20) 
+
+
+
+
+
+
+# Description of files
 
 # 1694 obs. of 8501 NMR variables (outliers removed, one NA variable in 8501st col)
 #raw <- read_tsv("1510_XAlignedE3NcpmgssCitPEGfinal.txt") %>% select(-8501)
