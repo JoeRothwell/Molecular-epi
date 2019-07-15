@@ -121,11 +121,29 @@ late  <- meta$tdiag == 2
 # Get logical vectors for pre and post menopaual, < 5 and > 5 years
 
 library(caret)
+# Split into training and test sets on class, 75% to training set
+inTrain <- createDataPartition(y = all$class, p = 0.75, list = F)
+training <- all[inTrain, ]
+testing <- all[-inTrain, ]
+
+# Cross validation. The sample size is quite large so can use a large number of folds (10)
 set.seed(111)
-mod <- train(class ~ ., data = all, method = "pls", metric = "RMSE", tuneLength = 20) 
+folds <- createMultiFolds(y = training$class, k = 10, times = 5)
+control <- trainControl("repeatedcv", index = folds, selectionFunction = "oneSE")
+sapply(folds, length)
 
+# Train PLS model
+set.seed(111)
+mod <- train(class ~ ., data = all, method = "pls", metric = "Accuracy", 
+             trControl = control, tuneLength = 20) 
 
+plot(mod)
+confusionMatrix(mod)
+plot(varImp(mod), 10)
 
+# Predict test set
+predictions <- predict(mod, newdata = testing)
+confusionMatrix(predictions, reference = testing$class)
 
 
 
