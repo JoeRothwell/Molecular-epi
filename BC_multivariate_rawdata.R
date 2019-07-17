@@ -118,9 +118,10 @@ post  <- meta$MENOPAUSE == 1
 early <- meta$tdiag == 1
 late  <- meta$tdiag == 2
 
-# Get logical vectors for pre and post menopaual, < 5 and > 5 years
 
 library(caret)
+
+# 0. All subjects
 # Split into training and test sets on class, 75% to training set
 inTrain <- createDataPartition(y = all$class, p = 0.75, list = F)
 training <- all[inTrain, ]
@@ -128,24 +129,135 @@ testing <- all[-inTrain, ]
 
 # Cross validation. The sample size is quite large so can use a large number of folds (10)
 set.seed(111)
-folds <- createMultiFolds(y = training$class, k = 10, times = 5)
+#folds <- createMultiFolds(y = training$class, k = 10, times = 5)
+folds <- createFolds(y = training$class, k = 10)
 control <- trainControl("repeatedcv", index = folds, selectionFunction = "oneSE")
 sapply(folds, length)
 
 # Train PLS model
-set.seed(111)
-mod <- train(class ~ ., data = all, method = "pls", metric = "Accuracy", 
+mod0 <- train(class ~ ., data = training, method = "pls", metric = "Accuracy", 
              trControl = control, tuneLength = 20) 
 
-plot(mod)
-confusionMatrix(mod)
-plot(varImp(mod), 10)
+plot(mod0)
+confusionMatrix(mod0)
+#plot(varImp(mod0), 10)
 
 # Predict test set
-predictions <- predict(mod, newdata = testing)
-confusionMatrix(predictions, reference = testing$class)
+predictions0 <- predict(mod0, newdata = testing)
+confusionMatrix(predictions0, reference = testing$class)
+
+#-----------------------------------------------------------------------------------------
+
+# 1. Post-menopausal only
+# Split into training and test sets on class, 75% to training set
+post <- all[post, ]
+inTrain <- createDataPartition(y = post$class, p = 0.75, list = F)
+training <- post[inTrain, ]
+testing <- post[-inTrain, ]
+
+set.seed(222)
+folds <- createFolds(y = training$class, k = 10)
+control <- trainControl("repeatedcv", index = folds, selectionFunction = "oneSE")
+
+# Train PLS model
+mod1 <- train(class ~ ., data = training, method = "pls", metric = "Accuracy", 
+             trControl = control, tuneLength = 20) 
+
+plot(mod1)
+#confusionMatrix(mod1)
+#plot(varImp(mod1), 10)
+
+# Predict test set
+predictions1 <- predict(mod1, newdata = testing)
+confusionMatrix(predictions1, reference = testing$class)
 
 
+#---------------------------------------------------------------------------------------
+
+# 2. Pre-menopausal only
+# Split into training and test sets on class, 75% to training set
+pre <- all[pre, ]
+inTrain <- createDataPartition(y = pre$class, p = 0.75, list = F)
+training <- pre[inTrain, ]
+testing <- pre[-inTrain, ]
+
+# Use a 10 times repeated 5-fold cross validation
+set.seed(333)
+folds <- createMultiFolds(y = training$class, k = 5, times = 5)
+control <- trainControl("repeatedcv", index = folds, selectionFunction = "oneSE")
+
+# Train PLS model
+mod2 <- train(class ~ ., data = training, method = "pls", metric = "Accuracy", 
+             trControl = control, tuneLength = 20) 
+
+plot(mod2)
+#confusionMatrix(mod2)
+#plot(varImp(mod2), 10)
+
+# Predict test set
+predictions2 <- predict(mod2, newdata = testing)
+confusionMatrix(predictions2, reference = testing$class)
+
+#---------------------------------------------------------------------------------------
+
+# 3. Early diagnosis only
+# Split into training and test sets on class, 75% to training set
+early <- all[early, ]
+inTrain <- createDataPartition(y = early$class, p = 0.75, list = F)
+training <- early[inTrain, ]
+testing <- early[-inTrain, ]
+
+# Use a 10 times repeated 5-fold cross validation
+set.seed(444)
+folds <- createFolds(y = training$class, k = 10)
+control <- trainControl("repeatedcv", index = folds, selectionFunction = "oneSE")
+
+# Train PLS model
+mod3 <- train(class ~ ., data = training, method = "pls", metric = "Accuracy", 
+             trControl = control, tuneLength = 20) 
+
+plot(mod3)
+#confusionMatrix(mod3)
+#plot(varImp(mod3), 10)
+
+# Predict test set
+predictions3 <- predict(mod3, newdata = testing)
+confusionMatrix(predictions3, reference = testing$class)
+
+#---------------------------------------------------------------------------------------
+
+# 4. Late diagnosis only
+# Split into training and test sets on class, 75% to training set
+late <- all[late, ]
+set.seed(555)
+inTrain <- createDataPartition(y = late$class, p = 0.75, list = F)
+training <- late[inTrain, ]
+testing <- late[-inTrain, ]
+
+# Use a 10 times repeated 5-fold cross validation
+set.seed(555)
+folds <- createFolds(y = training$class, k = 10)
+control <- trainControl("repeatedcv", index = folds, selectionFunction = "oneSE")
+
+# Train PLS model
+set.seed(555)
+mod4 <- train(class ~ ., data = training, method = "pls", metric = "Accuracy", 
+             trControl = control, tuneLength = 20) 
+
+plot(mod4)
+#confusionMatrix(mod4)
+#plot(varImp(mod), 10)
+
+# Predict test set
+predictions4 <- predict(mod4, newdata = testing)
+confusionMatrix(predictions4, reference = testing$class)
+
+#----------------------------------------------------------------------------------------
+
+# Compare models
+models <- resamples(list("All" = mod0, "Post-menopausal" = mod1,
+                         "Early diagnosis" = mod3, "Late diagnosis" = mod4))
+bwplot(models, metric = "Accuracy")
 
 # Description of files
 
