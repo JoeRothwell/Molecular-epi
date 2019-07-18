@@ -4,25 +4,19 @@ library(readxl)
 
 # Read 1623 observations of 44 intensity variables (appears to be final scaled data) and metadata
 ints <- read_tsv("1507_XMetabolite_std_cpmg_E3N.txt")
-meta <- read.csv("Lifepath_meta.csv")
 
-# Lifestyle data only
-# Breast cancer risk model. Subset variables needed
-meta1 <- meta %>%
+# Lifestyle data. Subset variables needed
+meta <- read_csv("Lifepath_meta.csv", na = "9999") %>%
   select(CODBMB, CT, MATCH, PLACE, AGE, BMI, BP, RTH, ALCOHOL, MENOPAUSE, FASTING, SMK, DIABETE, CENTTIMECat1, 
          CENTTIME, SAMPYEAR, STOCKTIME, DURTHSDIAG) %>%
   mutate_at(vars(-CODBMB, -CT, -AGE, -BMI, -STOCKTIME, -RTH, -ALCOHOL, -CENTTIME, -DURTHSDIAG), as.factor)
-
-# Replace 9999 with NA (for just numeric or all columns)
-meta2 <- meta1 %>% mutate_if(is.numeric, list( ~ na_if(., 9999))) %>% mutate(BP = na_if(BP, 9999))
 
 # Conditional logistic regression to get odds ratios for lifestyle factors
 # Same co-variates as in original manuscript
 library(survival)
 fit <- clogit(CT ~ scale(BMI) + SMK + DIABETE + #BP + 
                 scale(RTH) + scale(ALCOHOL) + scale(DURTHSDIAG) + 
-                scale(CENTTIME) + STOCKTIME + strata(MATCH), data = meta2,
-              subset = MENOPAUSE == 1) 
+                scale(CENTTIME) + STOCKTIME + strata(MATCH), data = meta, subset = MENOPAUSE == 1) 
 # output <- cbind(exp(coef(fit)), exp(confint(fit)))
 
 library(broom)
@@ -47,35 +41,47 @@ text(hh[2], nrow(t1) + 2, "OR [95% CI]", pos = 2)
 
 # CLR models to get odds ratios for metabolites
 
-clr.metabo <- function(dat = meta2) {
+clr.metabo <- function(dat = meta) {
   data <- left_join(dat, ints, by = "CODBMB")
   
   library(survival)
   clr <- function(x) { 
     clogit(CT ~ x + BMI + SMK + DIABETE + #BP + 
-             RTH + ALCOHOL + DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH), data = dat)
+      RTH + ALCOHOL + DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH), data = dat)
   }
   
   metabs <- data %>% select(`3Hydroxybutyrate`:Succinate) %>% as.matrix
   multifit <- apply(metabs, 2, clr)
   library(broom)
-  t2 <- map_df(multifit, tidy) %>% filter(term == "x")
+  output <- #map_df(multifit, tidy) %>% filter(term == "x") %>% cbind(Compound = names(multifit))
   
-  #dev.off()
-  par(mar=c(5,4,1,2))
-  library(metafor)
-  forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1, #xlab = xtitle, 
-         xlab = "Multivariable adjusted odds ratio",
-         transf = exp, pch = 18, psize = 1, slab = names(multifit))
-  hh <- par("usr")
-  text(hh[1], nrow(t2) + 2, "Compound", pos = 4)
-  text(hh[2], nrow(t2) + 2, "OR [95% CI]", pos = 2)
-}
-#alim = c(0,2), xlim = c(-1, 3)) 
+    map_df(multifit, tidy) %>% filter(term == "x") %>% 
+    mutate_at(.vars = c("estimate", "conf.low", "conf.high"), .funs = exp) %>%
+    cbind(Compound = names(multifit)) %>%
+    select("Compound", "estimate", "conf.low", "conf.high", "p.value") 
+  
+  fdr <- p.adjust(output$p.value, method = "fdr")
+  bon <- p.adjust(output$p.value, method = "bonferroni")
+  
+  output <- output %>% bind_cols(FDR = fdr, Bonferroni = bon)
 
-clr.metabo()
-clr.metabo(meta2.pre)
-clr.metabo(meta2.post)
+}
+
+t2 <- clr.metabo()
+clr.metabo(meta.pre)
+clr.metabo(meta.post)
+
+
+# Plot data with Metafor
+par(mar=c(5,4,1,2))
+library(metafor)
+forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1, #xlab = xtitle, 
+       xlab = "Multivariable adjusted odds ratio",
+       transf = exp, pch = 18, psize = 1, slab = names(multifit))
+hh <- par("usr")
+text(hh[1], nrow(t2) + 2, "Compound", pos = 4)
+text(hh[2], nrow(t2) + 2, "OR [95% CI]", pos = 2)
+
 
 # Funnel plots for metabolites
 funnel(x = t2$estimate, sei = t2$std.error)
