@@ -32,28 +32,38 @@ fits2 <- apply(Ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCO
 cmpd_meta <- read.csv("NMR_cmpd_metadata.csv")
 
 # Function to tidy and present output table
+
 tidy.output <- function(fits) {
   
-  library(broom)
-  df <-
-    map_df(fits, tidy) %>% filter(term == "x") %>% 
-    mutate_at(.vars = c("estimate", "conf.low", "conf.high"), .funs = exp) %>%
+  library(broom) 
+  
+  # Function to exponentiate and round
+  round.exp <- function(x) round(exp(x), 2)
+  df <- map_df(fits, tidy) %>% filter(term == "x") %>%
+    mutate_at(.vars = c(OR = "estimate", "conf.low", "conf.high"), .funs = round.exp) %>%
     cbind(Compound = names(fits)) %>%
-    left_join(cmpd_meta, by  = "Compound") %>%
-    select("display_name", "description", "estimate", "conf.low", "conf.high", "p.value") #%>%
-    #transmute_at(.vars = c("estimate", "conf.low", "conf.high"), .funs = function(x) round(x, 2))
+    left_join(cmpd_meta, by  = "Compound")
   
-  fdr <- round(p.adjust(df$p.value, method = "fdr"), 3)
-  bon <- round(p.adjust(df$p.value, method = "bonferroni"), 3)
-  pval <- round(df$p.value, 3)
-  
-  output <- df %>% bind_cols(FDR = fdr, Bonferroni = bon)
+  df$P.value <- round(df$p.value, 3)
+  df$FDR <- round(p.adjust(df$p.value, method = "fdr"), 3)
+  df$Bonferroni <- round(p.adjust(df$p.value, method = "bonferroni"), 3)
 
+  # Concatenate OR and CIs  
+  df1 <- df %>% 
+    select(Compound = "display_name", "description", "OR", "conf.low", "conf.high", 
+           "P.value", "FDR", "Bonferroni") %>%
+    unite("95% CI", conf.low:conf.high, sep = ", ") %>%
+    arrange(description)
+  
 }
 
 all <- tidy.output(fits0)
 pre <- tidy.output(fits1)
 post <- tidy.output(fits2)
+
+library(stargazer)
+stargazer(post, summary = F, type = "html", out = "metabolite_table2.html")
+
 
 # Plot data with Metafor
 par(mar=c(5,4,1,2))
