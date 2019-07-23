@@ -16,12 +16,12 @@ meta <- read_csv("Lifepath_meta.csv", na = "9999") %>%
 # CLR models to get odds ratios for metabolites
 dat <- left_join(meta, ints, by = "CODBMB")
   
-library(survival)
 # Run models for all, pre-menopausal only and post-menopausal only
-base <- CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH)
+#base <- CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH)
 
 Ints <- dat %>% select(`3Hydroxybutyrate`:Succinate) %>% as.matrix
 
+library(survival)
 fits0 <- apply(Ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
           DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH) + x, data = dat))
 fits1 <- apply(Ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
@@ -44,15 +44,15 @@ tidy.output <- function(fits) {
     cbind(Compound = names(fits)) %>%
     left_join(cmpd_meta, by  = "Compound")
   
+  # Make columns
   df$P.value <- round(df$p.value, 3)
   df$FDR <- round(p.adjust(df$p.value, method = "fdr"), 3)
   df$Bonferroni <- round(p.adjust(df$p.value, method = "bonferroni"), 3)
+  df$CI.95 <- paste("(", df$conf.low, ", ", df$conf.high, ")", sep = "")
 
-  # Concatenate OR and CIs  
+  # Select columns and order
   df1 <- df %>% 
-    select(Compound = "display_name", "description", "OR", "conf.low", "conf.high", 
-           "P.value", "FDR", "Bonferroni") %>%
-    unite("95% CI", conf.low:conf.high, sep = ", ") %>%
+    select(Compound = "display_name", "description", "OR", "CI.95", "P.value", "FDR", "Bonferroni") %>%
     arrange(description)
   
 }
@@ -61,8 +61,14 @@ all <- tidy.output(fits0)
 pre <- tidy.output(fits1)
 post <- tidy.output(fits2)
 
+# Retain only metabolite groups with at least one p-value < 0.05
+tab <- bind_rows("All" = all, "Pre" = pre, "Post" = post, .id = "Analysis") %>%
+  group_by(Compound) %>% filter(min(P.value) < 0.05) %>% 
+  select(Compound, description, everything()) %>%
+  arrange(description, Compound) %>% as.data.frame
+
 library(stargazer)
-stargazer(post, summary = F, type = "html", out = "metabolite_table2.html")
+stargazer(tab, summary = F, type = "html", out = "metabolite_table_selected.html")
 
 
 # Plot data with Metafor
