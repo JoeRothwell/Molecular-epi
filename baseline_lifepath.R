@@ -130,4 +130,43 @@ summ <-
 
 # ----
 st <- summary_table(group_by(meta, CT), summ)
+print(st, cnames = c("Controls (N = 791)", "Cases (N = 791)"))
 # Copy and paste output into an Rmarkdown file and render to word/pdf etc
+
+# ---------------------------------------------------------------
+
+# Models for p-values for table
+
+# Case/control models
+ll <- list(
+  chisq.test(meta$CT, meta$RTHCat1),
+  chisq.test(meta$CT, meta$BMICat1),
+  chisq.test(meta$CT, meta$SMK),
+  chisq.test(meta$CT, meta$DIABETE),
+  chisq.test(meta$CT, meta$BP),
+  chisq.test(meta$CT, meta$Life_Alcohol_Pattern_1),
+  chisq.test(meta$CT, meta$Trait_Horm)
+)
+
+t.test(meta$DURTHSDIAG ~ meta$CT)$p.value
+
+# Pre/post menopausal models
+l  <- list(
+  chisq.test(meta$MENOPAUSE, meta$DIAGSAMPLINGCat1),
+  chisq.test(meta$MENOPAUSE, meta$BEHAVIOUR),
+  fisher.test(meta$MENOPAUSE, meta$SUBTYPE),
+  chisq.test(meta$MENOPAUSE, meta$ER),
+  chisq.test(meta$MENOPAUSE, meta$PR),
+  chisq.test(meta$MENOPAUSE, meta$GRADE),
+  fisher.test(meta$MENOPAUSE, meta$STADE)
+)
+
+
+t.test(meta$DURTHSDIAG ~ meta$CT)$names
+
+library(purrr)
+map_df(ll, tidy)
+map_df(l, tidy)
+
+
+
