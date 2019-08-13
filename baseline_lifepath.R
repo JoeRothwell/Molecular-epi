@@ -42,51 +42,51 @@ summ <-
                "Obese"                   =  ~ n_perc0(BMICat1 == 3, na_rm = T, digits = 1),
                "Unknown"                 =  ~ n_perc0(is.na(BMICat1), digits = 1)),
        "Waist to hip ratio" =             
-                                           list("< 0.8"  =  ~ n_perc0(RTHCat1 == 0, na_rm = T, digits = 1),
-                                                "> 0.8"  =  ~ n_perc0(RTHCat1 == 1, na_rm = T, digits = 1),
-                                                "Unknown"   =  ~ n_perc0(is.na(RTHCat1), digits = 1)),
+                                           list("< 0.8" = ~ n_perc0(RTHCat1 == 0, na_rm = T, digits = 1),
+                                                "> 0.8" = ~ n_perc0(RTHCat1 == 1, na_rm = T, digits = 1),
+                                                "Unknown" = ~ n_perc0(is.na(RTHCat1), digits = 1)),
        "Menopausal status at blood collection" =
                                            list("Pre-menopausal"   =  ~ n_perc0(MENOPAUSE == 0, digits = 1),
                                                 "Post-menopausal"  =  ~ n_perc0(MENOPAUSE == 1, digits = 1)),
-       "Smoking status"                  = list("Yes"  =  ~ n_perc0(SMK == 1, digits = 1),
-                                                "No"   =  ~ n_perc0(SMK == 0, digits = 1)),
-       "Diabetic status"                 = list("Yes"   =  ~ n_perc0(DIABETE == 1, digits = 1),
-                                                "No"  =  ~ n_perc0(DIABETE == 0, digits = 1)),
+       "Smoking status"                  = list("Yes" = ~ n_perc0(SMK == 1, digits = 1),
+                                                "No"  = ~ n_perc0(SMK == 0, digits = 1)),
+       "Diabetic status"                 = list("Yes" = ~ n_perc0(DIABETE == 1, digits = 1),
+                                                "No"  = ~ n_perc0(DIABETE == 0, digits = 1)),
        "Lifetime alcohol drinking pattern" =
-         list("Non-consumers (0 g/day)"        =  ~ n_perc0(Life_Alcohol_Pattern_1 == 0, na_rm = T, digits = 1),
-              "Light consumers (1-10 g/day)"   =  ~ n_perc0(Life_Alcohol_Pattern_1 == 1, na_rm = T, digits = 1),
-              "Drinkers (>10 g/day)"           =  ~ n_perc0(Life_Alcohol_Pattern_1 == 2, na_rm = T, digits = 1),
-              "Unknown"                        =  ~ n_perc0(is.na(Life_Alcohol_Pattern_1), digits = 1)),
+         list("Non-consumers (0 g/day)"      =  ~ n_perc0(Life_Alcohol_Pattern_1 == 0, na_rm = T, digits = 1),
+              "Light consumers (1-10 g/day)" =  ~ n_perc0(Life_Alcohol_Pattern_1 == 1, na_rm = T, digits = 1),
+              "Drinkers (>10 g/day)"         =  ~ n_perc0(Life_Alcohol_Pattern_1 == 2, na_rm = T, digits = 1),
+              "Unknown"                      =  ~ n_perc0(is.na(Life_Alcohol_Pattern_1), digits = 1)),
         "Blood pressure" =
-         list("Normal tension"       =  ~ n_perc0(BP == 0, na_rm = T, digits = 1),
-              "Hypertension"         =  ~ n_perc0(BP == 1, na_rm = T, digits = 1),
-              "No information"       =  ~ n_perc0(is.na(BP), digits = 1)),
+         list("Normal tension"  =  ~ n_perc0(BP == 0, na_rm = T, digits = 1),
+              "Hypertension"    =  ~ n_perc0(BP == 1, na_rm = T, digits = 1),
+              "No information"  =  ~ n_perc0(is.na(BP), digits = 1)),
        "Previous oral contraceptive use" =
-         list("Yes"  =  ~ n_perc0(CO == 1, digits = 1),
-              "No"   =  ~ n_perc0(CO == 0, digits = 1)),
+         list("Yes" = ~ n_perc0(CO == 1, digits = 1),
+              "No" = ~ n_perc0(CO == 0, digits = 1)),
        "Menopause hormone therapy at blood collection" =
-         list("Yes"  =  ~ n_perc0(Trait_Horm == 1, digits = 1),
-              "No"   =  ~ n_perc0(Trait_Horm == 0, digits = 1)),
+         list("Yes" =  ~ n_perc0(Trait_Horm == 1, digits = 1),
+              "No"  =  ~ n_perc0(Trait_Horm == 0, digits = 1)),
        "Duration of use of menopause hormonal treatment" =
-         list("Mean (SD)"     =  ~ mean_sd(DURTHSDIAG)),
+         list("Mean (SD)" =  ~ mean_sd(DURTHSDIAG)),
        #"Time before centrifugation" =
        #  list("< 12h"   =  ~ n_perc0(CENTTIMECat1 == 1, na_rm = T),
        #      "> 12-24h" =  ~ n_perc0(CENTTIMECat1 == 2, na_rm = T),
        #      "> 24h"    =  ~ n_perc0(CENTTIMECat1 == 3, na_rm = T),
        #      "Unknown"  =  ~ n_perc0(is.na(CENTTIMECat1)),
        "Fasting status" =
-         list("Fasting"       =  ~ n_perc0(FASTING == 1, digits = 1),
-              "Non-fasting"   =  ~ n_perc0(FASTING == 0, digits = 1)),
+         list("Fasting"     = ~ n_perc0(FASTING == 1, digits = 1),
+              "Non-fasting" = ~ n_perc0(FASTING == 0, digits = 1)),
        "Biobank storage time (years)" =
          list("Mean (SD)" = ~ mean_sd(STOCKTIME)),
        "Time between sampling and diagnosis" =
-         list("5 years or less"     =  ~ n_perc0(DIAGSAMPLINGCat1 == 1, na_rm = T, digits = 1),
-              "More than 5 years"   =  ~ n_perc0(DIAGSAMPLINGCat1 == 2, na_rm = T, digits = 1)),
-              #"No information"      =  ~ n_perc0(is.na(DIAGSAMPLINGCat1))),
+         list("5 years or less"   =  ~ n_perc0(DIAGSAMPLINGCat1 == 1, na_rm = T, digits = 1),
+              "More than 5 years" =  ~ n_perc0(DIAGSAMPLINGCat1 == 2, na_rm = T, digits = 1)),
+              #"No information"  =  ~ n_perc0(is.na(DIAGSAMPLINGCat1))),
        "Tumor behavior" =
-         list("In situ"   =  ~ n_perc0(BEHAVIOUR == 2, na_rm = T, digits = 1),
-              "Invasive"  =  ~ n_perc0(BEHAVIOUR == 3, na_rm = T, digits = 1),
-              "Unknown"   =  ~ n_perc0(is.na(BEHAVIOUR), digits = 1)),
+         list("In situ"  = ~ n_perc0(BEHAVIOUR == 2, na_rm = T, digits = 1),
+              "Invasive" = ~ n_perc0(BEHAVIOUR == 3, na_rm = T, digits = 1),
+              "Unknown"  = ~ n_perc0(is.na(BEHAVIOUR), digits = 1)),
        "Subtype" =
          list("Lobular"  =  ~ n_perc0(SUBTYPE == 1, na_rm = T, digits = 1),
               "Ductal"   =  ~ n_perc0(SUBTYPE == 2, na_rm = T, digits = 1),
@@ -130,7 +130,7 @@ summ <-
 
 # ----
 st <- summary_table(group_by(meta, CT), summ)
-print(st, cnames = c("Controls (N = 791)", "Cases (N = 791)"))
+print(st, cnames = c("Controls (N=791)", "Cases (N=791)"))
 # Copy and paste output into an Rmarkdown file and render to word/pdf etc
 
 # ---------------------------------------------------------------
