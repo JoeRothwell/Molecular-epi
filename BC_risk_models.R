@@ -67,16 +67,18 @@ tab <- bind_rows("All" = all, "Pre" = pre, "Post" = post, .id = "Analysis") %>%
   select(Compound, description, everything()) %>%
   arrange(description, Compound) %>% as.data.frame
 
+library(broom)
+t2 <- map_df(fits0, tidy) %>% filter(term == "x")
+
 library(stargazer)
 stargazer(tab, summary = F, type = "html", out = "metabolite_table_selected.html")
-
 
 # Plot data with Metafor
 par(mar=c(5,4,1,2))
 library(metafor)
 forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1, #xlab = xtitle, 
        xlab = "Multivariable adjusted odds ratio",
-       transf = exp, pch = 18, psize = 1, slab = names(multifit))
+       transf = exp, pch = 18, psize = 1, slab = names(fits0))
 hh <- par("usr")
 text(hh[1], nrow(t2) + 2, "Compound", pos = 4)
 text(hh[2], nrow(t2) + 2, "OR [95% CI]", pos = 2)
