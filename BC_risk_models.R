@@ -68,20 +68,28 @@ tab <- bind_rows("All" = all, "Pre" = pre, "Post" = post, .id = "Analysis") %>%
   arrange(description, Compound) %>% as.data.frame
 
 library(broom)
-t2 <- map_df(fits0, tidy) %>% filter(term == "x")
+t2 <- map_df(fits0, tidy) %>% filter(term == "x") %>% bind_cols(cmpd_meta) %>%
+  arrange(description)
 
 library(stargazer)
 stargazer(tab, summary = F, type = "html", out = "metabolite_table_selected.html")
 
 # Plot data with Metafor
+rowvec <- rev(c(1, 3, 5:7, 9:17, 19, 21, 23:24, 26:28, 30:31, 33:47, 49:51, 53:55))
+rowvec2 <- cumsum(as.numeric(t2$description))
+tabulate(t2$description)
+
 par(mar=c(5,4,1,2))
 library(metafor)
 forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1, #xlab = xtitle, 
-       xlab = "Multivariable adjusted odds ratio",
-       transf = exp, pch = 18, psize = 1, slab = names(fits0))
+       xlab = "Multivariable adjusted odds ratio", ylim = c(1, 60), 
+       rows = rowvec, efac=0,
+       transf = exp, #pch = 18, 
+       col = "grey",
+       psize = 1, slab = t2$display_name)
 hh <- par("usr")
-text(hh[1], nrow(t2) + 2, "Compound", pos = 4)
-text(hh[2], nrow(t2) + 2, "OR [95% CI]", pos = 2)
+text(hh[1], max(rowvec) + 4, "Compound", pos = 4)
+text(hh[2], max(rowvec) + 4, "OR [95% CI]", pos = 2)
 
 
 # Funnel plots for metabolites
