@@ -68,7 +68,7 @@ tab <- bind_rows("All" = all, "Pre" = pre, "Post" = post, .id = "Analysis") %>%
   arrange(description, Compound) %>% as.data.frame
 
 library(broom)
-t2 <- map_df(fits0, tidy) %>% filter(term == "x") %>% bind_cols(cmpd_meta) %>%
+t2 <- map_df(fits1, tidy) %>% filter(term == "x") %>% bind_cols(cmpd_meta) %>%
   arrange(description)
 
 library(stargazer)
@@ -82,10 +82,10 @@ tabulate(t2$description)
 par(mar=c(5,4,1,2))
 library(metafor)
 forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1, #xlab = xtitle, 
-       xlab = "Multivariable adjusted odds ratio", ylim = c(1, 60), 
+       xlab = "Multivariable adjusted odds ratio", ylim = c(1, 60),
        rows = rowvec, efac=0,
        transf = exp, #pch = 18, 
-       col = "grey",
+       #col = "grey",
        psize = 1, slab = t2$display_name)
 hh <- par("usr")
 text(hh[1], max(rowvec) + 4, "Compound", pos = 4)
