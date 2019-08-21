@@ -61,6 +61,8 @@ all <- tidy.output(fits0)
 pre <- tidy.output(fits1)
 post <- tidy.output(fits2)
 
+# Table for manuscript
+
 # Retain only metabolite groups with at least one p-value < 0.05
 tab <- bind_rows("All" = all, "Pre" = pre, "Post" = post, .id = "Analysis") %>%
   group_by(Compound) %>% filter(min(P.value) < 0.05) %>% 
@@ -74,34 +76,68 @@ t2 <- map_df(fits1, tidy) %>% filter(term == "x") %>% bind_cols(cmpd_meta) %>%
 library(stargazer)
 stargazer(tab, summary = F, type = "html", out = "metabolite_table_selected.html")
 
+# Manhattan plot
+
+df <- bind_rows("All" = all, "Pre" = pre, "Post" = post, .id = "Group")
+
+library(ggplot2)
+ggplot(pre, aes(y = reorder(Compound, P.value), x = log10(P.value))) + 
+  theme_minimal() + geom_point() + 
+  #geom_vline(xintercept = -3, linetype = "dashed") +
+  xlab("-log10(p-value)") +
+  facet_grid(description ~ ., scales = "free_y", space = "free_y", switch= "x") +
+  theme(axis.title.y = element_blank(), #axis.text.y = element_text(size=9),
+        legend.position = c(0.25, 0.4),
+        legend.box.background = element_rect(colour="grey")) +
+  #ggtitle("Metabolite associations with WCRF score (cal)")
+
+
 # Plot data with Metafor
 rowvec <- rev(c(1, 3, 5:7, 9:17, 19, 21, 23:24, 26:28, 30:31, 33:47, 49:51, 53:55))
-rowvec2 <- cumsum(as.numeric(t2$description))
-tabulate(t2$description)
+#rowvec2 <- cumsum(as.numeric(t2$description))
+#tabulate(t2$description)
 
 par(mar=c(5,4,1,2))
 library(metafor)
 forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1, #xlab = xtitle, 
-       xlab = "Multivariable adjusted odds ratio", ylim = c(1, 60),
-       rows = rowvec, efac=0,
-       transf = exp, #pch = 18, 
+       xlab = "Multivariable-adjusted odds ratio", ylim = c(1, 58),
+       rows = rowvec, efac=0.5,
+       at = 0:5,
+       top = 3,
+       xlim = c(-4, 8),
+       transf = exp, pch = 18, 
        #col = "grey",
-       psize = 1, slab = t2$display_name)
+       cex = 0.8,
+       annosym = c("  (", " to ", ")"),
+       psize = 1.5, slab = t2$display_name)
 hh <- par("usr")
-text(hh[1], max(rowvec) + 4, "Compound", pos = 4)
-text(hh[2], max(rowvec) + 4, "OR [95% CI]", pos = 2)
-
+text(hh[1], max(rowvec) + 2, "Metabolite", pos = 4, cex = 0.8)
+text(hh[2], max(rowvec) + 2, "OR [95% CI]", pos = 2, cex = 0.8)
 
 # Funnel plots for metabolites
 funnel(x = t2$estimate, sei = t2$std.error)
 funnel(x = t2$estimate, sei = t2$std.error, yaxis = "vi")
 
+
 # Investigation of Ethanol
-data <- left_join(meta2, ints, by = "CODBMB")
+data <- left_join(meta, ints, by = "CODBMB")
 boxplot(data$Ethanol ~ data$CT + data$MENOPAUSE, varwidth = T, outline = F,
         names = c("Control, pre", "Case, pre", "Control, post", "Case, post"),
         col = "dodgerblue", ylab = "Plasma ethanol conc (scaled)")
 
+boxplot(log(data$ALCOHOL) ~ data$CT + data$MENOPAUSE, varwidth = T, outline = F,
+        names = c("Control, pre", "Case, pre", "Control, post", "Case, post"),
+        col = "hotpink", ylab = "Plasma ethanol conc (scaled)")
+
+mod1 <- wilcox.test(ALCOHOL ~ CT, data = dat, subset = MENOPAUSE == 0)
+mod2 <- wilcox.test(ALCOHOL ~ CT, data = dat, subset = MENOPAUSE == 1)
+
+
+# For publication
+library(ggsignif)
+ggplot(data, aes(x = as.factor(CT), y = Ethanol)) + geom_boxplot() +
+  ylim(0, 2) +
+  geom_signif(comparisons = c(0, 1), map_signif_level = T)
 
 # ---------------------------------------------------------------------------------------------------
 
