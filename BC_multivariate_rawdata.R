@@ -4,34 +4,28 @@
 # Read in data with outliers and QCs (n=1739) or with QCs only
 
 # Subset samples only and plot PCA with pareto scaling
-prep.data <- function(dataset = "QCs", data.only = F, exclude.tbc = F) {
+prep.data <- function(incl.qc = F, pc.scores = T) {
   
   library(tidyverse)
   library(readxl)
   library(MetabolAnalyze)
   
-  # Read in NMR data and metadata if necessary 
+  # Read in NMR data and metadata. Dataset containing samples and QCs only 
   
-  if(dataset == "All") {
-    mat <- read_delim("X_AlignedE3NData_cpmg_ssCitPEG_1112.txt", delim = ";", n_max = 1738) 
-  } else {
-    
-    dat <- read_tsv("1510_XAlignedE3NcpmgssCitPEGfinal.txt") %>% select(-8501)
-    metaQC <- read_xlsx("1510_MatriceY_CohorteE3N_Appar.xlsx", sheet = 4, na = ".")
-    
-    # Subset samples only
-    samp <- if(exclude.tbc == F) metaQC$TYPE_ECH == 1 else metaQC$TYPE_ECH == 1 & !is.na(metaQC$CENTTIME)
-    mat <- dat[samp, ] %>% as.matrix
-    #mat1 <- dat[samp1, ] %>% as.matrix
-    
-    # Subset samples only from metadata   
-    meta <- metaQC[samp, ]
-    #meta1 <- metaQC[samp1, ]
-  }
+  dat <- read_tsv("1510_XAlignedE3NcpmgssCitPEGfinal.txt") %>% select(-8501)
+  meta <- read_xlsx("1510_MatriceY_CohorteE3N_Appar.xlsx", sheet = 4, na = ".")
   
+  # Dataset containing all samples, QCs and blanks
+  #mat <- read_delim("X_AlignedE3NData_cpmg_ssCitPEG_1112.txt", delim = ";", n_max = 1738) 
   
-  anyNA(mat)
-  sum(apply(mat, 2, anyNA))
+  samp <- meta$TYPE_ECH == 1 & !is.na(meta$CENTTIME)
+    
+  # Subset samples only (removing 112 QCs) from data and metadata
+  mat  <- if(incl.qc == F) dat[samp, ] %>% as.matrix else as.matrix(dat)
+  meta <- if(incl.qc == F) meta[samp, ]
+
+  #anyNA(mat)
+  #sum(apply(mat, 2, anyNA))
   
   # remove zero variance columns
   zerovar <- sum(apply(mat, 2, var) == 0)
@@ -47,7 +41,7 @@ prep.data <- function(dataset = "QCs", data.only = F, exclude.tbc = F) {
   # Scale and run PCA  
   scalemat <- scaling(mat0, type = "pareto")
   
-  if(data.only == T) return(list(scalemat, meta))
+  if(pc.scores == F) return(list(scalemat, meta))
   
   pca <- prcomp(scalemat, scale. = F, center = T, rank. = 10)
   
@@ -55,7 +49,7 @@ prep.data <- function(dataset = "QCs", data.only = F, exclude.tbc = F) {
 }
 
 scores <- prep.data()
-#scores1 <- explore.data(dataset = "All")
+scores1 <- prep.data(incl.qc = T)
 
 # Plot data
 library(ggplot2)
@@ -69,6 +63,7 @@ box(which = "plot", lty = "solid")
 
 # Output Pareto-scaled data and perform PCPR2
 
+dat <- prep.data(pc.scores = F)
 dat <- prep.data(data.only = T, exclude.tbc = T)
 
 concs <- dat[[1]]
@@ -146,6 +141,16 @@ confusionMatrix(mod0)
 predictions0 <- predict(mod0, newdata = testing)
 confusionMatrix(predictions0, reference = testing$class)
 
+# Get AUC
+library(pROC)
+predictions0_1 <- predict(mod0, newdata = testing, type = "prob")
+result0 <- roc(testing$class, predictions0_1$`0`)
+ci.auc(result0)
+
+# Plot ROC curve
+plot(result.roc)
+
+
 #-----------------------------------------------------------------------------------------
 
 # 1. Post-menopausal only
@@ -170,6 +175,15 @@ plot(mod1)
 # Predict test set
 predictions1 <- predict(mod1, newdata = testing)
 confusionMatrix(predictions1, reference = testing$class)
+
+# Get AUC
+library(pROC)
+predictions1_1 <- predict(mod1, newdata = testing, type = "prob")
+result1 <- roc(testing$class, predictions1_1$`0`)
+ci.auc(result1)
+
+# Plot ROC curve
+plot(result.roc)
 
 
 #---------------------------------------------------------------------------------------
@@ -198,6 +212,15 @@ plot(mod2)
 predictions2 <- predict(mod2, newdata = testing)
 confusionMatrix(predictions2, reference = testing$class)
 
+# Get AUC
+library(pROC)
+predictions2_1 <- predict(mod2, newdata = testing, type = "prob")
+result2 <- roc(testing$class, predictions2_1$`0`)
+ci.auc(result2)
+
+# Plot ROC curve
+plot(result2)
+
 #---------------------------------------------------------------------------------------
 
 # 3. Early diagnosis only
@@ -223,6 +246,15 @@ plot(mod3)
 # Predict test set
 predictions3 <- predict(mod3, newdata = testing)
 confusionMatrix(predictions3, reference = testing$class)
+
+# Get AUC
+library(pROC)
+predictions3_1 <- predict(mod3, newdata = testing, type = "prob")
+result3 <- roc(testing$class, predictions3_1$`0`)
+ci.auc(result3)
+
+# Plot ROC curve
+plot(result3)
 
 #---------------------------------------------------------------------------------------
 
@@ -251,6 +283,16 @@ plot(mod4)
 # Predict test set
 predictions4 <- predict(mod4, newdata = testing)
 confusionMatrix(predictions4, reference = testing$class)
+
+# Get AUC
+library(pROC)
+predictions4_1 <- predict(mod4, newdata = testing, type = "prob")
+result4 <- roc(testing$class, predictions4_1$`0`)
+result4
+ci.auc(result4)
+
+# Plot ROC curve
+plot(result4)
 
 #----------------------------------------------------------------------------------------
 
