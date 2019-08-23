@@ -51,9 +51,15 @@ prep.data <- function(incl.qc = F, pc.scores = T) {
 scores <- prep.data()
 scores1 <- prep.data(incl.qc = T)
 
-# Plot data
+# Scores plot for manuscript
 library(ggplot2)
-ggplot(scores, aes(PC1, PC2)) + geom_text(aes(label = WEEKS)) + theme_bw()
+ggplot(output, aes(PC1, PC2, colour = as.factor(TYPE_ECH))) + geom_point() + theme_bw() +
+  xlab("Score on PC1") + ylab("Score on PC2") +
+  scale_color_discrete(labels = c("Experimental samples", "QCs")) +
+  theme(legend.position = "bottom", #legend.justification = c(0, 0), 
+        legend.title = element_blank()) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_vline(xintercept = 0, linetype = "dashed")
 
 library(pca3d)
 pca2d(as.matrix(scores[, 1:10]), group = scores$WEEKS)
