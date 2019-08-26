@@ -73,7 +73,7 @@ get.Biocrates.sig <- function(which.mod = "plsmod"){
   
 }
 mod1 <- get.Biocrates.sig()
-mod1a <- get.Biocrates.sig(which.mod = "caretmod")
+#mod1a <- get.Biocrates.sig(which.mod = "caretmod")
 
 get.FA.sig  <- function(which.mod = "plsmod", cor.data = F){
   
@@ -155,7 +155,7 @@ get.FA.sig  <- function(which.mod = "plsmod", cor.data = F){
   
 }
 mod2 <- get.FA.sig()
-mod2a <- get.FA.sig(which.mod = "caretmod")
+#mod2a <- get.FA.sig(which.mod = "caretmod")
 
 # Produce tables of important compounds, using compound metadata to get proper names
 
@@ -176,16 +176,16 @@ plot.Biocrates.sig <- function(mod, no.cmpds = 7){
   dat <- coeff %>%
     rownames_to_column(var = "Compound") %>%
     mutate(sm = sum(abs(value)), Importance = round((value*100)/sm, 2)) %>%
-    left_join(cmpd.meta, by = "Compound") %>%
+    left_join(cmpd.meta, by = "Compound") %>% arrange(Importance) %>%
     
     # Subset appropriate columns and print influential compounds
-    select(compound = displayname, Coefficient = value, Importance) %>% arrange(Importance)
+    select(compound = displayname, Coefficient = value)
   
   # choose number of influential compounds to plot
   n_top <- no.cmpds
   
-  df1 <- top_n(dat, n_top)  %>% arrange(-Importance)
-  df2 <- top_n(dat, -n_top) %>% arrange(Importance)
+  df1 <- top_n(dat, n_top)
+  df2 <- top_n(dat, -n_top)
   
   print(df1)
   print(df2)
@@ -207,7 +207,7 @@ plot.Biocrates.sig <- function(mod, no.cmpds = 7){
   
 }
 table3a <- plot.Biocrates.sig(mod1)
-table3a <- plot.Biocrates.sig(mod1a)
+#table3a <- plot.Biocrates.sig(mod1a)
 
 plot.FA.sig  <- function(mod){
   
@@ -224,16 +224,16 @@ plot.FA.sig  <- function(mod){
   dat <- coeff %>%
     rownames_to_column(var = "Compound") %>%
     mutate(sm = sum(abs(value)), Importance = round((value*100)/sm, 2)) %>%
-    left_join(cmpd.meta, by = "Compound") %>%
+    left_join(cmpd.meta, by = "Compound") %>% arrange(Importance) %>%
     
     # Subset appropriate columns and print influential compounds
-    select(compound = displayname2, Coefficient = value, Importance) %>% arrange(Importance)
+    select(compound = displayname2, Coefficient = value)
   
   # choose number of influential compounds to plot
   n_top <- 5
   
-  df1 <- top_n(dat, n_top)  %>% arrange(-Importance)
-  df2 <- top_n(dat, -n_top) %>% arrange(Importance)
+  df1 <- top_n(dat, n_top) 
+  df2 <- top_n(dat, -n_top)
   
   print(df1)
   print(df2)
@@ -254,7 +254,7 @@ plot.FA.sig  <- function(mod){
   output <- bind_rows(df1, df2)
 }
 table3b <- plot.FA.sig(mod2)
-table3b1 <- plot.FA.sig(mod2a)
+#table3b1 <- plot.FA.sig(mod2a)
 
 # Save workspace (for .Rmd file)
-# save.image(file="metabolic_signatures.Rdata")
+save.image(file="metabolic_signatures.Rdata")
