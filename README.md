@@ -1,46 +1,33 @@
 # Data analysis for molecular epidemiology projects
 
-This repository is the codebase for the following projects:
+This repository is the codebase for molecular epidemiology projects. See the wiki for further details and descriptions of analyses.
 
 ---
 
 #### Metabolic signatures of healthy lifestyle and association with colorectal cancer in EPIC
 
-`Biocrates_controls_data_prep.R`: Plots PCAs of EPIC controls data with adjustment for confounders using the residuals method. 
-
-`CRC_data_prep.R`: Prepares three datasets, the EPIC controls and the two CRC case-control datasets for analysis, by subsetting the appropriate observations and joining the necessary variables from other datasets.
-
-`Biocrates_cmpd_metadata.R`: Extracts coded compound names and full compound names from a Stata .dta file and places them in a data frame.
-
-`Metabolic_signatures.R`: Finds endogenous (Biocrates) and fatty acids signatures of WCRF score using a PLS model and stores these as objects to subsequently use for association with CRC risk. Common metabolites between datasets are first determined and this overlap only used for PLS.
-
-`CRC_models_calc_score.R` and `CRC_models_signature.R`: Run Cox or conditional logistic models for score and signature respectively. Create forest plots and meta-analyse data using `metafor`.
-
-`Metabolite_volcano_WCRF.R`: Calculates associations between WCRF scores (high and low categories) and Biocrates metabolites or blood fatty acids by logistic regression.
-
-`Plot_signatures.R`: Plots labelled scatter graphs and barcharts to visualise metabolic signatures.
-
-`baseline_characteristics.R`: Generates Table 1 automatically from raw data using the `qwraps2` package.
-
-`GRS_biocrates.R` and `GRS_fatty.acids.R`: Calculate associations between polygenic risk scores of CRC and biocrates metabolites or fatty acids.
+The aim of this study was to determine a metabolic signature of cancer-preventing or cancer-promoting lifestyle according to the WCRF score as described by Romaguera et al (2012). PLS was used to determine the signature in a large group of control subjects from various EPIC case-control studies, for both Biocrates compounds and fatty acids. Once derived, colorectal cancer case-control status was modelled from these signatures, in the form of predicted scores, and compared to models using the original calculated scores to find if metabolic signature better predicts CRC than calculated score only.
 
 ---
 
-#### Association of type 2 diabetes and colorectal cancer in the UK Biobank cohort
+#### Association of breast cancer and plasma metabolites in the E3N cohort
 
-`ukb_analysis.R`: Performs Cox proportional hazards survival models on UK Biobank data to test for associations between diabetes prevalence and CRC. Outputs tidy tables of coefficients and forest plots.
-
----
-
-#### A metabolomics study on coffee consumption and liver cancer in the ATBC study
-
-`ATBC_case_control.R` and `ATBC_metabolomics.R`: subsetting and feature filtering of raw metabolomics data for the ATBC coffee study.
+The aim of the study was to search for associations between plasma metabolite profiles and breast cancer risk in 1590 subjects from the E3N nested case-control study using 1H Nuclear Magnetic Resonance (NMR) untargeted metabolomics.
 
 ---
 
-#### Association of serum metabolites and dietary and lifestyle factors in the Lifepath study
+#### Colorectal cancer and type 2 diabetes in the UK Biobank cohort
 
-`Lifepath_exploratory.R`: Exploratory analysis of Lifepath NMR metabolomics data.
+The aim of the study was to calculate associations between colorectal cancer, biomarkers of colorectal cancer and type 2 diabetes in the UK Biobank cohort.
 
-`baseline_Lifepath.Rmd`: Generates a baseline characteristics file for the study from subject metadata.
+---
+
+#### A metabolomics study on liver cancer and coffee drinking in the ATBC study
+
+Investigates associations between plasma metabolites, as identified by untargeted metabolomics, liver cancer and coffee drinking. Code here subsets and feature filters raw metabolomics data for the ATBC coffee study.
+
+
+
+
+
 
