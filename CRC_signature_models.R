@@ -169,41 +169,35 @@ fit8 <- clogit(update(base, ~. + Wcrf_C_Cal), data = FAs)
 # Forest plots ----
 
 # Signature only for Biocrates small and large (all subjects in study) and fatty acids small
-ll2 <- list(fit3, fit5, fit7)
 library(broom)
 library(tidyverse)
+
+ll2 <- list(fit3, fit5, fit7)
 t2 <- map_df(ll2, tidy) %>% filter(term == "score.2.comps")
-studies <- data.frame(CC = c("Case-control B", rep("Case-control A", 2)), nvec = map_int(ll2, 10),
+studies <- data.frame(CC = c("B", rep("A", 2)), nvec = 
+                        #map_int(ll2, 10),
+                      c(2330, 978, 922),
   metabolites = c(rep("Endogenous", 2), "Fatty acids"))
 
 par(mar=c(5,4,1,2))
 library(metafor)
 forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1, 
-       xlab = "Odds ratio CRC (per unit increase in score)", pch = 18, 
+       rows = c(4,5,1),
+       xlab = "Odds ratio (per category increase in score)", pch = 18, 
        transf = exp, psize = 1.5, slab = studies$CC, ilab = studies[, 2:3], 
-       ylim = c(0, 6),
-       ilab.pos = 4, ilab.xpos = c(-0.8, -0.4), xlim = c(-1.2, 2))
+       ylim = c(0, 8), xlim = c(-1.2, 1.8),
+       ilab.pos = 4, ilab.xpos = c(-0.7, -0.3))
+par("usr")
 
-text(c(-1.2, -0.8, -0.4), 5, c("Study", "n", "Metabolites"), pos = 4)
-text(2, 5, "OR [95% CI]", pos = 2)
+text(c(-1.2, -0.7, -0.3), 7, c("Case-control", "n", "Metabolite signature"), pos = 4)
+text(1.8, 7, "OR [95% CI]", pos = 2)
 
-
-# Meta-analysis
-par(mar=c(5,4,0,2))
+# Perform meta-analysis of Biocrates and add to line 3
 ma1 <- rma(estimate, sei = std.error, data=t2, method="FE", subset = 1:2)
-forest(ma1, transf = exp, refline = 1, slab = c("Large", "Small"), xlab = "OR", efac = 4)
-hh <- par("usr")
 
-text(hh[1], 4, "Study", pos = 4)
-text(hh[2], 4, "OR [95% CI]", pos = 2)
-
-ma2 <- rma(estimate, sei = std.error, data=t2, method="REML", subset = 1:2)
-forest(ma2, transf = exp, refline = 1, slab = c("Large", "Small"), xlab = "OR", efac = 4)
-
-text(hh[1], 4, "Study", pos = 4)
-text(hh[2], 4, "OR [95% CI]", pos = 2)
-
-
+addpoly(ma1, row = 3, transf = exp, mlab = "", efac = 2)
+text(-1.2, 3, bquote(paste("Fixed effects meta-analysis of A and B (p = 0.37, ", I^2, " = 0)")), 
+     pos = 4, cex = 0.9)
 
 # All models ----
 
