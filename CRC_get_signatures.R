@@ -258,3 +258,12 @@ table3b <- plot.FA.sig(mod2)
 
 # Save workspace (for .Rmd file)
 save.image(file="metabolic_signatures.Rdata")
+
+
+
+
+#bioc <- data.frame(mod1$coefficients[, 1, 1:2])
+#fas  <- data.frame(mod2$coefficients[, 1, 1:2])
+
+#ggplot(bioc, aes(x = `X1.comps`, y = `X2.comps`)) + geom_point()
+#ggplot(fas, aes(x = `X1.comps`, y = `X2.comps`)) + geom_point()
