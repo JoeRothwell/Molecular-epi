@@ -159,7 +159,7 @@ mod2 <- get.FA.sig()
 
 # Produce tables of important compounds, using compound metadata to get proper names
 
-plot.Biocrates.sig <- function(mod, no.cmpds = 7){
+plot.Biocrates.sig <- function(mod, no.cmpds = 7, data.only = F){
   
   library(tidyverse)
   
@@ -179,7 +179,9 @@ plot.Biocrates.sig <- function(mod, no.cmpds = 7){
     left_join(cmpd.meta, by = "Compound") %>% arrange(Importance) %>%
     
     # Subset appropriate columns and print influential compounds
-    select(compound = displayname, Coefficient = value)
+    select(class, compound = displayname, Coefficient = value)
+  
+  if(data.only == T) return(dat)
   
   # choose number of influential compounds to plot
   n_top <- no.cmpds
@@ -209,7 +211,7 @@ plot.Biocrates.sig <- function(mod, no.cmpds = 7){
 table3a <- plot.Biocrates.sig(mod1)
 #table3a <- plot.Biocrates.sig(mod1a)
 
-plot.FA.sig  <- function(mod){
+plot.FA.sig  <- function(mod, data.only = F){
   
   library(tidyverse)
   
@@ -227,7 +229,9 @@ plot.FA.sig  <- function(mod){
     left_join(cmpd.meta, by = "Compound") %>% arrange(Importance) %>%
     
     # Subset appropriate columns and print influential compounds
-    select(compound = displayname2, Coefficient = value)
+    select(class, compound = displayname2, Coefficient = value)
+  
+  if(data.only == T) return(dat)
   
   # choose number of influential compounds to plot
   n_top <- 5
@@ -258,6 +262,14 @@ table3b <- plot.FA.sig(mod2)
 
 # Save workspace (for .Rmd file)
 save.image(file="metabolic_signatures.Rdata")
+
+# Get data for scatter plots
+df <- plot.Biocrates.sig(mod1, data.only = T)
+df1 <- plot.FA.sig(mod2, data.only = T)
+
+# Plots
+ggplot(df, aes(y = class, x = Coefficient)) + geom_jitter() + theme_bw()
+ggplot(df1, aes(y = class, x = Coefficient)) + geom_point() + theme_bw()
 
 
 
