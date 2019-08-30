@@ -1,5 +1,5 @@
 # Compute Biocrates and fatty acid signatures of WCRF score by PLS
-source("CRC_data_prep.R")
+source("CRC_data_prep_new.R")
 
 get.Biocrates.sig <- function(which.mod = "plsmod"){
   
@@ -261,15 +261,36 @@ table3b <- plot.FA.sig(mod2)
 #table3b1 <- plot.FA.sig(mod2a)
 
 # Save workspace (for .Rmd file)
-save.image(file="metabolic_signatures.Rdata")
+#save.image(file="metabolic_signatures.Rdata")
 
 # Get data for scatter plots
-df <- plot.Biocrates.sig(mod1, data.only = T)
-df1 <- plot.FA.sig(mod2, data.only = T)
+df1 <- plot.Biocrates.sig(mod1, data.only = T)
+df2 <- plot.FA.sig(mod2, data.only = T)
 
 # Plots
-ggplot(df, aes(y = class, x = Coefficient)) + geom_jitter() + theme_bw()
-ggplot(df1, aes(y = class, x = Coefficient)) + geom_point() + theme_bw()
+
+df1$Class <- factor(df1$class, levels = rev(c("Amino acids", "Biogenic amines", "Monosaccharides", "Acylcarnitines", 
+  "Lysophosphatidylcholine", "Phosphatidylcholine (acyl-acyl)", "Phosphatidylcholine (acyl-alkyl)", "Sphingolipids")))
+
+ggplot(df1, aes(y = Class, x = Coefficient, colour = Class)) + 
+  geom_jitter(height = 0.1) + 
+  theme_bw() + geom_vline(xintercept = 0, linetype = "dashed") +
+  theme(legend.position = "none", axis.title.y = element_blank()) +
+  xlab("Coefficient from first PLS latent variable") +
+  ggtitle("A") +
+  scale_y_discrete(labels = c("Phosphatidylcholine (acyl-alkyl)" = "Phosphatidylcholine\n(acyl-alkyl)",
+                              "Phosphatidylcholine (acyl-acyl)" = "Phosphatidylcholine\n(acyl-acyl)",
+                              "Lysophosphatidylcholine" = "Lysophosphatidyl-\ncholine"))
+
+df2$Class <- factor(df2$class, levels = rev(c("Saturated", "Monounsaturated", "Polyunsaturated", "Natural trans", 
+                                          "Industrial trans")))
+
+ggplot(df2, aes(y = Class, x = Coefficient, colour = Class)) + 
+  geom_jitter(height = 0) + 
+  xlab("Coefficient from first PLS latent variable") +
+  theme_bw() + geom_vline(xintercept = 0, linetype = "dashed") +
+  theme(legend.position = "none", axis.title.y = element_blank()) +
+  ggtitle("B")
 
 
 
