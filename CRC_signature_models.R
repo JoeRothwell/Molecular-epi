@@ -3,25 +3,23 @@
 source("CRC_data_prep.R")
 
 # Functions to get CC subjects with signature-derived WCRF scores
-df.bioc <- function(study = c("large", "small"), fasting = T, scorecomp.only = F){
+get.scores.bioc <- function(study = c("large", "small"), fasting = F, scorecomp.only = F){
 
   library(tidyverse)
   # EPIC controls dataset for signature. Data prep is done in CRC_data_prep.R
   # First dataset, 3771 obs; updated November 2018 7191 obs
-  ob <- ctrl
-  print(paste(nrow(ob), "Controls read"))
+  print(paste(nrow(ctrl), "Controls read"))
   
-  # Subset biocrates compounds
-  #controls <- ob %>% select(Acylcarn_C0 : Sugars_H1)
-  #controls <- ob %>% select(Glyceroph_Lysopc_A_C16_0 : Acylcarn_C5_M_Dc)
-  
-  controls <- ob %>% select(matches("Acylcarn_|Aminoacid_|Biogenic_|Glyceroph_|Sphingo_|Sugars_"), 
-                          -starts_with("Outdq"))
+  # Subset biocrates compounds and remove all zero columns
+  controls <- ctrl %>% 
+    select(matches("Acylcarn_|Aminoacid_|Biogenic_|Glyceroph_|Sphingo_|Sugars_"), -starts_with("Outdq"))
   
   zerocols <- apply(controls, 2, function(x) sum(x, na.rm = T)) != 0
   controls <- controls[, zerocols]
   
   colnames(controls) %>% length # 147 variables
+  
+  # ----
   
   # Large CRC metabolomics subset from Jelena, ~ 1200 case-control pairs), call it crcA
   # Join scores and filter out non-fasted samples
@@ -30,8 +28,10 @@ df.bioc <- function(study = c("large", "small"), fasting = T, scorecomp.only = F
   print(paste("Subjects in larger case-control: ", nrow(crcA)))
   # Variables were converted to factors in CRC_data_prep.R
   
+  # Warning: there are a set of amino acids and biogenic amines at the end of the data set with all values NA
+  
   setA <- crcA %>% select(Acylcarn_C0 : Sugars_H1, -starts_with("Outdq_"))
-  #setA <- crcA %>% select(matches("Acylcarn_|Aminoacid_|Biogenic_|Glyceroph_|Sphingo_|Sugars_"), 
+  #setA1 <- crcA %>% select(matches("Acylcarn_|Aminoacid_|Biogenic_|Glyceroph_|Sphingo_|Sugars_"), 
                         #-starts_with("Outdq"))
   
   colnames(setA) %>% length
@@ -40,14 +40,15 @@ df.bioc <- function(study = c("large", "small"), fasting = T, scorecomp.only = F
   # Get common compound between controls and CRC CC
   common_cols <- intersect(colnames(controls), colnames(setA))   # 126 compounds in common
   
+  # ----
+  
   # Small CRC metabolomics subset----
   # (from Bertrand, ~ 490 case-control pairs), call it crcB
   crcB <- crc1
   print(paste("Subjects in smaller case-control:", nrow(crcB)))
   
-  setB <- crcB %>% select(Acylcarn_C0 : Sugars_H1, -Batch_MetBio)
-  #setB <- crcB %>% select(matches("Acylcarn_|Aminoacid_|Biogenic_|Glyceroph_|Sphingo_|Sugars_"), 
-                 #-starts_with("Outdq"))
+  setB <- crcB %>% 
+    select(matches("Acylcarn_|Aminoacid_|Biogenic_|Glyceroph_|Sphingo_|Sugars_"), -starts_with("Outdq"))
   
   colnames(setB) %>% length
   
@@ -85,7 +86,7 @@ df.bioc <- function(study = c("large", "small"), fasting = T, scorecomp.only = F
   if(study == "large") output <- cbind(crcscores, crcA) else output <- cbind(crcscores, crcB)
 
 }
-df.FAs  <- function(){
+get.scores.FA  <- function(){
   
   # Fatty acid signatures of WCRF score
   library(tidyverse)
@@ -143,31 +144,32 @@ df.FAs  <- function(){
   
 }
 
-small   <- df.bioc(study = "small")
-large   <- df.bioc(study = "large", fasting = F)
-#large.F <- df.bioc(study = "large")
-FAs     <- df.FAs()
+small  <- get.scores.bioc(study = "small")
+large  <- get.scores.bioc(study = "large")
+FAs    <- get.scores.FA()
+
+#large.F <- df.bioc(study = "large", fasting = T)
 
 # Model CC status from calculated or signature-predicted score for four datasets
 
 library(survival)
 base <- Cncr_Caco_Clrt ~ Qe_Energy + L_School + Smoke_Stat + strata(Match_Caseset)
 
-# Biocrates large fasted
-fit1 <- clogit(update(base, ~. + score.2.comps), data = large.F)
-fit2 <- clogit(update(base, ~. + Wcrf_C_Cal), data = large.F)
-
-# Biocrates large all
-fit3 <- clogit(update(base, ~. + score.2.comps), data = large)
-fit4 <- clogit(update(base, ~. + Wcrf_C_Cal), data = large)
-
 # Biocrates small
 fit5 <- clogit(update(base, ~. + score.2.comps), data = small)
 fit6 <- clogit(update(base, ~. + Wcrf_C_Cal), data = small)
 
+# Biocrates large
+fit3 <- clogit(update(base, ~. + score.2.comps), data = large)
+fit4 <- clogit(update(base, ~. + Wcrf_C_Cal), data = large)
+
 # Fatty acids
 fit7 <- clogit(update(base, ~. + score.2.comps), data = FAs)
 fit8 <- clogit(update(base, ~. + Wcrf_C_Cal), data = FAs)
+
+# Biocrates large fasted (not used, excluding non-fasted doesn't improve OR)
+#fit1 <- clogit(update(base, ~. + score.2.comps), data = large.F)
+#fit2 <- clogit(update(base, ~. + Wcrf_C_Cal), data = large.F)
 
 
 
