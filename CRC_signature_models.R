@@ -1,89 +1,47 @@
 # Find metabolic and fatty acids signatures of WCRF score
 # Requires crc1, crc2, controls and PLS models to be prepared from CRC_data_prep.R
-source("CRC_data_prep.R")
+source("CRC_prep_data.R")
 
 # Functions to get CC subjects with signature-derived WCRF scores
-get.scores.bioc <- function(study = c("large", "small"), fasting = F, scorecomp.only = F){
+get.scores.bioc <- function(crc, dat, mod, scorecomp.only = F){
 
   library(tidyverse)
-  # EPIC controls dataset for signature. Data prep is done in CRC_data_prep.R
-  # First dataset, 3771 obs; updated November 2018 7191 obs
-  print(paste(nrow(ctrl), "Controls read"))
-  
-  # Subset biocrates compounds and remove all zero columns
-  controls <- ctrl %>% 
-    select(matches("Acylcarn_|Aminoacid_|Biogenic_|Glyceroph_|Sphingo_|Sugars_"), -starts_with("Outdq"))
-  
-  zerocols <- apply(controls, 2, function(x) sum(x, na.rm = T)) != 0
-  controls <- controls[, zerocols]
-  
-  colnames(controls) %>% length # 147 variables
+  colnames(dat) %>% length
   
   # ----
   
-  # Large CRC metabolomics subset from Jelena, ~ 1200 case-control pairs), call it crcA
-  # Join scores and filter out non-fasted samples
-  crcA <- crc2
-  crcA <- if(fasting == T) crcA %>% filter(Fasting_C == 2) else crcA
-  print(paste("Subjects in larger case-control: ", nrow(crcA)))
+  print(paste("Subjects in case-control: ", nrow(crc)))
   # Variables were converted to factors in CRC_data_prep.R
   
-  # Warning: there are a set of amino acids and biogenic amines at the end of the data set with all values NA
+  # Put CRC CC compounds in same order as in controls dataset
+  cols <- colnames(dat)
+  cmpds <- crc %>% select(one_of(cols))
   
-  setA <- crcA %>% select(Acylcarn_C0 : Sugars_H1, -starts_with("Outdq_"))
-  #setA1 <- crcA %>% select(matches("Acylcarn_|Aminoacid_|Biogenic_|Glyceroph_|Sphingo_|Sugars_"), 
-                        #-starts_with("Outdq"))
-  
-  colnames(setA) %>% length
+  colnames(cmpds) %>% length
   # 163 variables
-  
-  # Get common compound between controls and CRC CC
-  common_cols <- intersect(colnames(controls), colnames(setA))   # 126 compounds in common
-  
-  # ----
-  
-  # Small CRC metabolomics subset----
-  # (from Bertrand, ~ 490 case-control pairs), call it crcB
-  crcB <- crc1
-  print(paste("Subjects in smaller case-control:", nrow(crcB)))
-  
-  setB <- crcB %>% 
-    select(matches("Acylcarn_|Aminoacid_|Biogenic_|Glyceroph_|Sphingo_|Sugars_"), -starts_with("Outdq"))
-  
-  colnames(setB) %>% length
   
   # Convert variables to factors
   var.list <- c("Country", "Center", "Sex")
-  crcB <- crcB %>% mutate_at(vars(var.list), as.factor)
-  #common_cols <- intersect(colnames(controls), colnames(setB))   # 145 compounds in common
-
-  # Get common cols between all three datasets (controls, small CC, big CC)
-  common_cols2 <- intersect(common_cols, colnames(setB))   # Glyceroph_Lysopc_A_C24_0 is removed
-  
-  # subset and reorder both datasets to get the same 126 compounds in the same order
-  controls <- controls %>% select(one_of(common_cols2))
-  setA <- setA %>% select(one_of(common_cols2))
-  setB <- setB %>% select(one_of(common_cols2))
+  crc <- crc %>% mutate_at(vars(var.list), as.factor)
   
   # check colnames are the same for both sets
-  identical(colnames(controls), colnames(setA))
+  if(identical(colnames(dat), colnames(cmpds)) == T) print("Identical colnames OK")
  
   # Score predictions ----
   # Get signature scores and bind to original dataset
   
   # Transform data to matrix, impute, log, scale
-  if(study == "large") mat <- setA else mat <- setB
-  
+  mat <- cmpds
   mat[mat == 0] <- NA
   mat <- na.aggregate(mat, FUN = function(x) min(x)/2)
   obs2predict <- log2(mat) %>% scale
   
   # now use predict to predict the scores of new observations (ie case-control study)
-  crcscores <- data.frame(predict(mod1, ncomp = 2, obs2predict))
+  crcscores <- data.frame(predict(mod, obs2predict))
   #score.2.comps <- predict(mod1, obs2predict)
   #if(scorecomp.only == T) return(crcscores)
-  #if(study == "large") output <- cbind(score.2.comps, crcA) else output <- cbind(score.2.comps, crcB)
-  if(study == "large") output <- cbind(crcscores, crcA) else output <- cbind(crcscores, crcB)
+  #output <- cbind(score.2.comps, crc)
+  output <- cbind(crcscores, crc)
 
 }
 get.scores.FA  <- function(){
@@ -144,9 +102,15 @@ get.scores.FA  <- function(){
   
 }
 
-small  <- get.scores.bioc(study = "small")
-large  <- get.scores.bioc(study = "large")
-FAs    <- get.scores.FA()
+# Biocrates compounds overlap individual CC/control only
+small <- get.scores.bioc(crc1, ctrlA, mod1a)
+large <- get.scores.bioc(crc2, ctrlB, mod1b)
+
+# Biocrates compounds overlap all datasets
+small <- get.scores.bioc(crc1, ctrls0, mod0)
+large <- get.scores.bioc(crc2, ctrls0, mod0)
+
+FAs  <- get.scores.FA()
 
 #large.F <- df.bioc(study = "large", fasting = T)
 
