@@ -1,22 +1,22 @@
 # Compute Biocrates and fatty acid signatures of WCRF score by PLS
-source("CRC_data_prep_new.R")
+source("CRC_prep_data.R")
 
-get.Biocrates.sig <- function(which.mod = "plsmod"){
+get.Biocrates.sig <- function(dat, which.mod = "plsmod"){
   
   library(tidyverse)
   library(lme4)
   library(zoo)
   library(pls)
-  
+
   # Prepare controls matrix. Replace zero, impute with half mins, scale
-  concs <- as.matrix(controls)
+  concs <- as.matrix(dat)
   concs[concs == 0] <- NA
   concs1 <- na.aggregate(concs, FUN = function(x) min(x)/2)
   logconcs <- log2(concs1) %>% scale
   
   # adjust matrix for study, centre, sex, batch, BMI
-  adj5 <- function(x) residuals(lmer(x ~ Center + batch_no + Sex + Bmi_C + (1|Study), data = ctrl))
-  adjmat <- apply(logconcs, 2, adj5)
+  adj <- function(x) residuals(lmer(x ~ Center + batch_no + Sex + Bmi_C + (1|Study), data = ctrl))
+  adjmat <- apply(logconcs, 2, adj)
   
   # Subset calibrated scores
   score <- data_frame(score = ctrl$Wcrf_C_Cal)
@@ -72,7 +72,12 @@ get.Biocrates.sig <- function(which.mod = "plsmod"){
   }
   
 }
-mod1 <- get.Biocrates.sig()
+
+# For 4 compound sets: All control compounds, overlap control/A, control/B, control/A/B
+mod1 <- get.Biocrates.sig(ctrls)
+mod1a <- get.Biocrates.sig(ctrlA)
+mod1b <- get.Biocrates.sig(ctrlB)
+mod0  <- get.Biocrates.sig(ctrls0)
 #mod1a <- get.Biocrates.sig(which.mod = "caretmod")
 
 get.FA.sig  <- function(which.mod = "plsmod", cor.data = F){
@@ -208,7 +213,7 @@ plot.Biocrates.sig <- function(mod, no.cmpds = 7, data.only = F){
   output <- bind_rows(df1, df2)
   
 }
-table3a <- plot.Biocrates.sig(mod1)
+table3a <- plot.Biocrates.sig(mod0)
 #table3a <- plot.Biocrates.sig(mod1a)
 
 plot.FA.sig  <- function(mod, data.only = F){
@@ -263,40 +268,6 @@ table3b <- plot.FA.sig(mod2)
 # Save workspace (for .Rmd file)
 #save.image(file="metabolic_signatures.Rdata")
 
-# Get data for scatter plots
+# Get data for coefficient plots
 df1 <- plot.Biocrates.sig(mod1, data.only = T)
 df2 <- plot.FA.sig(mod2, data.only = T)
-
-# Plots
-
-df1$Class <- factor(df1$class, levels = rev(c("Amino acids", "Biogenic amines", "Monosaccharides", "Acylcarnitines", 
-  "Lysophosphatidylcholine", "Phosphatidylcholine (acyl-acyl)", "Phosphatidylcholine (acyl-alkyl)", "Sphingolipids")))
-
-ggplot(df1, aes(y = Class, x = Coefficient, colour = Class)) + 
-  geom_jitter(height = 0.1) + 
-  theme_bw() + geom_vline(xintercept = 0, linetype = "dashed") +
-  theme(legend.position = "none", axis.title.y = element_blank()) +
-  xlab("Coefficient from first PLS latent variable") +
-  ggtitle("A") +
-  scale_y_discrete(labels = c("Phosphatidylcholine (acyl-alkyl)" = "Phosphatidylcholine\n(acyl-alkyl)",
-                              "Phosphatidylcholine (acyl-acyl)" = "Phosphatidylcholine\n(acyl-acyl)",
-                              "Lysophosphatidylcholine" = "Lysophosphatidyl-\ncholine"))
-
-df2$Class <- factor(df2$class, levels = rev(c("Saturated", "Monounsaturated", "Polyunsaturated", "Natural trans", 
-                                          "Industrial trans")))
-
-ggplot(df2, aes(y = Class, x = Coefficient, colour = Class)) + 
-  geom_jitter(height = 0) + 
-  xlab("Coefficient from first PLS latent variable") +
-  theme_bw() + geom_vline(xintercept = 0, linetype = "dashed") +
-  theme(legend.position = "none", axis.title.y = element_blank()) +
-  ggtitle("B")
-
-
-
-
-#bioc <- data.frame(mod1$coefficients[, 1, 1:2])
-#fas  <- data.frame(mod2$coefficients[, 1, 1:2])
-
-#ggplot(bioc, aes(x = `X1.comps`, y = `X2.comps`)) + geom_point()
-#ggplot(fas, aes(x = `X1.comps`, y = `X2.comps`)) + geom_point()
