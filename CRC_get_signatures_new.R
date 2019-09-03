@@ -1,15 +1,15 @@
 # Compute Biocrates and fatty acid signatures of WCRF score by PLS
 source("CRC_prep_data.R")
 
+# For 4 compound sets: All control compounds, overlap control/A, control/B, control/A/B
 get.plsdata <- function(dat, cor.data = F){
  
   # Adjusts and scales the controls metabolite matrices for confounders and binds scores for model
   library(tidyverse)
   library(lme4)
   library(zoo)
-  # PLS to get signature of fatty acid metabolism for high and low scorers
   # Set zeros to NA and impute with half miminum conc, log transform
-  # Bind to data frame
+  # Bind WCRF scores to adjusted metabolite matrix
   
   if(length(dat) == 2) {
   
@@ -49,30 +49,33 @@ get.plsdata <- function(dat, cor.data = F){
   
 }
 
+Bioc0  <- get.plsdata(ctrls)
+Bioc1  <- get.plsdata(ctrlA)
+Bioc2  <- get.plsdata(ctrlB)
+Bioc3  <- get.plsdata(ctrls0)
 FAdata <- get.plsdata(output)
-Bioc   <- get.plsdata(ctrls)
   
 get.signature <- function(plsdata, which.mod = "plsmod"){
   
   # Biocrates (endogenous metabolites) for metabolic signature of WCRF score on controls dataset
-  
   if(which.mod == "plsmod"){
     
-    set.seed(111)
+    library(pls)
     
     # Start with a sensible number of components eg 10
+    set.seed(111)
     mod <- plsr(score ~ ., ncomp = 20, data = plsdata, validation = "CV")
     # Find the number of dimensions with lowest cross validation error
     cv <- RMSEP(mod)
     plot(RMSEP(mod), legendpos = "topright")
     
     # Calculate optimal number of dimensions and rerun model
-    # See PLS vignette p12 for how to choose number of components
+    # (See PLS vignette p12 for how to choose number of components)
     
     # Simply choosing which component has the lowest RMSEP
     best.dims <- which.min(cv$val[estimate = "adjCV", , ]) - 1
     
-    # Validating using "one SE" and "permutation" methods
+    # Choose using "one SE" and "permutation" methods
     ncomp.onesigma <- selectNcomp(mod, method = "onesigma", plot = T)
     ncomp.permut <- selectNcomp(mod, method = "randomization", plot = T)
     
@@ -102,25 +105,20 @@ get.signature <- function(plsdata, which.mod = "plsmod"){
   
 }
 
-# For 4 compound sets: All control compounds, overlap control/A, control/B, control/A/B
-mod1 <- get.plsdata(ctrls, ncomp = best.dims)
-mod1a <- get.plsdata(ctrlA)
-mod1b <- get.plsdata(ctrlB)
-mod0  <- get.plsdata(ctrls0)
-#mod1a <- get.Biocrates.sig(which.mod = "caretmod")
+mod0  <- get.signature(Bioc0)
+mod1a <- get.signature(Bioc1)
+mod1b <- get.signature(Bioc2)
+mod1c <- get.signature(Bioc3)
+mod2  <- get.signature(FAdata)
 
-
-mod2 <- get.FA.sig()
-#mod2a <- get.FA.sig(which.mod = "caretmod")
+#mod1a <- get.signature(which.mod = "caretmod")
+#mod2a <- get.signature(which.mod = "caretmod")
 
 # Produce tables of important compounds, using compound metadata to get proper names
-
-plot.signature <- function(mod, no.cmpds = 7, data.only = F){
+plot.signature <- function(mod, biocrates = T, no.cmpds = 7, data.only = F){
   
   library(tidyverse)
-  
-  cmpd.meta <- read.csv("Biocrates_cmpd_metadata.csv")
-  cmpd.meta <- read.csv("FA_compound_data.csv")
+  cmpds <- if(biocrates == T) read.csv("Biocrates_cmpd_metadata.csv") else read.csv("FA_compound_data.csv")
   
   # Coefficients and variable importance. First subset one-matrix array to get matrix
   # Extract coefficients from pls or caret objects, 1st LV: (pls gives an mvr object)
@@ -132,12 +130,12 @@ plot.signature <- function(mod, no.cmpds = 7, data.only = F){
   
   dat <- coeff %>%
     rownames_to_column(var = "Compound") %>%
-    mutate(sm = sum(abs(value)), Importance = round((value*100)/sm, 2)) %>%
-    left_join(cmpd.meta, by = "Compound") %>% arrange(Importance) %>%
+    mutate(sm = sum(abs(value))) %>%
+    left_join(cmpds, by = "Compound") %>% 
     
     # Subset appropriate columns and print influential compounds
-    select(class, compound = displayname, Coefficient = value)
-    select(class, compound = displayname2, Coefficient = value)
+  select(class, compound = displayname, Coefficient = value)
+  #select(class, compound = displayname2, Coefficient = value)
   
   if(data.only == T) return(dat)
   
@@ -146,7 +144,6 @@ plot.signature <- function(mod, no.cmpds = 7, data.only = F){
   
   df1 <- top_n(dat, n_top)
   df2 <- top_n(dat, -n_top)
-  
   print(df1)
   print(df2)
   
@@ -159,23 +156,19 @@ plot.signature <- function(mod, no.cmpds = 7, data.only = F){
   plot(sort(coeff$value), pch = 17, col=vec, xlab = "", ylab = "Coefficient",
        main = paste(nrow(mod$scores), "fasted subjects, optimal dimensions =", lv))
   # High and low labels
-  text(nrow(dat) : (nrow(dat)-n_top), df1$Coefficient, df1$compound, pos=2, cex = 0.6)
+  text(nrow(dat) : (nrow(dat) - n_top), df1$Coefficient, df1$compound, pos=2, cex = 0.6)
   text(1:nrow(df2), df2$Coefficient, df2$compound, pos=4, cex=0.6)
   abline(a=0, b=0, lty = "dotted")
   
   output <- bind_rows(df1, df2)
-  
 }
 
-table3a <- plot.Biocrates.sig(mod1)
-#table3a <- plot.Biocrates.sig(mod1a)
-
-table3b <- plot.FA.sig(mod2)
-#table3b1 <- plot.FA.sig(mod2a)
+table3a <- plot.signature(mod0)
+table3b <- plot.signature(mod2, biocrates = F)
 
 # Save workspace (for .Rmd file)
 #save.image(file="metabolic_signatures.Rdata")
 
 # Get data for coefficient plots
-df1 <- plot.Biocrates.sig(mod1, data.only = T)
-df2 <- plot.FA.sig(mod2, data.only = T)
+df1 <- plot.signature(mod1, data.only = T)
+df2 <- plot.signature(mod2, biocrates = F, data.only = T)
