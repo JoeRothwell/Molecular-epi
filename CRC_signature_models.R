@@ -91,7 +91,7 @@ get.scores.FA  <- function(){
   obs2predict <- log2(CRCfa) %>% scale %>% data.frame
   
   # now use predict to predict the scores of new observations (ie case-control study)
-  crcscores <- data.frame(predict(mod2, ncomp = 2, 
+  crcscores <- data.frame(predict(mod2, #ncomp = 2, 
                                   obs2predict))
   
   #score.2.comps <- predict(mod2, obs2predict)
@@ -120,15 +120,15 @@ library(survival)
 base <- Cncr_Caco_Clrt ~ Qe_Energy + L_School + Smoke_Stat + strata(Match_Caseset)
 
 # Biocrates small
-fit5 <- clogit(update(base, ~. + score.2.comps), data = small)
+fit5 <- clogit(update(base, ~. + score.1.comps), data = small)
 fit6 <- clogit(update(base, ~. + Wcrf_C_Cal), data = small)
 
 # Biocrates large
-fit3 <- clogit(update(base, ~. + score.2.comps), data = large)
+fit3 <- clogit(update(base, ~. + score.1.comps), data = large)
 fit4 <- clogit(update(base, ~. + Wcrf_C_Cal), data = large)
 
 # Fatty acids
-fit7 <- clogit(update(base, ~. + score.2.comps), data = FAs)
+fit7 <- clogit(update(base, ~. + score.1.comps), data = FAs)
 fit8 <- clogit(update(base, ~. + Wcrf_C_Cal), data = FAs)
 
 # Biocrates large fasted (not used, excluding non-fasted doesn't improve OR)
@@ -144,7 +144,7 @@ library(broom)
 library(tidyverse)
 
 ll2 <- list(fit3, fit5, fit7)
-t2 <- map_df(ll2, tidy) %>% filter(term == "score.2.comps")
+t2 <- map_df(ll2, tidy) %>% filter(term == "score.1.comps")
 studies <- data.frame(CC = c("B", rep("A", 2)), nvec = 
                         #map_int(ll2, 10),
                       c(2330, 978, 922),
