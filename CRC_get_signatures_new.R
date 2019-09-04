@@ -1,7 +1,7 @@
 # Compute Biocrates and fatty acid signatures of WCRF score by PLS
 source("CRC_prep_data.R")
 
-# For 4 compound sets: All control compounds, overlap control/A, control/B, control/A/B
+# Get compound matrix and questionnaire scores
 get.plsdata <- function(dat, cor.data = F){
  
   # Adjusts and scales the controls metabolite matrices for confounders and binds scores for model
@@ -49,11 +49,11 @@ get.plsdata <- function(dat, cor.data = F){
   
 }
 
-Bioc0  <- get.plsdata(ctrls)
-Bioc1  <- get.plsdata(ctrlA)
-Bioc2  <- get.plsdata(ctrlB)
-Bioc3  <- get.plsdata(ctrls0)
-FAdata <- get.plsdata(output)
+Bioc0  <- get.plsdata(ctrls) # All control compounds
+Bioc1  <- get.plsdata(ctrlA) # Overlap control/A
+Bioc2  <- get.plsdata(ctrlB) # Overlap control/B
+Bioc3  <- get.plsdata(ctrls0) # Overlap control/A/B
+FAdata <- get.plsdata(output) # Fatty acids
   
 get.signature <- function(plsdata, which.mod = "plsmod"){
   
@@ -64,7 +64,7 @@ get.signature <- function(plsdata, which.mod = "plsmod"){
     
     # Start with a sensible number of components eg 10
     set.seed(111)
-    mod <- plsr(score ~ ., ncomp = 20, data = plsdata, validation = "CV")
+    mod <- plsr(score ~ ., ncomp = 10, data = plsdata, validation = "CV")
     # Find the number of dimensions with lowest cross validation error
     cv <- RMSEP(mod)
     plot(RMSEP(mod), legendpos = "topright")
@@ -76,14 +76,14 @@ get.signature <- function(plsdata, which.mod = "plsmod"){
     best.dims <- which.min(cv$val[estimate = "adjCV", , ]) - 1
     
     # Choose using "one SE" and "permutation" methods
-    ncomp.onesigma <- selectNcomp(mod, method = "onesigma", plot = T)
+    ncomp.onesigma <- selectNcomp(mod, method = "onesigma", plot = F)
     ncomp.permut <- selectNcomp(mod, method = "randomization", plot = T)
     
     print(paste("Lowest RMSEP from", best.dims, "comp(s);", 
                 "one SE method suggests", ncomp.onesigma, "comp(s);",
                 "permutation method suggests", ncomp.permut, "comp(s)"))
     
-    mod <- plsr(score ~ ., data = plsdata, ncomp = ncomp.onesigma)
+    mod <- plsr(score ~ ., data = plsdata, ncomp = 2)
     
     # explained variances
     # explvar(mod)
