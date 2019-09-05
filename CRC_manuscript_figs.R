@@ -11,11 +11,12 @@ venn.diagram(list(Controls = colnames(ctrlA), CRC1 = colnames(ctrlB), CRC2 = col
 
 # Coefficient plots
 
-df1$Class <- factor(df1$class, levels = rev(c("Amino acids", "Biogenic amines", "Monosaccharides", "Acylcarnitines", 
-                                              "Lysophosphatidylcholine", "Phosphatidylcholine (acyl-acyl)", "Phosphatidylcholine (acyl-alkyl)", "Sphingolipids")))
+pltdata$Class <- factor(pltdata$class, 
+              levels = rev(c("Amino acids", "Biogenic amines", "Monosaccharides", "Acylcarnitines", 
+              "Lysophosphatidylcholine", "Phosphatidylcholine (acyl-acyl)", "Phosphatidylcholine (acyl-alkyl)", "Sphingolipids")))
 
 library(ggplot2)
-ggplot(df1, aes(y = Class, x = Coefficient, colour = Class)) + 
+ggplot(pltdata, aes(y = Class, x = Coefficient, colour = Class)) + 
   geom_jitter(height = 0.1) + 
   theme_bw() + geom_vline(xintercept = 0, linetype = "dashed") +
   theme(legend.position = "none", axis.title.y = element_blank()) +
@@ -34,3 +35,19 @@ ggplot(df2, aes(y = Class, x = Coefficient, colour = Class)) +
   theme_bw() + geom_vline(xintercept = 0, linetype = "dashed") +
   theme(legend.position = "none", axis.title.y = element_blank()) +
   ggtitle("B")
+
+
+# Old coefficient scatter (top and bottom percentiles)
+
+# Vector of black and grey for plot points
+vec <- c( rep("black", n.low), rep("grey", nrow(dat) - nrow(dat1)), rep("black", n.high) )
+
+# Now plot data, adding text
+plot(sort(coeff$value), pch = 17, col=vec, xlab = "", ylab = "Coefficient",
+     main = paste(nrow(mod$scores), "fasted subjects, optimal dimensions =", lv))
+# High and low labels
+text(nrow(dat) : (nrow(dat) - n_top), df1$Coefficient, df1$compound, pos=2, cex = 0.6)
+text(1:nrow(df2), df2$Coefficient, df2$compound, pos=4, cex=0.6)
+abline(a=0, b=0, lty = "dotted")
+
+
