@@ -11,16 +11,14 @@ get.plsdata <- function(dat, cor.data = F){
   # Set zeros to NA and impute with half miminum conc, log transform
   # Bind WCRF scores to adjusted metabolite matrix
   
-  if(length(dat) == 2) {
-  
-  common.cols <- dat[[2]]
-  fa.ctrl <- dat[[1]]
+  if(nrow(dat) == 923) {
   
   # select common FAs in the same order. FAs is for correlation with Biocrates compounds
-  FAs   <- read_dta("Database_Fatty acids.dta") %>% select(Idepic, one_of(common.cols)) 
+  FAs  <- dat %>% select(Idepic, one_of(common.cols))
+  if(cor.data == T) return(FAs)
+  
   CRCfa <- FAs %>% select(-Idepic)
   concs <- fa.ctrl %>% select(one_of(common.cols))
-  if(cor.data == T) return(FAs)
   
   # Fatty acids: adjust matrix for study, centre, sex, batch, BMI
   adj <- function(x) residuals(lmer(x ~ LABO + STUDY + (1|Center), data = fa.ctrl))
@@ -54,7 +52,7 @@ Bioc0  <- get.plsdata(ctrls) # All control compounds
 Bioc1  <- get.plsdata(ctrlA) # Overlap control/A
 Bioc2  <- get.plsdata(ctrlB) # Overlap control/B
 Bioc3  <- get.plsdata(ctrls0) # Overlap control/A/B
-FAdata <- get.plsdata(output) # Fatty acids
+FAdata <- get.plsdata(CRCfa1) # Fatty acids
 
 # Get metabolic signatures by PLSR  
 get.signature <- function(plsdata, which.mod = "plsmod"){
