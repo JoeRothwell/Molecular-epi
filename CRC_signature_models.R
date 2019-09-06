@@ -50,37 +50,14 @@ get.scores.FA  <- function(){
   library(tidyverse)
   library(haven)
   
-  # Get WCRF scores
-  wcrf <- read_dta("Wcrf_Score.dta") %>% select(Idepic, Wcrf_C_Cal)
-  
-  # Get CRC dataset from Elom and join WCRF scores. Convert categorical co-variates to factors
+  # Convert categorical co-variates to factors
   var.list <- c("L_School", "Smoke_Stat")
-  CRCfa1 <- read_dta("Database_Fatty acids.dta") %>% left_join(wcrf, by = "Idepic") %>% mutate_at(vars(var.list), as.factor)
-  
-  # Subset Biocrates compounds
-  CRCfa <- CRCfa1 %>% select(P14_0 : PCLA_9t_11c) 
-  
-  # Get dataset for PLS modelling (all EPIC controls). Exclude compounds with many missings
-  # Note: new version from Carine received 18/11/2018 with technical covariates
-  fa.scores <- readRDS("FA_WCRF_scores1.rds") %>% filter(STUDY != "Colorectum")
-  fa.scores$N_Serie <- as.numeric(fa.scores$N_Serie)
-  
-  # convert categorical variables to factors
-  var.list <- c("Country", "Center", "STUDY", "LABO")
-  fa.scores <- fa.scores %>% mutate_at(vars(var.list), as.factor)
-  
-  concs <- fa.scores %>% select(P14_0 : PCLA_9t_11c, -P24_0, -P20_0)
-
-  #library(Amelia)
-  #missmap(concs)
-  #missmap(CRCfa)
   
   length(colnames(concs))
   length(colnames(CRCfa))
-  common_cols <- intersect(colnames(concs), colnames(CRCfa))
   
   # select common FAs in the same order
-  CRCfa <- read_dta("Database_Fatty acids.dta") %>% select(one_of(common_cols)) 
+  CRCfa <- CRCfa %>% select(one_of(common.cols))
   identical(colnames(CRCfa), colnames(concs))
   
   # Predict scores for CRC dataset
@@ -91,8 +68,7 @@ get.scores.FA  <- function(){
   obs2predict <- log2(CRCfa) %>% scale %>% data.frame
   
   # now use predict to predict the scores of new observations (ie case-control study)
-  crcscores <- data.frame(predict(mod2, #ncomp = 2, 
-                                  obs2predict))
+  crcscores <- data.frame(predict(mod2, obs2predict))
   
   #score.2.comps <- predict(mod2, obs2predict)
   
