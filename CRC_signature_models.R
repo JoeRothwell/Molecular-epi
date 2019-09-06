@@ -1,34 +1,32 @@
 # Find metabolic and fatty acids signatures of WCRF score
 # Requires crc1, crc2, controls and PLS models to be prepared from CRC_data_prep.R
-source("CRC_prep_data.R")
+source("CRC_get_signatures.R")
 
 # Functions to get CC subjects with signature-derived WCRF scores
-get.scores.bioc <- function(crc, dat, mod, scorecomp.only = F){
+predict.scores <- function(crc, dat, mod, scorecomp.only = F){
 
   library(tidyverse)
-  colnames(dat) %>% length
-  
-  # ----
+  library(zoo)
   
   print(paste("Subjects in case-control: ", nrow(crc)))
   # Variables were converted to factors in CRC_data_prep.R
   
   # Put CRC CC compounds in same order as in controls dataset
-  cols <- colnames(dat)
+  if(nrow(crc) == 923) { 
+    cols <- common.cols
+    var.list <- c("L_School", "Smoke_Stat")
+    } else { 
+    cols <- colnames(dat)
+    var.list <- c("Country", "Center", "Sex")
+    }
+  
   cmpds <- crc %>% select(one_of(cols))
   
-  colnames(cmpds) %>% length
-  # 163 variables
-  
   # Convert variables to factors
-  var.list <- c("Country", "Center", "Sex")
   crc <- crc %>% mutate_at(vars(var.list), as.factor)
   
   # check colnames are the same for both sets
   if(identical(colnames(dat), colnames(cmpds)) == T) print("Identical colnames OK")
- 
-  # Score predictions ----
-  # Get signature scores and bind to original dataset
   
   # Transform data to matrix, impute, log, scale
   mat <- cmpds
@@ -38,55 +36,21 @@ get.scores.bioc <- function(crc, dat, mod, scorecomp.only = F){
   
   # now use predict to predict the scores of new observations (ie case-control study)
   crcscores <- data.frame(predict(mod, obs2predict))
-  #score.2.comps <- predict(mod1, obs2predict)
-  #if(scorecomp.only == T) return(crcscores)
-  #output <- cbind(score.2.comps, crc)
-  output <- cbind(crcscores, crc)
+  if(scorecomp.only == T) return(crcscores)
+  
+  output <- cbind(crcscores, crc) %>% group_by(Match_Caseset) %>% filter(n() == 2)
 
-}
-get.scores.FA  <- function(){
-  
-  # Fatty acid signatures of WCRF score
-  library(tidyverse)
-  library(haven)
-  
-  # Convert categorical co-variates to factors
-  var.list <- c("L_School", "Smoke_Stat")
-  
-  length(colnames(concs))
-  length(colnames(CRCfa))
-  
-  # select common FAs in the same order
-  CRCfa <- CRCfa %>% select(one_of(common.cols))
-  identical(colnames(CRCfa), colnames(concs))
-  
-  # Predict scores for CRC dataset
-  CRCfa <- as.matrix(CRCfa)
-  CRCfa[CRCfa == 0] <- NA
-  library(zoo)
-  CRCfa <- na.aggregate(CRCfa, FUN = function(x) min(x)/2)
-  obs2predict <- log2(CRCfa) %>% scale %>% data.frame
-  
-  # now use predict to predict the scores of new observations (ie case-control study)
-  crcscores <- data.frame(predict(mod2, obs2predict))
-  
-  #score.2.comps <- predict(mod2, obs2predict)
-  
-  # Put the predicted scores together with the original data, remove unpaired sample
-  output <- cbind(crcscores, CRCfa1) %>% group_by(Match_Caseset) %>% filter(n() == 2)
-  #output <- cbind(score.2.comps, CRCfa1) %>% group_by(Match_Caseset) %>% filter(n() == 2)
-  
 }
 
 # Biocrates compounds overlap individual CC/control only
-small <- get.scores.bioc(crc1, ctrlA, mod1a)
-large <- get.scores.bioc(crc2, ctrlB, mod1b)
+small <- predict.scores(crc1, ctrlA, mod1a)
+large <- predict.scores(crc2, ctrlB, mod1b)
 
 # Biocrates compounds overlap all datasets
-small <- get.scores.bioc(crc1, ctrls0, mod0)
+small <- predict.scores(crc1, ctrls0, mod0)
 large <- get.scores.bioc(crc2, ctrls0, mod0)
 
-FAs  <- get.scores.FA()
+FAs <- predict.scores(CRCfa1, concs, mod2)
 
 #large.F <- df.bioc(study = "large", fasting = T)
 
