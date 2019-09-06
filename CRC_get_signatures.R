@@ -31,7 +31,8 @@ get.plsdata <- function(dat, cor.data = F){
     
   concs <- as.matrix(dat)
   # Biocrates: adjust matrix for study, centre, sex, batch, BMI
-  adj <- function(x) residuals(lmer(x ~ Center + batch_no + Sex + Bmi_C + (1|Study), data = ctrl))
+  adj <- function(x) residuals(lmer(x ~ Center + batch_no + 
+                                      Sex + Bmi_C + (1|Study), data = ctrl))
   # Subset calibrated scores
   score <- data_frame(score = ctrl$Wcrf_C_Cal)
   
@@ -149,16 +150,13 @@ plot.signature <- function(mod, biocrates = T, percentile = 5, all = T){
 
 }
 
+# Data for manuscript tables (copy into ms file via Excel)
 table3a <- plot.signature(mod0, all = F)
-pltdata <- plot.signature(mod0, all = T)
 table3b <- plot.signature(mod2, biocrates = F, percentile = 10, all = F)
-faplot  <- plot.signature(mod2, biocrates = F, percentile = 10, all = T)
 
-# Tables 3a and 3b copied from preview into excel sheet and then word
+# Data for scatter plots
+pltdata <- plot.signature(mod0, all = T)
+faplot  <- plot.signature(mod2, biocrates = F, percentile = 10, all = T)
 
 # Save workspace (for .Rmd file)
 #save.image(file="metabolic_signatures.Rdata")
-
-# Get data for coefficient plots
-df1 <- plot.signature(mod0, all = T)
-df2 <- plot.signature(mod2, biocrates = F, data.only = T)
