@@ -1,7 +1,6 @@
 # Preparation of CRC case-control datasets, and control only datasets 
 # stored at \\inti\NME\EPIC_Projects\Epic_Colonrectum\Nested_CaCo_Study\2016
 # Missings are already imputed
-
 library(tidyverse)
 library(haven)
 
@@ -28,8 +27,7 @@ var.list <- c("Country", "Center", "Sex", "Match_Caseset", "Smoke_Stat", "L_Scho
 crc1 <- crc1 %>% inner_join(meta, by = "Idepic") %>% mutate_at(vars(var.list), as.factor)
 
 # Large case-control subset (from Jelena)
-crc2 <- read_csv("biocrates_p150.csv")
-crc2 <- crc2 %>% left_join(wcrf, by = "Idepic") %>% mutate_at(vars(var.list), as.factor)
+crc2 <- read_csv("biocrates_p150.csv") %>% mutate_at(vars(var.list), as.factor)
 
 # EPIC controls. First dataset, 3771 obs; updated November 2018 7191 obs
 ctrl <- read_dta("obes_metabo.dta")
@@ -43,11 +41,10 @@ ctrl <- ctrl %>%
   separate(Batch_MetBio, into = c("batch", "rest")) %>%
   mutate(batch_no = as.numeric(flatten(str_extract_all(batch, "[0-9]+")))) %>% 
   filter(!(Study %in% c("Colonrectum_L", "Colonrectum_S")), Fasting_C == 2)
-  print(paste(nrow(ctrl), "fasted controls read"))
+print(paste(nrow(ctrl), "fasted controls read"))
 # 1799 fasted subjects left
 
 # Get common compounds between CC and controls and order
-
 select.ctrl.cmpds <- function(crc, no.subset = F, cor.data = F){
   
   library(tidyverse)
@@ -93,42 +90,34 @@ ctrlA <- select.ctrl.cmpds(crc1)
 ctrlB <- select.ctrl.cmpds(crc2)
 ctrls <- select.ctrl.cmpds(no.subset = T)
 
-select.ctrl.FAs  <- function(){
-  
-  # Gets common compounds between CC and EPIC controls and puts them in the same order.
-  # Outputs the controls dataset and ordered list of compounds
-  library(haven)
-  library(tidyverse)
-  
-  # Get WCRF scores
-  wcrf <- read_dta("Wcrf_Score.dta") %>% select(Idepic, Wcrf_C_Cal)
-  
-  # Get CRC dataset from Elom and join WCRF scores. Convert categorical co-variates to factors
-  var.list <- c("L_School", "Smoke_Stat")
-  CRCfa1 <- read_dta("Database_Fatty acids.dta") %>% 
-    left_join(wcrf, by = "Idepic") %>% 
-    mutate_at(vars(var.list), as.factor)
-  
-  # Get dataset for PLS modelling (all EPIC controls). Exclude compounds with many missings
-  # Note: new version from Carine received 18/11/2018 with technical covariates
-  fa.ctrl <- readRDS("FA_WCRF_scores1.rds") %>% filter(STUDY != "Colorectum")
-  fa.ctrl$N_Serie <- as.numeric(fa.ctrl$N_Serie)
-  
-  # categorical variables to factors
-  var.list <- c("Country", "Center", "STUDY", "LABO")
-  fa.ctrl <- fa.ctrl %>% mutate_at(vars(var.list), as.factor)
-  
-  # Subset concentrations for CRC and controls
-  CRCfa <- CRCfa1  %>% select(P14_0 : PCLA_9t_11c) 
-  concs <- fa.ctrl %>% select(P14_0 : PCLA_9t_11c, -P24_0, -P20_0)
-  common.cols <- intersect(colnames(concs), colnames(CRCfa))
-  
-  return(list(fa.ctrl, common.cols))
-}
-output <- select.ctrl.FAs()
-
 # Get compounds common to all 3 sets for comparison and subset df
 common.all <- intersect(colnames(ctrlA), colnames(ctrlB))
 ctrls0 <- select(ctrls, one_of(common.all))
+
+# Fatty acids
+# Gets common compounds between CC and EPIC controls and puts them in the same order.
+
+# Get CRC dataset from Elom and join WCRF scores. Convert categorical co-variates to factors
+var.list <- c("L_School", "Smoke_Stat")
+CRCfa1 <- read_dta("Database_Fatty acids.dta") %>% 
+  left_join(wcrf, by = "Idepic") %>% 
+  mutate_at(vars(var.list), as.factor)
+
+# Get dataset for PLS modelling (all EPIC controls). Exclude compounds with many missings
+# Note: new version from Carine received 18/11/2018 with technical covariates
+fa.ctrl <- readRDS("FA_WCRF_scores1.rds") %>% filter(STUDY != "Colorectum")
+fa.ctrl$N_Serie <- as.numeric(fa.ctrl$N_Serie)
+
+# categorical variables to factors
+var.list <- c("Country", "Center", "STUDY", "LABO")
+fa.ctrl <- fa.ctrl %>% mutate_at(vars(var.list), as.factor)
+
+# Subset concentrations for CRC and controls
+CRCfa <- CRCfa1  %>% select(P14_0 : PCLA_9t_11c) 
+concs <- fa.ctrl %>% select(P14_0 : PCLA_9t_11c, -P24_0, -P20_0)
+common.cols <- intersect(colnames(concs), colnames(CRCfa))
+  
+# return(list(fa.ctrl, common.cols))
+
 
 
