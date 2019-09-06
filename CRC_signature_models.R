@@ -153,22 +153,24 @@ studies <- data.frame(CC = c("B", rep("A", 2)), nvec = #map_int(ll2, 10),
 par(mar=c(5,4,1,2))
 library(metafor)
 forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1, 
-       rows = c(4,5,1),
+       rows = c(5,6,1),
        xlab = "Odds ratio (per category increase in score)", pch = 18, 
        transf = exp, psize = 1.5, slab = studies$CC, ilab = studies[, 2:3], 
-       ylim = c(0, 8), xlim = c(-1.2, 1.8),
+       ylim = c(0, 9), xlim = c(-1.2, 1.8),
        ilab.pos = 4, ilab.xpos = c(-0.7, -0.3))
 par("usr")
 
-text(c(-1.2, -0.7, -0.3), 7, c("Case-control", "n", "Metabolite signature"), pos = 4)
-text(1.8, 7, "OR [95% CI]", pos = 2)
+text(c(-1.2, -0.7, -0.3), 8, c("Case-control", "n", "Metabolite signature"), pos = 4)
+text(1.8, 8, "OR [95% CI]", pos = 2)
 
 # Perform meta-analysis of Biocrates and add to line 3
 ma1 <- rma(estimate, sei = std.error, data=t2, method="FE", subset = 1:2)
 
-addpoly(ma1, row = 3, transf = exp, mlab = "", efac = 2)
-text(-1.2, 3, bquote(paste("Fixed effects meta-analysis of A and B (p = 0.37, ", I^2, " = 0)")), 
-     pos = 4, cex = 0.9)
+addpoly(ma1, row = 3.5, transf = exp, mlab = "", efac = 2)
+text(-1.2, 3.5, "Fixed effects meta-analysis of A and B", pos = 4, cex = 0.9)
+text(-1.2, 2.5, bquote(paste(I^2," = 0, ",italic(p),"-heterogeneity = 0.32")), pos = 4, cex = 0.9)
+
+#text(-1.2, 3, bquote(paste("Fixed effects meta-analysis of A and B\n(p-heterogeneity = 0.32,",I^2," = 0)")), pos = 4, cex = 0.9)
 
 # All models ----
 
