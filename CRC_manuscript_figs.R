@@ -13,10 +13,11 @@ venn.diagram(list(Controls = colnames(ctrlA), CRC1 = colnames(ctrlB), CRC2 = col
 
 pltdata$Class <- factor(pltdata$class, 
               levels = rev(c("Amino acids", "Biogenic amines", "Monosaccharides", "Acylcarnitines", 
-              "Lysophosphatidylcholine", "Phosphatidylcholine (acyl-acyl)", "Phosphatidylcholine (acyl-alkyl)", "Sphingolipids")))
+              "Lysophosphatidylcholine", "Phosphatidylcholine (acyl-acyl)", 
+              "Phosphatidylcholine (acyl-alkyl)", "Sphingolipids")))
 
 library(ggplot2)
-ggplot(pltdata, aes(y = Class, x = Coefficient, colour = Class)) + 
+p1 <- ggplot(pltdata, aes(y = Class, x = Coefficient, colour = Class)) + 
   geom_jitter(height = 0.1) + 
   theme_bw() + geom_vline(xintercept = 0, linetype = "dashed") +
   theme(legend.position = "none", axis.title.y = element_blank()) +
@@ -26,15 +27,36 @@ ggplot(pltdata, aes(y = Class, x = Coefficient, colour = Class)) +
                               "Phosphatidylcholine (acyl-acyl)" = "Phosphatidylcholine\n(acyl-acyl)",
                               "Lysophosphatidylcholine" = "Lysophosphatidyl-\ncholine"))
 
-df2$Class <- factor(df2$class, levels = rev(c("Saturated", "Monounsaturated", "Polyunsaturated", "Natural trans", 
-                                              "Industrial trans")))
+faplot$Class <- factor(faplot$class, levels = rev(c("Saturated", "Monounsaturated", 
+                  "Polyunsaturated", "Natural trans", "Industrial trans")))
 
-ggplot(df2, aes(y = Class, x = Coefficient, colour = Class)) + 
+p2 <- ggplot(faplot, aes(y = Class, x = Coefficient, colour = Class)) + 
   geom_jitter(height = 0) + 
   xlab("Coefficient from first PLS latent variable") +
-  theme_bw() + geom_vline(xintercept = 0, linetype = "dashed") +
+  theme_half_open() + geom_vline(xintercept = 0, linetype = "dashed") +
   theme(legend.position = "none", axis.title.y = element_blank()) +
   ggtitle("B")
+
+# Generate aligned plots
+library(cowplot)
+both <- align_plots(p1, p2, align = "hv", axis = "tblr")
+p1x <- ggdraw(both[[1]])
+p2x <- ggdraw(both[[2]])
+
+
+
+# Biocrates and FAs together in facetted plot (couldn't put classes in right order)
+all <- bind_rows(Endogenous = pltdata, `Fatty acids` = faplot, .id = "Metabolites")
+
+ggplot(all, aes(y = Class, x = Coefficient, colour = Class)) + 
+  geom_jitter(height = 0.05) + 
+  xlab("Coefficient from first PLS latent variable") +
+  theme_bw() + 
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  theme(legend.position = "none", axis.title.y = element_blank(),
+        axis.line.y = element_line()) +
+  facet_grid(Metabolites ~ ., scales = "free", space = "free", switch = "y")
+
 
 
 # Old coefficient scatter (top and bottom percentiles)
