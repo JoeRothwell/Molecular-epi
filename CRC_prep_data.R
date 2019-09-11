@@ -24,7 +24,8 @@ biocrates <- apply(concs, 1, function(x) sum(!is.na(x)) > 0)
 crc1 <- crc[biocrates, ]
 
 var.list <- c("Country", "Center", "Sex", "Match_Caseset", "Smoke_Stat", "L_School")
-crc1 <- crc1 %>% inner_join(meta, by = "Idepic") %>% mutate_at(vars(var.list), as.factor)
+crc1 <- crc1 %>% inner_join(meta, by = "Idepic") %>% mutate_at(vars(var.list), as.factor) #%>% 
+  #group_by(Match_Caseset) %>% filter(n() == 2)
 
 # Large case-control subset (from Jelena)
 crc2 <- read_csv("biocrates_p150.csv") %>% mutate_at(vars(var.list), as.factor)
