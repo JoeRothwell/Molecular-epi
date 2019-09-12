@@ -31,14 +31,12 @@ crc1 <- crc1 %>% inner_join(meta, by = "Idepic") %>% mutate_at(vars(var.list), a
 crc2 <- read_csv("biocrates_p150.csv") %>% mutate_at(vars(var.list), as.factor)
 
 # EPIC controls. First dataset, 3771 obs; updated November 2018 7191 obs
-ctrl <- read_dta("obes_metabo.dta")
-
-# Convert Study variable to factor and rename levels
-ctrl$Study <- fct_recode(ctrl$Study, Colonrectum_S = "Colonrectum", Colonrectum_L = "Colonrectum (bbmri)")
+# Rename factor levels
+ctrl <- read_dta("obes_metabo.dta") %>% mutate(Study = 
+  fct_recode(Study, Colonrectum_S = "Colonrectum", Colonrectum_L = "Colonrectum (bbmri)")) %>%
 
 # Split Batch_MetBio into two columns, then extract numeric variable
 # Remove 1694 CRC controls
-ctrl <- ctrl %>% 
   separate(Batch_MetBio, into = c("batch", "rest")) %>%
   mutate(batch_no = as.numeric(flatten(str_extract_all(batch, "[0-9]+")))) %>% 
   filter(!(Study %in% c("Colonrectum_L", "Colonrectum_S")), Fasting_C == 2)
