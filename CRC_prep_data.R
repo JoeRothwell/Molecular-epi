@@ -4,7 +4,9 @@
 library(tidyverse)
 library(haven)
 
-# Small case-control subset (have to subset subjects with Biocrates data)
+# Small case-control subset----------
+
+# have to subset subjects with Biocrates data
 crc <- read_sas("clrt_caco_metabo.sas7bdat")
 
 # Metadata and WCRF scores (keep on local drive because big file)
@@ -27,7 +29,9 @@ var.list <- c("Country", "Center", "Sex", "Match_Caseset", "Smoke_Stat", "L_Scho
 crc1 <- crc1 %>% inner_join(meta, by = "Idepic") %>% mutate_at(vars(var.list), as.factor) #%>% 
   #group_by(Match_Caseset) %>% filter(n() == 2)
 
-# Large case-control subset (from Jelena)
+
+# Large case-control subset (from Jelena)------------
+
 crc2 <- read_csv("biocrates_p150.csv") %>% mutate_at(vars(var.list), as.factor)
 
 # EPIC controls. First dataset, 3771 obs; updated November 2018 7191 obs
@@ -93,7 +97,9 @@ ctrls <- select.ctrl.cmpds(no.subset = T)
 common.all <- intersect(colnames(ctrlA), colnames(ctrlB))
 ctrls0 <- select(ctrls, one_of(common.all))
 
-# Fatty acids
+
+# Fatty acids-------------
+
 # Gets common compounds between CC and EPIC controls and puts them in the same order.
 
 # Get CRC dataset from Elom and join WCRF scores. Convert categorical co-variates to factors
