@@ -135,9 +135,51 @@ mod2 <- wilcox.test(ALCOHOL ~ CT, data = dat, subset = MENOPAUSE == 1)
 
 # For publication
 library(ggsignif)
-ggplot(data, aes(x = as.factor(CT), y = Ethanol)) + geom_boxplot() +
-  ylim(0, 2) +
+ggplot(data, aes(x = as.factor(CT), y = Ethanol)) + geom_boxplot() + ylim(0, 2) +
   geom_signif(comparisons = c(0, 1), map_signif_level = T)
+
+# Heatmap of differences---------------------
+
+ # Make a lookup df for menopausal status
+match.men <- dat %>% select(MATCH, MENOPAUSE) %>% unique()
+
+# Vectors of pre and post-menopausal 
+pre <- diff.wide$MENOPAUSE == 0
+post <- diff.wide$MENOPAUSE == 1
+
+# Wide and long datasets for gplots and ggplot2
+diff.wide <- dat %>% select(MATCH, CT,`3Hydroxybutyrate`:Succinate) %>% arrange(CT) %>%
+  group_by(MATCH) %>% summarise_all(list(D = diff)) #%>% left_join(match.men, by = "MATCH")
+
+diff.long <- gather(diff.wide, compound, difference, -MATCH)
+
+hist(dat1$difference, breaks = 50)
+which.max(dat1$difference)
+which.min(dat1$difference)
+dat1[10291, ]
+dat1[34429, ]
+
+# With heatmap2
+mat1 <- as.matrix(diff.wide[pre, -1])
+mat2 <- diff.wide[post, -1]
+
+quantile.range <- quantile(as.matrix(diff.wide[, -(1:2)]), probs = seq(0, 1, 0.01))
+palette.breaks <- seq(quantile.range["1%"], quantile.range["99%"], 0.1)
+colpalette1 <- colorRampPalette(c("#FC8D59", "#FFFFBF", "#91CF60"))(length(palette.breaks) - 1)
+colpalette2 <- colorRampPalette(c('#ef8a62','#f7f7f7','#67a9cf'))(length(palette.breaks) - 1)
+
+library(gplots)
+heatmap.2(as.matrix(diff.wide[, -(1:2)]), trace = "none", col = colpalette2,
+          breaks = palette.breaks, dendrogram = "col")
+
+# With ggplot
+dat1 <- inner_join(diff.long, dat, by = "MATCH") %>% filter(CT == 0)
+
+ggplot(dat1, aes(x= MATCH, y = compound, fill = difference)) + geom_tile() +
+  facet_grid(. ~ MENOPAUSE, scales = "free", space = "free") +
+  scale_fill_gradientn(colours = colpalette2)
+
+
 
 # ---------------------------------------------------------------------------------------------------
 
