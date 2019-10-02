@@ -184,8 +184,19 @@ ggplot(dat1, aes(x= MATCH, y = compound, fill = difference)) + geom_tile() +
 # ---------------------------------------------------------------------------------------------------
 
 # Conditional logistic regression to get odds ratios for lifestyle factors
-# Same co-variates as in original manuscript
+# Adjusting for same co-variates as in original manuscript
 library(survival)
+# Test for associations between alcohol and BC
+fit0 <- clogit(CT ~ scale(ALCOHOL) + BMI + SMK + DIABETE + RTH + DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH), data = meta)
+fit1 <- clogit(CT ~ scale(ALCOHOL) + BMI + SMK + DIABETE + RTH + DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH), data = meta, subset = MENOPAUSE == 0) 
+fit2 <- clogit(CT ~ scale(ALCOHOL) + BMI + SMK + DIABETE + RTH + DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH), data = meta, subset = MENOPAUSE == 1) 
+
+# fit0: 1.0784 [0.9704, 1.199]
+# fit1: 0.9569 [0.77228, 1.186]
+# fit2: 1.1035 [0.9739 , 1.250]
+
+
+
 fit <- clogit(CT ~ scale(BMI) + SMK + DIABETE + #BP + 
                 scale(RTH) + scale(ALCOHOL) + scale(DURTHSDIAG) + 
                 scale(CENTTIME) + STOCKTIME + strata(MATCH), data = meta, subset = MENOPAUSE == 1) 
