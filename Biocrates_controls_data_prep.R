@@ -75,3 +75,23 @@ pcares <- function(adjust = T, covar = "adj1", pca = F) {
 resmat <- pcares(adjust = F)
 # resmat <- pcares(covar = "adj4")
 # resmat <- pcares(covar = "adj5")
+
+# Extracts code names and label names and converts to a dataframe
+# (previously Biocrates_cmpd_metadat.R script)
+
+library(tidyverse)
+library(haven)
+
+# Biocrates  
+ctrl <- read_dta("obes_metabo.dta") %>%
+  select(matches("Acylcarn_|Aminoacid_|Biogenic_|Glyceroph_|Sphingo_|Sugars_"), 
+         -starts_with("Outdq"))
+labels <- sapply(controls, attr, "label")
+tibble(name = names(labels), label = labels)
+
+
+# Fatty acids
+CRCfa1 <- read_dta("Database_Fatty acids.dta")
+
+CRCfa <- CRCfa1 %>% select(P14_0 : PCLA_9t_11c) 
+df <- tibble(Compound = colnames(CRCfa))
