@@ -48,11 +48,12 @@ get.plsdata <- function(dat, cor.data = F){
   
 }
 
-Bioc0  <- get.plsdata(ctrls) # All control compounds
 Bioc1  <- get.plsdata(ctrlA) # Overlap control/A
 Bioc2  <- get.plsdata(ctrlB) # Overlap control/B
-Bioc3  <- get.plsdata(ctrls0) # Overlap control/A/B
 FAdata <- get.plsdata(CRCfa1) # Fatty acids
+
+#Bioc0  <- get.plsdata(ctrls) # All control compounds
+#Bioc3  <- get.plsdata(ctrls0) # Overlap control/A/B
 
 # Get metabolic signatures by PLSR  
 get.signature <- function(plsdata, which.mod = "plsmod"){
@@ -105,11 +106,12 @@ get.signature <- function(plsdata, which.mod = "plsmod"){
   
 }
 
-mod0  <- get.signature(Bioc0)
 mod1a <- get.signature(Bioc1)
 mod1b <- get.signature(Bioc2)
-mod1c <- get.signature(Bioc3)
 mod2  <- get.signature(FAdata)
+
+#mod0  <- get.signature(Bioc0)
+#mod1c <- get.signature(Bioc3)
 #mod1a <- get.signature(which.mod = "caretmod")
 #mod2a <- get.signature(which.mod = "caretmod")
 
