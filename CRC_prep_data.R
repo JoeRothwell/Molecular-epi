@@ -32,7 +32,8 @@ crc1 <- crc1 %>% inner_join(meta, by = "Idepic") %>% mutate_at(vars(var.list), a
 
 # Large case-control subset (from Jelena)------------
 
-crc2 <- read_csv("biocrates_p150.csv") %>% mutate_at(vars(var.list), as.factor)
+crc2 <- read_csv("biocrates_p150.csv") %>% mutate_at(vars(var.list), as.factor) %>%
+  inner_join(wcrf, by = "Idepic")
 
 # EPIC controls. First dataset, 3771 obs; updated November 2018 7191 obs
 # Rename factor levels
