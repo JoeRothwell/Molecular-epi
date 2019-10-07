@@ -46,9 +46,15 @@ predict.scores <- function(crc, dat, mod, scorecomp.only = F){
 small <- predict.scores(crc1, ctrlA, mod1a)
 large <- predict.scores(crc2, ctrlB, mod1b)
 
+# Join small and large together for pooled questionnaire model
+common.vars <- c("Cncr_Caco_Clrt", "Qe_Energy", "L_School", "Smoke_Stat", "Match_Caseset", "Wcrf_C_Cal")
+small0 <- select(small, common.vars)
+large0 <- select(large, common.vars)
+all <- bind_rows(small0, large0)
+
 # Biocrates compounds overlap all datasets
-small <- predict.scores(crc1, ctrls0, mod0)
-large <- get.scores.bioc(crc2, ctrls0, mod0)
+#small <- predict.scores(crc1, ctrls0, mod0)
+#large <- get.scores.bioc(crc2, ctrls0, mod0)
 
 FAs <- predict.scores(CRCfa1, concs, mod2)
 
@@ -74,6 +80,9 @@ fit8 <- clogit(update(base, ~. + Wcrf_C_Cal), data = FAs)
 # Biocrates large fasted (not used, excluding non-fasted doesn't improve OR)
 #fit1 <- clogit(update(base, ~. + score.2.comps), data = large.F)
 #fit2 <- clogit(update(base, ~. + Wcrf_C_Cal), data = large.F)
+
+# Pooled questionnaire
+fit9 <- clogit(update(base, ~. + Wcrf_C_Cal), data = all)
 
 
 
@@ -112,16 +121,20 @@ text(-1.2, 2.5, bquote(paste(I^2," = 0, ",italic(p),"-heterogeneity = 0.32")), p
 
 #text(-1.2, 3, bquote(paste("Fixed effects meta-analysis of A and B\n(p-heterogeneity = 0.32,",I^2," = 0)")), pos = 4, cex = 0.9)
 
+
 # All models ----
 
 library(broom)
 # Old: data for forest plot: all 8 models above for Biocrates and fatty acids
-ll <- list(fit7, fit8, fit1, fit2, fit3, fit4, fit5, fit6)
+ll <- list(fit7, fit8, fit3, fit4, fit5, fit6)
 t1 <- map_df(ll, tidy) %>% filter(term == "score.2.comps" | term == "Wcrf_C_Cal")
 studies <- data.frame(
-  CC = c(rep("Small", 2), rep("Large, fast", length(ll)/3), rep("Large, all", length(ll)/3), rep("Small", 2)),
+  CC = c(rep("Small", 2), 
+         #rep("Large, fast", length(ll)/3), 
+         rep("Large, all", length(ll)/3), 
+         rep("Small", 2)),
   nvec = map_int(ll, 10),
-  metabolites = c(rep("Fatty acids", 2), rep("Biocrates", 6)),
+  metabolites = c(rep("Fatty acids", 2), rep("Biocrates", 4)),
   mod = rep(c("Signature", "WCRF score"), 4)
   )
 
