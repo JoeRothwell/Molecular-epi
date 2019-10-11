@@ -3,7 +3,12 @@ library(tidyverse)
 library(readxl)
 
 # Read 1623 observations of 44 intensity variables (appears to be final scaled data) and metadata
-ints <- read_tsv("1507_XMetabolite_std_cpmg_E3N.txt")
+#ints.old <- read_tsv("1507_XMetabolite_std_cpmg_E3N.txt")
+
+# Update 11/10/19: Updated with unscaled data (will scale to unit variance)
+# Note: NAC1 and NAC2 are merged and onlyl 1582 observations
+ints.unscaled <- read_tsv("1510_XMetaboliteE3N_cpmg_unscaled.txt") #%>% as.matrix
+ints <- scale(ints.unscaled)
 
 # Lifestyle data. Subset variables needed
 meta <- read_csv("Lifepath_meta.csv", na = "9999") %>%
@@ -14,12 +19,14 @@ meta <- read_csv("Lifepath_meta.csv", na = "9999") %>%
 # Metabolite risk models --------------------------------------------------
 
 # CLR models to get odds ratios for metabolites
-dat <- left_join(meta, ints, by = "CODBMB")
+#dat <- left_join(meta, ints, by = "CODBMB")
+dat <- cbind(meta, ints)
   
 # Run models for all, pre-menopausal only and post-menopausal only
 #base <- CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH)
 
-Ints <- dat %>% select(`3Hydroxybutyrate`:Succinate) %>% as.matrix
+#Ints <- dat %>% select(`3Hydroxybutyrate`:Succinate) %>% as.matrix
+Ints <- ints
 
 library(survival)
 fits0 <- apply(Ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
@@ -29,7 +36,7 @@ fits1 <- apply(Ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCO
 fits2 <- apply(Ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
           DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH) + x, data = dat, subset = MENOPAUSE == 1))
 
-cmpd_meta <- read.csv("NMR_cmpd_metadata.csv")
+cmpd_meta <- read.csv("NMR_cmpd_metadata_new.csv")
 
 # Function to tidy and present output table
 
@@ -74,7 +81,7 @@ t2 <- map_df(fits1, tidy) %>% filter(term == "x") %>% bind_cols(cmpd_meta) %>%
   arrange(description)
 
 library(stargazer)
-stargazer(tab, summary = F, type = "html", out = "metabolite_table_selected.html")
+stargazer(tab, summary = F, type = "html", out = "metabolite_table_selected_new.html")
 
 # Manhattan plot
 
@@ -88,25 +95,26 @@ ggplot(pre, aes(y = reorder(Compound, P.value), x = log10(P.value))) +
   facet_grid(description ~ ., scales = "free_y", space = "free_y", switch= "x") +
   theme(axis.title.y = element_blank(), #axis.text.y = element_text(size=9),
         legend.position = c(0.25, 0.4),
-        legend.box.background = element_rect(colour="grey")) +
+        legend.box.background = element_rect(colour="grey")) #+
   #ggtitle("Metabolite associations with WCRF score (cal)")
 
 
 # Plot data with Metafor
-rowvec <- rev(c(1, 3, 5:7, 9:17, 19, 21, 23:24, 26:28, 30:31, 33:47, 49:51, 53:55))
-#rowvec2 <- cumsum(as.numeric(t2$description))
-#tabulate(t2$description)
+# Get vectors for row spacings using groups
+# To possibly add compound classes later
+cmpds_ordered <- cmpd_meta %>% arrange(description) %>% mutate(row = 1:n() + (as.numeric(description)-1))
+rowvec <- cmpds_ordered$row
 
 par(mar=c(5,4,1,2))
 library(metafor)
-forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1, #xlab = xtitle, 
-       xlab = "Multivariable-adjusted odds ratio", ylim = c(1, 58),
+forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1,
+       xlab = "Multivariable-adjusted odds ratio", 
+       ylim = c(1, max(rowvec) + 3),
        rows = rowvec, efac=0.5,
        at = 0:5,
-       top = 3,
-       xlim = c(-4, 8),
+       xlim = c(-3, 8),
+       #ilab = as.character(cmpds_ordered$description), ilab.xpos = -2, ilab.pos = 4,
        transf = exp, pch = 18, 
-       #col = "grey",
        cex = 0.8,
        annosym = c("  (", " to ", ")"),
        psize = 1.5, slab = t2$display_name)
