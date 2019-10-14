@@ -2,13 +2,9 @@
 library(tidyverse)
 library(readxl)
 
-# Read 1623 observations of 44 intensity variables (appears to be final scaled data) and metadata
-#ints.old <- read_tsv("1507_XMetabolite_std_cpmg_E3N.txt")
-
-# Update 11/10/19: Updated with unscaled data (will scale to unit variance)
-# Note: NAC1 and NAC2 are merged and onlyl 1582 observations
-ints.unscaled <- read_tsv("1510_XMetaboliteE3N_cpmg_unscaled.txt") #%>% as.matrix
-ints <- scale(ints.unscaled)
+# Update 11/10/19: Updated with unscaled data (see BC_compounds_scaling for old data)
+ints0 <- read_tsv("1510_XMetaboliteE3N_cpmg_unscaled.txt")
+ints <- scale(ints0)
 
 # Lifestyle data. Subset variables needed
 meta <- read_csv("Lifepath_meta.csv", na = "9999") %>%
@@ -16,30 +12,23 @@ meta <- read_csv("Lifepath_meta.csv", na = "9999") %>%
          CENTTIME, SAMPYEAR, STOCKTIME, DURTHSDIAG) %>%
   mutate_at(vars(-CODBMB, -CT, -AGE, -BMI, -STOCKTIME, -RTH, -ALCOHOL, -CENTTIME, -DURTHSDIAG), as.factor)
 
-# Metabolite risk models --------------------------------------------------
-
 # CLR models to get odds ratios for metabolites
-#dat <- left_join(meta, ints, by = "CODBMB")
 dat <- cbind(meta, ints)
   
 # Run models for all, pre-menopausal only and post-menopausal only
+library(survival)
 #base <- CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH)
 
-#Ints <- dat %>% select(`3Hydroxybutyrate`:Succinate) %>% as.matrix
-Ints <- ints
-
-library(survival)
-fits0 <- apply(Ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
+fits0 <- apply(ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
           DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH) + x, data = dat))
-fits1 <- apply(Ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
+fits1 <- apply(ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
           DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH) + x, data = dat, subset = MENOPAUSE == 0))
-fits2 <- apply(Ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
+fits2 <- apply(ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
           DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH) + x, data = dat, subset = MENOPAUSE == 1))
 
 cmpd_meta <- read.csv("NMR_cmpd_metadata_new.csv")
 
 # Function to tidy and present output table
-
 tidy.output <- function(fits) {
   
   library(broom) 
@@ -84,7 +73,6 @@ library(stargazer)
 stargazer(tab, summary = F, type = "html", out = "metabolite_table_selected_new.html")
 
 # Manhattan plot
-
 df <- bind_rows("All" = all, "Pre" = pre, "Post" = post, .id = "Group")
 
 library(ggplot2)
@@ -98,10 +86,8 @@ ggplot(pre, aes(y = reorder(Compound, P.value), x = log10(P.value))) +
         legend.box.background = element_rect(colour="grey")) #+
   #ggtitle("Metabolite associations with WCRF score (cal)")
 
-
 # Plot data with Metafor
-# Get vectors for row spacings using groups
-# To possibly add compound classes later
+# Get vectors for row spacings using groups (may add compound classes later)
 cmpds_ordered <- cmpd_meta %>% arrange(description) %>% mutate(row = 1:n() + (as.numeric(description)-1))
 rowvec <- cmpds_ordered$row
 
@@ -126,14 +112,12 @@ text(hh[2], max(rowvec) + 2, "OR [95% CI]", pos = 2, cex = 0.8)
 funnel(x = t2$estimate, sei = t2$std.error)
 funnel(x = t2$estimate, sei = t2$std.error, yaxis = "vi")
 
-
 # Investigation of Ethanol
-data <- left_join(meta, ints, by = "CODBMB")
-boxplot(data$Ethanol ~ data$CT + data$MENOPAUSE, varwidth = T, outline = F,
+boxplot(dat$Ethanol ~ dat$CT + dat$MENOPAUSE, varwidth = T, outline = F,
         names = c("Control, pre", "Case, pre", "Control, post", "Case, post"),
         col = "dodgerblue", ylab = "Plasma ethanol conc (scaled)")
 
-boxplot(log(data$ALCOHOL) ~ data$CT + data$MENOPAUSE, varwidth = T, outline = F,
+boxplot(log(dat$ALCOHOL) ~ dat$CT + dat$MENOPAUSE, varwidth = T, outline = F,
         names = c("Control, pre", "Case, pre", "Control, post", "Case, post"),
         col = "hotpink", ylab = "Plasma ethanol conc (scaled)")
 
@@ -141,25 +125,30 @@ mod1 <- wilcox.test(ALCOHOL ~ CT, data = dat, subset = MENOPAUSE == 0)
 mod2 <- wilcox.test(ALCOHOL ~ CT, data = dat, subset = MENOPAUSE == 1)
 
 
+hist(log2(dat$Ethanol))
+plot(log(dat$Ethanol), dat$ALCOHOL)
+fit.e <- lm(Ethanol ~ ALCOHOL, data = dat)
+summary(fit.e)
+
 # For publication
 library(ggsignif)
-ggplot(data, aes(x = as.factor(CT), y = Ethanol)) + geom_boxplot() + ylim(0, 2) +
+ggplot(dat, aes(x = as.factor(CT), y = Ethanol)) + geom_boxplot() + ylim(0, 2) +
   geom_signif(comparisons = c(0, 1), map_signif_level = T)
 
 # Heatmap of differences---------------------
 
- # Make a lookup df for menopausal status
+# Make a lookup df for menopausal status
 match.men <- dat %>% select(MATCH, MENOPAUSE) %>% unique()
-
-# Vectors of pre and post-menopausal 
-pre <- diff.wide$MENOPAUSE == 0
-post <- diff.wide$MENOPAUSE == 1
 
 # Wide and long datasets for gplots and ggplot2
 diff.wide <- dat %>% select(MATCH, CT,`3Hydroxybutyrate`:Succinate) %>% arrange(CT) %>%
   group_by(MATCH) %>% summarise_all(list(d = diff)) #%>% left_join(match.men, by = "MATCH")
 
 diff.long <- gather(diff.wide, compound, difference, -MATCH)
+
+# Vectors of pre and post-menopausal 
+pre <- diff.wide$MENOPAUSE == 0
+post <- diff.wide$MENOPAUSE == 1
 
 hist(dat1$difference, breaks = 50)
 which.max(dat1$difference)
