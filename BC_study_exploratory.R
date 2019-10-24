@@ -6,6 +6,9 @@ library(readxl)
 ints <- read_tsv("1507_XMetabolite_std_cpmg_E3N.txt")
 meta <- read.csv("Lifepath_meta.csv")
 
+# Plot metabolites one by one (need walk2 because names are an attribute of df)
+walk2(ints, colnames(ints), ~ plot(.x, main = .y, col = meta$RACK))
+
 # subset IDs to get subjects included in CC. Get positions of final CC samples in metadata
 samples <- ints$CODBMB %in% meta$CODBMB
 
