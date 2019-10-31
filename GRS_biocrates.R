@@ -2,21 +2,25 @@
 source("CRC_data_prep.R")
 source("Metabolic_signatures.R")
 
-prepdata <- function(group = 0, metabs = T) {
+# snps data with GRS calculated from Todd's STATA file
+library(haven)
+snps <- read_dta("clrt_gwas_gecco_snps_GRS.dta")
+
+prepdata <- function(dat, group = 0, metabs = T) {
 
   library(haven)
   library(tidyverse)
   
   # Read in snps data with GRS calculated from Todd's STATA file
-  snps <- read_dta("clrt_gwas_gecco_snps_GRS.dta")
+  dat <- read_dta("clrt_gwas_gecco_snps_GRS.dta")
   
   # Get small CRC obs that have SNP data
   # crcsmall <- readRDS("CRC_smallerCC.rds") 
   crcsmall <- crc1
-  intersect(snps$Idepic, crcsmall$Idepic) %>% length
+  intersect(data$Idepic, crcsmall$Idepic) %>% length
   
   # Join small CRC to SNPs
-  crc1 <- inner_join(crcsmall, snps, by="Idepic")
+  crc1 <- inner_join(crcsmall, dat, by="Idepic")
   # table(crc1$Cncr_Caco_Clrt)
   # 444 controls, 442 cases in small dataset
   
@@ -30,9 +34,9 @@ prepdata <- function(group = 0, metabs = T) {
   
   # Large CRC dataset
   crclarge <- read_csv("biocrates_p150.csv")
-  intersect(snps$Idepic, crclarge$Idepic) %>% length
+  intersect(dat$Idepic, crclarge$Idepic) %>% length
   
-  crc2 <- inner_join(crclarge, snps, by="Idepic")
+  crc2 <- inner_join(crclarge, dat, by="Idepic")
   # table(crc2$Cncr_Caco_Clrt)
   # 296 controls, 439 cases in dataset
   
@@ -42,7 +46,6 @@ prepdata <- function(group = 0, metabs = T) {
   } else {
     crc2 %>% filter(Cncr_Caco_Clrt == group) %>% mutate(study = "large")
   }
-  
   
   # subset Biocrates data from the two datasets and arrange by the common columns
   # mat1 <- crc1 %>% select(Acylcarn_C0 : Sugars_H1, -Batch_MetBio)
@@ -83,9 +86,9 @@ prepdata <- function(group = 0, metabs = T) {
 }  
 
 # Data for associations between GRS and metabolites for 1. Controls and 2. Cases
-controls <- prepdata(group = 0)
-cases    <- prepdata(group = 1)
-meta     <- prepdata(metabs = F)
+controls <- prepdata(snps, group = 0)
+cases    <- prepdata(snps, group = 1)
+meta     <- prepdata(snps, metabs = F)
 
 
 # Univariate ----
