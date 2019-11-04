@@ -6,6 +6,9 @@ library(readxl)
 ints0 <- read_tsv("1510_XMetaboliteE3N_cpmg_unscaled.txt")
 ints <- scale(ints0)
 
+# Look at intensity ranges for each compound
+walk2(ints0, colnames(ints0), ~ plot(.x, main = .y, col = ifelse(.x < 0, "red", "grey")))
+
 # Lifestyle data. Subset variables needed
 meta <- read_csv("Lifepath_meta.csv", na = "9999") %>%
   select(CODBMB, CT, MATCH, PLACE, AGE, BMI, BP, RTH, ALCOHOL, MENOPAUSE, FASTING, SMK, DIABETE, CENTTIMECat1, 
