@@ -12,7 +12,7 @@ walk2(ints0, colnames(ints0), ~ plot(.x, main = .y, col = ifelse(.x < 0, "red", 
 # Lifestyle data. Subset variables needed
 meta <- read_csv("Lifepath_meta.csv", na = "9999") %>%
   select(CODBMB, CT, MATCH, PLACE, AGE, BMI, BP, RTH, ALCOHOL, MENOPAUSE, FASTING, SMK, DIABETE, CENTTIMECat1, 
-         CENTTIME, SAMPYEAR, STOCKTIME, DURTHSDIAG) %>%
+         CENTTIME, SAMPYEAR, STOCKTIME, DURTHSDIAG, RACK) %>%
   mutate_at(vars(-CODBMB, -CT, -AGE, -BMI, -STOCKTIME, -RTH, -ALCOHOL, -CENTTIME, -DURTHSDIAG), as.factor)
 
 # CLR models to get odds ratios for metabolites
@@ -20,27 +20,57 @@ dat <- cbind(meta, ints)
   
 # Run models for all, pre-menopausal only and post-menopausal only
 library(survival)
-#base <- CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH)
 
 fits0 <- apply(ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
-          DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH) + x, data = dat))
+          DURTHSDIAG + CENTTIME + STOCKTIME + RACK + strata(MATCH) + x, data = dat))
 fits1 <- apply(ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
-          DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH) + x, data = dat, subset = MENOPAUSE == 0))
+          DURTHSDIAG + CENTTIME + STOCKTIME + RACK + strata(MATCH) + x, data = dat, subset = MENOPAUSE == 0))
 fits2 <- apply(ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
-          DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH) + x, data = dat, subset = MENOPAUSE == 1))
+          DURTHSDIAG + CENTTIME + STOCKTIME + RACK + strata(MATCH) + x, data = dat, subset = MENOPAUSE == 1))
 
 cmpd_meta <- read.csv("NMR_cmpd_metadata_new.csv")
 
-# Function to tidy and present output table
-tidy.output <- function(fits) {
+library(broom)
+t2 <- map_df(fits1, tidy) %>% filter(term == "x") %>% bind_cols(cmpd_meta) %>%
+  arrange(description)
+
+# Plot data with Metafor (pre-menopausal for manuscript)
+# Get vectors for row spacings using groups (may add compound classes later)
+cmpds_ordered <- cmpd_meta %>% arrange(description) %>% mutate(row = 1:n() + (as.numeric(description)-1))
+rowvec <- cmpds_ordered$row
+
+par(mar=c(5,4,1,2))
+library(metafor)
+forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1,
+       xlab = "Multivariable-adjusted odds ratio", 
+       ylim = c(1, max(rowvec) + 3),
+       rows = rowvec, efac=0.5,
+       #at = 0:5,
+       #xlim = c(-3, 8),
+       #ilab = as.character(cmpds_ordered$description), ilab.xpos = -2, ilab.pos = 4,
+       transf = exp, pch = 18, 
+       cex = 0.8,
+       annosym = c("  (", " to ", ")"),
+       psize = 1.5, slab = t2$display_name)
+hh <- par("usr")
+text(hh[1], max(rowvec) + 2, "Metabolite", pos = 4, cex = 0.8)
+text(hh[2], max(rowvec) + 2, "OR [95% CI]", pos = 2, cex = 0.8)
+
+# Funnel plots for metabolites
+funnel(x = t2$estimate, sei = t2$std.error)
+funnel(x = t2$estimate, sei = t2$std.error, yaxis = "vi")
+
+
+# Tables for manuscript
+# Generate tidy output table from models
+tidy.output <- function(mod) {
   
   library(broom) 
-  
   # Function to exponentiate and round
   round.exp <- function(x) round(exp(x), 2)
-  df <- map_df(fits, tidy) %>% filter(term == "x") %>%
+  df <- map_df(mod, tidy) %>% filter(term == "x") %>%
     mutate_at(.vars = c(OR = "estimate", "conf.low", "conf.high"), .funs = round.exp) %>%
-    cbind(Compound = names(fits)) %>%
+    cbind(Compound = names(mod)) %>%
     left_join(cmpd_meta, by  = "Compound")
   
   # Make columns
@@ -50,7 +80,7 @@ tidy.output <- function(fits) {
   df$CI.95 <- paste("(", df$conf.low, ", ", df$conf.high, ")", sep = "")
 
   # Select columns and order
-  df1 <- df %>% 
+  output <- df %>% 
     select(Compound = "display_name", "description", "OR", "CI.95", "P.value", "FDR", "Bonferroni") %>%
     arrange(description)
   
@@ -60,17 +90,11 @@ all <- tidy.output(fits0)
 pre <- tidy.output(fits1)
 post <- tidy.output(fits2)
 
-# Table for manuscript
-
 # Retain only metabolite groups with at least one p-value < 0.05
 tab <- bind_rows("All" = all, "Pre" = pre, "Post" = post, .id = "Analysis") %>%
   group_by(Compound) %>% filter(min(P.value) < 0.05) %>% 
   select(Compound, description, everything()) %>%
   arrange(description, Compound) %>% as.data.frame
-
-library(broom)
-t2 <- map_df(fits1, tidy) %>% filter(term == "x") %>% bind_cols(cmpd_meta) %>%
-  arrange(description)
 
 library(stargazer)
 stargazer(tab, summary = F, type = "html", out = "metabolite_table_selected_new.html")
@@ -93,27 +117,6 @@ ggplot(pre, aes(y = reorder(Compound, P.value), x = log10(P.value))) +
 # Get vectors for row spacings using groups (may add compound classes later)
 cmpds_ordered <- cmpd_meta %>% arrange(description) %>% mutate(row = 1:n() + (as.numeric(description)-1))
 rowvec <- cmpds_ordered$row
-
-par(mar=c(5,4,1,2))
-library(metafor)
-forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1,
-       xlab = "Multivariable-adjusted odds ratio", 
-       ylim = c(1, max(rowvec) + 3),
-       rows = rowvec, efac=0.5,
-       at = 0:5,
-       xlim = c(-3, 8),
-       #ilab = as.character(cmpds_ordered$description), ilab.xpos = -2, ilab.pos = 4,
-       transf = exp, pch = 18, 
-       cex = 0.8,
-       annosym = c("  (", " to ", ")"),
-       psize = 1.5, slab = t2$display_name)
-hh <- par("usr")
-text(hh[1], max(rowvec) + 2, "Metabolite", pos = 4, cex = 0.8)
-text(hh[2], max(rowvec) + 2, "OR [95% CI]", pos = 2, cex = 0.8)
-
-# Funnel plots for metabolites
-funnel(x = t2$estimate, sei = t2$std.error)
-funnel(x = t2$estimate, sei = t2$std.error, yaxis = "vi")
 
 # Investigation of Ethanol
 boxplot(dat$Ethanol ~ dat$CT + dat$MENOPAUSE, varwidth = T, outline = F,
