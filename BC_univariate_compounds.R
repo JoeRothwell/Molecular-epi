@@ -8,6 +8,18 @@ ints <- scale(ints0)
 
 # Look at intensity ranges for each compound
 walk2(ints0, colnames(ints0), ~ plot(.x, main = .y, col = ifelse(.x < 0, "red", "grey")))
+which(apply(as.matrix(ints0), 2, min) < 0)
+
+# --- Clusters
+
+# 3 compounds have values < 0: formate, hypoxanthine, inosine
+# 130 clusters were used to make the 43 compounds
+library(reshape2)
+clusters <- read_xlsx("1510_ClusterAnnotation_E3N.xlsx", sheet = 3, skip = 2) %>% t
+clusters1 <- melt(clusters)
+
+
+# ----
 
 # Lifestyle data. Subset variables needed
 meta <- read_csv("Lifepath_meta.csv", na = "9999") %>%

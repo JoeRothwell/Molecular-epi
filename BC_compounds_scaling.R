@@ -6,7 +6,7 @@ library(readxl)
 # Original data, 1623 observations of 44 compounds - appears to be Pareto scaled
 ints <- read_tsv("1507_XMetabolite_std_cpmg_E3N.txt")
 
-# Update 11/10/19: Updated with unscaled data (will scale to unit variance)
+# Update 11/10/19: Updated with unscaled data (will scale to unit variance). Added "_unscaled" to filename.
 # Note: NAC1 and NAC2 are merged and only 1582 observations
 ints0 <- read_tsv("1510_XMetaboliteE3N_cpmg_unscaled.txt") #%>% as.matrix
 ints1 <- scale(ints0)
