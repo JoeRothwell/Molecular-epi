@@ -15,9 +15,15 @@ which(apply(as.matrix(ints0), 2, min) < 0)
 # 3 compounds have values < 0: formate, hypoxanthine, inosine
 # 130 clusters were used to make the 43 compounds
 library(reshape2)
-clusters <- read_xlsx("1510_ClusterAnnotation_E3N.xlsx", sheet = 3, skip = 2) %>% t
-clusters1 <- melt(clusters)
-
+dat <- read_xlsx("1510_ClusterAnnotation_E3N.xlsx", sheet = 3, skip = 1)
+cmpds <- read_xlsx("1510_ClusterAnnotation_E3N.xlsx", sheet = 3) %>% colnames
+clust <- read_xlsx("1510_ClusterAnnotation_E3N.xlsx", sheet = 3, n_max = 1) %>% as.matrix
+clust1 <- clust[1, ]
+filt <- str_detect(clust, pattern = "SUM")
+dat1 <- t(dat[, !filt])
+cmpds1 <- cmpds[!filt]
+filt1 <- str_detect(cmpds1, "^[A-Z|0-9]")
+dat2 <- data.frame(cmpds1, dat1) %>% fill(cmpds1)
 
 # ----
 
