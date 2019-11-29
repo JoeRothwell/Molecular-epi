@@ -19,6 +19,15 @@ meta <- read_csv("Lifepath_meta.csv", na = "9999") %>%
          CENTTIME, SAMPYEAR, STOCKTIME, DURTHSDIAG, RACK) %>%
   mutate_at(vars(-CODBMB, -CT, -AGE, -BMI, -STOCKTIME, -RTH, -ALCOHOL, -CENTTIME, -DURTHSDIAG), as.factor)
 
+# Update 29/11/19: calculate quartiles in controls
+
+ints1 <- cbind(MATCH = meta$MATCH, CT = meta$CT, ints0) %>% filter(CT == 0)
+quartiles <- ints1 %>% select(-CT, -MATCH) %>% mutate_all(funs(cut_number(., n = 4, labels = 1:4)))
+
+# Try for one compound before applying
+quartiles1 <- ints1 %>% select(-MATCH) %>% group_by(CT) %>% mutate_all(funs(cut_number(., n = 4, labels = 1:4)))
+
+
 # CLR models to get odds ratios for metabolites
 dat <- cbind(meta, ints)
   
