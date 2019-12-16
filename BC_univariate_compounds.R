@@ -11,6 +11,12 @@ walk2(ints0, colnames(ints0), ~ plot(.x, main = .y, col = ifelse(.x < 0, "red", 
 which(apply(as.matrix(ints0), 2, min) < 0)
 # 3 compounds have values < 0: formate, hypoxanthine, inosine
 
+# Replace negative values with half the minimum positive value
+rm.neg.values <- function(x) ifelse(x < 0, min(x[x > 0])/2, x)
+ints.pos <- apply(ints0, 2, rm.neg.values)
+# Check
+which(apply(as.matrix(ints.pos), 2, min) < 0)
+
 # ----
 
 # Lifestyle data. Subset variables needed
@@ -30,22 +36,36 @@ quartiles1 <- ints1 %>% select(-MATCH) %>% group_by(CT) %>% mutate_all(funs(cut_
 
 # CLR models to get odds ratios for metabolites
 dat <- cbind(meta, ints)
+dat1 <- cbind(meta, ints0)
+dat2 <- cbind(meta, ints.pos)
+
   
 # Run models for all, pre-menopausal only and post-menopausal only
 library(survival)
 
-fits0 <- apply(ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
+fits0 <-  apply(ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
           DURTHSDIAG + CENTTIME + STOCKTIME + RACK + strata(MATCH) + x, data = dat))
-fits1 <- apply(ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
+fits0b <- apply(ints.pos, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
+          DURTHSDIAG + CENTTIME + STOCKTIME + RACK + strata(MATCH) + x, data = dat2))
+
+
+fits1a <- apply(ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
           DURTHSDIAG + CENTTIME + STOCKTIME + RACK + strata(MATCH) + x, data = dat, subset = MENOPAUSE == 0))
+fits1b <- apply(ints.pos, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
+          DURTHSDIAG + CENTTIME + STOCKTIME + RACK + strata(MATCH) + x, data = dat2, subset = MENOPAUSE == 0))
+
+
 fits2 <- apply(ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
           DURTHSDIAG + CENTTIME + STOCKTIME + RACK + strata(MATCH) + x, data = dat, subset = MENOPAUSE == 1))
+
+
+
 
 cmpd_meta <- read.csv("NMR_cmpd_metadata_new.csv")
 
 library(broom)
-t2 <- map_df(fits1, tidy) %>% filter(term == "x") %>% bind_cols(cmpd_meta) %>%
-  arrange(description)
+t2 <- map_df(fits1a, tidy) %>% filter(term == "x") %>% bind_cols(cmpd_meta) %>% arrange(description)
+t2a <- map_df(fits1b, tidy) %>% filter(term == "x") %>% bind_cols(cmpd_meta) %>% arrange(description)
 
 # Plot data with Metafor (pre-menopausal for manuscript)
 # Get vectors for row spacings using groups (may add compound classes later)
