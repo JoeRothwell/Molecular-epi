@@ -4,6 +4,8 @@ library(readxl)
 
 # Update 11/10/19: Updated with unscaled data (see BC_compounds_scaling for old data)
 ints0 <- read_tsv("1510_XMetaboliteE3N_cpmg_unscaled.txt")
+
+# Compounds as continuous variables ----
 ints <- scale(ints0)
 
 # Look at intensity ranges for each compound
@@ -17,6 +19,10 @@ ints.pos <- apply(ints0, 2, rm.neg.values)
 # Check
 which(apply(as.matrix(ints.pos), 2, min) < 0)
 
+# Compounds as categorical variables (deal with outliers)
+# Get quartiles for each compound from unscaled data
+quartiles <- ints0 %>% mutate_all(funs(cut_number(., n = 4, labels = 1:4))) 
+
 # ----
 
 # Lifestyle data. Subset variables needed
@@ -25,14 +31,25 @@ meta <- read_csv("Lifepath_meta.csv", na = "9999") %>%
          CENTTIME, SAMPYEAR, STOCKTIME, DURTHSDIAG, RACK) %>%
   mutate_at(vars(-CODBMB, -CT, -AGE, -BMI, -STOCKTIME, -RTH, -ALCOHOL, -CENTTIME, -DURTHSDIAG), as.factor)
 
-# Update 29/11/19: calculate quartiles in controls
+# Analysis by quartiles of metabolite concentration
+dat <- cbind(meta, quartiles)
 
-ints1 <- cbind(MATCH = meta$MATCH, CT = meta$CT, ints0) %>% filter(CT == 0)
-quartiles <- ints1 %>% select(-CT, -MATCH) %>% mutate_all(funs(cut_number(., n = 4, labels = 1:4)))
+# One compound only
+acetate <- dat %>% filter(Acetate == 1 | Acetate == 4)
+ethanol <- dat %>% filter(Ethanol == 1 | Ethanol == 4)
+library(survival)
+fit1 <- clogit(CT ~ fct_drop(Acetate) + strata(MATCH), data = acetate)
+fit.eth <- clogit(CT ~ fct_drop(Ethanol) + strata(MATCH), data = ethanol)
 
-# Try for one compound before applying
-quartiles1 <- ints1 %>% select(-MATCH) %>% group_by(CT) %>% mutate_all(funs(cut_number(., n = 4, labels = 1:4)))
+fit.eth1 <- clogit(CT ~ fct_drop(Ethanol) + BMI + SMK + DIABETE + RTH + ALCOHOL +
+                   DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH), data = ethanol)
 
+# Apply across all compounds
+fits <- apply(quartiles, 2, function(x) {
+  vec <- x == 1 | x == 4
+  clogit(CT ~  x[vec] + strata(MATCH), data = meta[vec, ])
+  }
+)
 
 # CLR models to get odds ratios for metabolites
 dat <- cbind(meta, ints)
@@ -41,25 +58,18 @@ dat2 <- cbind(meta, ints.pos)
 
   
 # Run models for all, pre-menopausal only and post-menopausal only
-library(survival)
-
 fits0 <-  apply(ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
           DURTHSDIAG + CENTTIME + STOCKTIME + RACK + strata(MATCH) + x, data = dat))
 fits0b <- apply(ints.pos, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
           DURTHSDIAG + CENTTIME + STOCKTIME + RACK + strata(MATCH) + x, data = dat2))
-
 
 fits1a <- apply(ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
           DURTHSDIAG + CENTTIME + STOCKTIME + RACK + strata(MATCH) + x, data = dat, subset = MENOPAUSE == 0))
 fits1b <- apply(ints.pos, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
           DURTHSDIAG + CENTTIME + STOCKTIME + RACK + strata(MATCH) + x, data = dat2, subset = MENOPAUSE == 0))
 
-
 fits2 <- apply(ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
           DURTHSDIAG + CENTTIME + STOCKTIME + RACK + strata(MATCH) + x, data = dat, subset = MENOPAUSE == 1))
-
-
-
 
 cmpd_meta <- read.csv("NMR_cmpd_metadata_new.csv")
 
