@@ -15,66 +15,59 @@ which(apply(as.matrix(ints0), 2, min) < 0)
 
 # Replace negative values with half the minimum positive value
 rm.neg.values <- function(x) ifelse(x < 0, min(x[x > 0])/2, x)
-ints.pos <- apply(ints0, 2, rm.neg.values)
+ints <- apply(ints0, 2, rm.neg.values)
 # Check
-which(apply(as.matrix(ints.pos), 2, min) < 0)
-
-# Compounds as categorical variables (deal with outliers)
-# Get quartiles for each compound from unscaled data
-quartiles <- ints0 %>% mutate_all(funs(cut_number(., n = 4, labels = 1:4))) 
-
-# ----
+which(apply(as.matrix(ints), 2, min) < 0)
 
 # Lifestyle data. Subset variables needed
 meta <- read_csv("Lifepath_meta.csv", na = "9999") %>%
-  select(CODBMB, CT, MATCH, PLACE, AGE, BMI, BP, RTH, ALCOHOL, MENOPAUSE, FASTING, SMK, DIABETE, CENTTIMECat1, 
-         CENTTIME, SAMPYEAR, STOCKTIME, DURTHSDIAG, RACK) %>%
-  mutate_at(vars(-CODBMB, -CT, -AGE, -BMI, -STOCKTIME, -RTH, -ALCOHOL, -CENTTIME, -DURTHSDIAG), as.factor)
-
-# Analysis by quartiles of metabolite concentration
-dat <- cbind(meta, quartiles)
-
-# One compound only
-acetate <- dat %>% filter(Acetate == 1 | Acetate == 4)
-ethanol <- dat %>% filter(Ethanol == 1 | Ethanol == 4)
-library(survival)
-fit1 <- clogit(CT ~ fct_drop(Acetate) + strata(MATCH), data = acetate)
-fit.eth <- clogit(CT ~ fct_drop(Ethanol) + strata(MATCH), data = ethanol)
-
-fit.eth1 <- clogit(CT ~ fct_drop(Ethanol) + BMI + SMK + DIABETE + RTH + ALCOHOL +
-                   DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH), data = ethanol)
-
-# Apply across all compounds
-fits <- apply(quartiles, 2, function(x) {
-  vec <- x == 1 | x == 4
-  clogit(CT ~  x[vec] + strata(MATCH), data = meta[vec, ])
-  }
-)
+  select(CT, BMI, SMK, DIABETE, RTH, ALCOHOL, DURTHSDIAG, CENTTIME, STOCKTIME, RACK, MATCH, MENOPAUSE) %>%
+    mutate_at(vars(SMK, DIABETE, RACK, MATCH), as.factor)
 
 # CLR models to get odds ratios for metabolites
 dat <- cbind(meta, ints)
-dat1 <- cbind(meta, ints0)
-dat2 <- cbind(meta, ints.pos)
-
+#dat1 <- cbind(meta, ints0)
   
 # Run models for all, pre-menopausal only and post-menopausal only
 fits0 <-  apply(ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
           DURTHSDIAG + CENTTIME + STOCKTIME + RACK + strata(MATCH) + x, data = dat))
-fits0b <- apply(ints.pos, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
-          DURTHSDIAG + CENTTIME + STOCKTIME + RACK + strata(MATCH) + x, data = dat2))
 
-fits1a <- apply(ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
+fits1 <- apply(ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
           DURTHSDIAG + CENTTIME + STOCKTIME + RACK + strata(MATCH) + x, data = dat, subset = MENOPAUSE == 0))
-fits1b <- apply(ints.pos, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
-          DURTHSDIAG + CENTTIME + STOCKTIME + RACK + strata(MATCH) + x, data = dat2, subset = MENOPAUSE == 0))
 
 fits2 <- apply(ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
           DURTHSDIAG + CENTTIME + STOCKTIME + RACK + strata(MATCH) + x, data = dat, subset = MENOPAUSE == 1))
 
+
+# Analysis by quartiles of metabolite concentration (resist outliers). Get quartiles for each compound from unscaled data
+quartiles <- ints0 %>% mutate_all(funs(cut_number(., n = 4, labels = 1:4))) 
+dat <- cbind(meta, quartiles)
+
+library(survival)
+
+# Apply across all compounds
+fits0 <- apply(quartiles, 2, function(x) {
+  Q1Q4 <- x == 1 | x == 4
+  clogit(CT ~  x[Q1Q4] + BMI + SMK + DIABETE + RTH + ALCOHOL + DURTHSDIAG + CENTTIME + 
+           STOCKTIME + RACK + strata(MATCH), data = meta[Q1Q4, ])
+  } )
+
+fits1 <- apply(quartiles, 2, function(x) {
+  Q1Q4 <- x == 1 | x == 4
+  clogit(CT ~  x[Q1Q4] + BMI + SMK + DIABETE + RTH + ALCOHOL + DURTHSDIAG + CENTTIME + 
+           STOCKTIME + RACK + strata(MATCH), data = meta[Q1Q4, ], subset = MENOPAUSE == 0)
+  } )
+
+fits2 <- apply(quartiles, 2, function(x) {
+  Q1Q4 <- x == 1 | x == 4
+  clogit(CT ~  x[Q1Q4] + BMI + SMK + DIABETE + RTH + ALCOHOL + DURTHSDIAG + CENTTIME + 
+           STOCKTIME + strata(MATCH), data = meta[Q1Q4, ], subset = MENOPAUSE == 1)
+  } )
+
 cmpd_meta <- read.csv("NMR_cmpd_metadata_new.csv")
 
 library(broom)
-t2 <- map_df(fits1a, tidy) %>% filter(term == "x") %>% bind_cols(cmpd_meta) %>% arrange(description)
+t2 <- map_df(fits1, tidy) %>% filter(str_detect(term, "x")) %>% bind_cols(cmpd_meta) %>% arrange(description)
 t2a <- map_df(fits1b, tidy) %>% filter(term == "x") %>% bind_cols(cmpd_meta) %>% arrange(description)
 
 # Plot data with Metafor (pre-menopausal for manuscript)
@@ -85,16 +78,13 @@ rowvec <- cmpds_ordered$row
 par(mar=c(5,4,1,2))
 library(metafor)
 forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1,
+       ylim = c(1, max(rowvec) + 3), #at = 0:5,
        xlab = "Multivariable-adjusted odds ratio", 
-       ylim = c(1, max(rowvec) + 3),
-       rows = rowvec, efac=0.5,
-       #at = 0:5,
-       #xlim = c(-3, 8),
-       #ilab = as.character(cmpds_ordered$description), ilab.xpos = -2, ilab.pos = 4,
-       transf = exp, pch = 18, 
-       cex = 0.8,
+       transf = exp, rows = rowvec, efac = 0.5,
+       pch = 18, cex = 0.8, psize = 1.5, 
        annosym = c("  (", " to ", ")"),
-       psize = 1.5, slab = t2$display_name)
+       slab = t2$display_name)
+
 hh <- par("usr")
 text(hh[1], max(rowvec) + 2, "Metabolite", pos = 4, cex = 0.8)
 text(hh[2], max(rowvec) + 2, "OR [95% CI]", pos = 2, cex = 0.8)
