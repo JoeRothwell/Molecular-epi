@@ -11,9 +11,12 @@ meta <- read_csv("Lifepath_meta.csv", na = "9999") %>%
   select(CT, BMI, SMK, DIABETE, RTH, ALCOHOL, DURTHSDIAG, CENTTIME, STOCKTIME, RACK, MATCH, MENOPAUSE, SAMPYEAR) %>%
   mutate_at(vars(SMK, DIABETE, RACK, MATCH, SAMPYEAR), as.factor)
 
+# Remove problem racks
+#meta1 <- meta %>% filter(!RACK %in% c(10, 29, 33, 34))
+#filt <- !(meta$RACK %in% c(10, 29, 33, 34))
+
 # Analysis by quartiles of metabolite concentration (resist outliers). Get quartiles for each compound from unscaled data
 quartiles <- ints0 %>% mutate_all(funs(cut_number(., n = 4, labels = 1:4))) 
-dat <- cbind(meta, quartiles)
 
 library(survival)
 
@@ -23,7 +26,7 @@ library(survival)
 fits0 <- apply(quartiles, 2, function(x) {
   Q1Q4 <- x == 1 | x == 4
   clogit(CT ~  x[Q1Q4] + BMI + SMK + DIABETE + RTH + ALCOHOL + 
-                         DURTHSDIAG + SAMPYEAR +
+                         DURTHSDIAG +
                          CENTTIME + STOCKTIME + #RACK +
                          strata(MATCH), data = meta[Q1Q4, ])
 } )
@@ -65,7 +68,7 @@ dat1 <- cbind(meta1, quartiles1)
 fits0 <- apply(quartiles1, 2, function(x) {
   Q1Q4 <- x == 1 | x == 4
   clogit(CT ~  x[Q1Q4] + BMI + SMK + DIABETE + RTH + ALCOHOL + 
-                         DURTHSDIAG + SAMPYEAR +
+                         DURTHSDIAG + #SAMPYEAR +
                          CENTTIME + STOCKTIME + #RACK +
                          strata(MATCH), data = meta1[Q1Q4, ])
 } )
@@ -105,7 +108,7 @@ dat1 <- cbind(meta1, quartiles1)
 fits0 <- apply(quartiles1, 2, function(x) {
   Q1Q4 <- x == 1 | x == 4
   clogit(CT ~  x[Q1Q4] + BMI + SMK + DIABETE + RTH + ALCOHOL + 
-           DURTHSDIAG + SAMPYEAR +
+           DURTHSDIAG + #SAMPYEAR +
            CENTTIME + STOCKTIME + #RACK +
            strata(MATCH), data = meta1[Q1Q4, ])
 } )
