@@ -15,8 +15,9 @@ filt <- !(meta$RACK %in% c(10, 29, 33, 34))
 meta1 <- meta[filt, ]
 
 library(survival)
-fit1 <- clogit(CT ~ eth + BMI + SMK + DIABETE + RTH + ALCOHOL + DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH), data = meta)
-fit2 <- clogit(CT ~ eth + BMI + SMK + DIABETE + RTH + ALCOHOL + DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH), data = meta1)
+base <- CT ~ eth + BMI + SMK + DIABETE + RTH + ALCOHOL + DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH)
+fit1 <- clogit(update(base, . ~ .), data = meta)
+fit2 <- clogit(update(base, . ~ .), data = meta1)
 
 # categorical
 
@@ -30,3 +31,22 @@ meta2$eth_q <- droplevels(meta2$eth_q)
 
 fit3 <- clogit(CT ~ eth_q + BMI + SMK + DIABETE + RTH + ALCOHOL + DURTHSDIAG + CENTTIME + STOCKTIME +
          strata(MATCH), data = meta2)
+
+library(broom)
+t <- map_df(list(fit1, fit2), tidy) %>% filter(str_detect(term, "eth"))
+
+par(mar=c(5,4,2,2))
+library(metafor)
+forest(t$estimate, ci.lb = t$conf.low, ci.ub = t$conf.high, refline = 1,
+       xlab = "OR per SD increase in concentration", 
+       transf = exp, efac = 0.5,
+       pch = 18, cex = 0.8, psize = 1.5, 
+       annosym = c("  (", " to ", ")"))
+
+t1 <- map_df(fit1, tidy) %>% filter(str_detect(term, "eth"))
+
+forest(t1$estimate, ci.lb = t1$conf.low, ci.ub = t1$conf.high, refline = 1,
+       xlab = "OR per SD increase in concentration", 
+       transf = exp, efac = 0.5,
+       pch = 18, cex = 0.8, psize = 1.5, 
+       annosym = c("  (", " to ", ")"))
