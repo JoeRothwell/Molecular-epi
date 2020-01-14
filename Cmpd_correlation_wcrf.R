@@ -1,5 +1,6 @@
 # Correlations between Biocrates compounds and FAs in small CC
-source("CRC_data_prep.R")
+source("CRC_prep_data.R")
+source("CRC_get_signatures.R")
 
 # Get compounds and idepics from CRC1
 FAs.ID <- get.plsdata(CRCfa1, cor.data = T)
