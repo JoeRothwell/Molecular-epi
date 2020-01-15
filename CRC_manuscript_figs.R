@@ -10,31 +10,62 @@ venn.diagram(list(Controls = colnames(ctrlA), CRC1 = colnames(ctrlB), CRC2 = col
 
 
 # Coefficient plots
-
+library(ggplot2)
 pltdata$Class <- factor(pltdata$class, 
               levels = rev(c("Amino acids", "Biogenic amines", "Monosaccharides", "Acylcarnitines", 
               "Lysophosphatidylcholine", "Phosphatidylcholine (acyl-acyl)", 
               "Phosphatidylcholine (acyl-alkyl)", "Sphingolipids")))
 
-library(ggplot2)
-p1 <- ggplot(pltdata, aes(y = Class, x = Coefficient, colour = Class)) + 
-  geom_jitter(height = 0.1) + 
-  theme_bw() + geom_vline(xintercept = 0, linetype = "dashed") +
-  theme(legend.position = "none", axis.title.y = element_blank()) +
-  xlab("Coefficient from first PLS latent variable") +
-  ggtitle("A") +
-  scale_y_discrete(labels = c("Phosphatidylcholine (acyl-alkyl)" = "Phosphatidylcholine\n(acyl-alkyl)",
-                              "Phosphatidylcholine (acyl-acyl)" = "Phosphatidylcholine\n(acyl-acyl)",
-                              "Lysophosphatidylcholine" = "Lysophosphatidyl-\ncholine"))
+
+#p1 <- ggplot(pltdata, aes(y = Class, x = Coefficient, colour = Class)) + 
+  #geom_jitter(height = 0.1) + 
+  #theme_bw() + geom_vline(xintercept = 0, linetype = "dashed") +
+  #theme(legend.position = "none", axis.title.y = element_blank()) +
+  #xlab("Coefficient from first PLS latent variable") +
+  #ggtitle("A") +
+  #scale_y_discrete(labels = c("Phosphatidylcholine (acyl-alkyl)" = "Phosphatidylcholine\n(acyl-alkyl)",
+   #                           "Phosphatidylcholine (acyl-acyl)" = "Phosphatidylcholine\n(acyl-acyl)",
+    #                          "Lysophosphatidylcholine" = "Lysophosphatidyl-\ncholine"))
+
+pltdata$compound <- as.character(pltdata$compound)
+pltdata1 <- pltdata %>% 
+  mutate(id = 1:n(), compound1 = ifelse(abs(Coefficient) > 0.022, compound, NA))
+
+p1 <- ggplot(pltdata1, aes(x = id, y = Coefficient, shape = Class)) + geom_point() + 
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        axis.text.x = element_blank(),
+        legend.title = element_blank()) +
+  scale_shape_manual(values = c(15, 1, 19, 25, 22, 14, 3, 4)) +
+  xlab("Endogenous metabolite") + ylab("Coefficient from PLS model") +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_text(aes(label = compound1), hjust = -0.1, vjust = 0, size = 3) +
+  ggtitle("A")
 
 faplot$Class <- factor(faplot$class, levels = rev(c("Saturated", "Monounsaturated", 
                   "Polyunsaturated", "Natural trans", "Industrial trans")))
 
-p2 <- ggplot(faplot, aes(y = Class, x = Coefficient, colour = Class)) + 
-  geom_jitter(height = 0) + 
-  xlab("Coefficient from first PLS latent variable") +
-  theme_half_open() + geom_vline(xintercept = 0, linetype = "dashed") +
-  theme(legend.position = "none", axis.title.y = element_blank()) +
+#p2 <- ggplot(faplot, aes(y = Class, x = Coefficient, colour = Class)) + 
+  #geom_jitter(height = 0) + 
+  #xlab("Coefficient from first PLS latent variable") +
+  #theme_half_open() + geom_vline(xintercept = 0, linetype = "dashed") +
+  #theme(legend.position = "none", axis.title.y = element_blank()) +
+  #ggtitle("B")
+
+faplot$compound <- as.character(faplot$compound)
+
+faplot1 <- faplot %>% 
+  mutate(id = 1:n(), compound1 = ifelse(abs(Coefficient) > 0.045, compound, NA))
+
+p2 <- ggplot(faplot1, aes(x = compound, y = Coefficient, shape = class)) + geom_point() + 
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        axis.text.x = element_blank(),
+        legend.title = element_blank()) +
+  #scale_shape_manual(values = c(2, 1, 19, 25, 22)) +
+  xlab("Endogenous metabolite") + ylab("Coefficient from PLS model") +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  geom_text(aes(label = compound1), hjust = -0.1, vjust = 0, size = 3) +
   ggtitle("B")
 
 # Generate aligned plots
