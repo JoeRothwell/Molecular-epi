@@ -119,7 +119,7 @@ mod0  <- get.signature(Bioc0)
 plot.signature <- function(mod, biocrates = T, percentile = 5, all = T){
   
   library(tidyverse)
-  cmpds <- if(biocrates == T) read.csv("Biocrates_cmpd_metadata.csv") else read.csv("FA_compound_data.csv")
+  cmpds <- if(biocrates == T) read_csv("Biocrates_cmpd_metadata.csv") else read_csv("FA_compound_data.csv")
   
   # Coefficients and variable importance. First subset one-matrix array to get matrix
   # Extract coefficients from pls or caret objects, 1st LV: (pls gives an mvr object)
