@@ -59,6 +59,9 @@ Bioc0  <- get.plsdata(ctrls) # All control compounds
 get.signature <- function(plsdata, which.mod = "plsmod"){
   
   # Biocrates (endogenous metabolites) for metabolic signature of WCRF score on controls dataset
+  # This function gives the choice of fitting the model either with the pls package or Caret
+  # pls was eventually used for the analysis.
+  
   if(which.mod == "plsmod"){
     
     library(pls)
@@ -138,7 +141,8 @@ plot.signature <- function(mod, biocrates = T, percentile = 5, all = T){
     select(class, compound = displayname, Coefficient = value)
   
   # Get top and bottom 5 percentiles and subset for table
-  dat <- dat %>% mutate(Perc = cut_number(Coefficient, n = pc, labels = 1:pc))
+  dat <- dat %>% mutate(Perc = cut_number(Coefficient, n = pc, labels = 1:pc)) #%>%
+    #arrange(class)
   dat1 <- dat %>% filter(Perc == 1 | Perc == pc) %>% 
     arrange(Perc, abs(Coefficient)) %>% map_df(rev)
   
