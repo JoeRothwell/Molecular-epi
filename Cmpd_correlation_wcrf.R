@@ -2,15 +2,15 @@
 source("CRC_prep_data.R")
 source("CRC_get_signatures.R")
 
-# Get compounds and idepics from CRC1
+# Get compounds and idepics from CRC1 and join together by Idepic
 FAs.ID <- get.plsdata(CRCfa1, cor.data = T)
 Bioc.ID <- select.ctrl.cmpds(crc1, cor.data = T)
 
 dat <- inner_join(FAs.ID, Bioc.ID, by = "Idepic") %>% select(-Idepic) 
 
 # Get compound metadata for short names
-meta.bioc <- read.csv("Biocrates_cmpd_metadata.csv") %>% select(Compound, displayname)
-meta.fa   <- read.csv("FA_compound_data.csv") %>% select(Compound, displayname)
+meta.bioc <- read_csv("Biocrates_cmpd_metadata.csv") %>% select(Compound, displayname)
+meta.fa   <- read_csv("FA_compound_data.csv") %>% select(Compound, displayname)
 meta <- bind_rows(meta.bioc, meta.fa)
 
 mm <- data.frame(Compound = colnames(dat))
@@ -44,6 +44,13 @@ circlize_dendrogram(dend1, dend_track_height = 0.85)
 library(circlize)
 circlize
 
+# Get table of correlations in descending order
 library(reshape2)
 all.correlations <- melt(cormat) %>% filter(value != 1) %>% arrange(desc(value))
 all.correlations %>% filter(Var1 == "P17_0")
+t1 <- all.correlations %>% filter(Var1 %in% meta.fa$displayname & Var2 %in% meta.bioc$Compound)
+
+# Heatmap Biocrates vs fatty acids only
+mat <- acast(t1, Var2 ~ Var1, value.var = "value")
+library(pheatmap)
+pheatmap(castdf)
