@@ -4,38 +4,30 @@ source("CRC_get_signatures.R")
 # Coefficient plots
 library(ggplot2)
 
-# Reordering factor levels changes the legend order
-pltdata$class <- factor(pltdata$class, 
-              levels = rev(c("Amino acids", "Biogenic amines", "Monosaccharides", "Acylcarnitines", 
-              "Lysophosphatidylcholine", "Phosphatidylcholine (acyl-acyl)", 
-              "Phosphatidylcholine (acyl-alkyl)", "Sphingolipids")))
+# To change legend order, reorder factor levels
+pltdata1 <- pltdata %>% mutate(compound1 = ifelse(abs(Coefficient) > 0.022, compound, NA))
 
-pltdata1 <- pltdata %>% #arrange(class) %>%
-  mutate(id = 1:n(), compound1 = ifelse(abs(Coefficient) > 0.022, compound, NA))
 
-p1 <- ggplot(pltdata1, aes(x = id, y = Coefficient, shape = str_wrap(class, 20))) + geom_point() + 
-  theme_bw() +
+p1 <- ggplot(pltdata1, aes(x = compound, y = Coefficient, shape = str_wrap(class, 20))) + 
+  geom_point() + theme_bw() +
   theme(panel.grid.major = element_blank(),
         axis.text.x = element_blank(),
-        legend.title = element_blank()) +
+        legend.title = element_blank(),
+        axis.ticks.x = element_blank()) +
   scale_shape_manual(values = c(15, 1, 19, 25, 22, 14, 3, 4)) +
   xlab("Endogenous metabolite") + ylab("Coefficient from PLS model") +
   geom_hline(yintercept = 0, linetype = "dashed") +
   geom_text(aes(label = compound1), hjust = -0.1, vjust = 0, size = 3) +
   ggtitle("A")
 
-faplot$class <- factor(faplot$class, levels = rev(c(
-                  "Polyunsaturated", "Natural trans", "Industrial trans",
-                  "Saturated", "Monounsaturated")))
+faplot1 <- faplot %>% mutate(compound1 = ifelse(abs(Coefficient) > 0.045, compound, NA))
 
-faplot1 <- faplot %>% #arrange(class) %>%
-  mutate(id = 1:n(), compound1 = ifelse(abs(Coefficient) > 0.045, compound, NA))
-
-p2 <- ggplot(faplot1, aes(x = compound, y = Coefficient, shape = class)) + geom_point() + 
+p2 <- ggplot(faplot1, aes(x = 1:nrow(faplot), y = Coefficient, shape = class)) + geom_point() + 
   theme_bw() +
   theme(panel.grid.major = element_blank(),
         axis.text.x = element_blank(),
-        legend.title = element_blank()) +
+        legend.title = element_blank(),
+        axis.ticks.x = element_blank()) +
   scale_shape_manual(values = c(6, 16, 1, 4, 3)) +
   xlab("Fatty acid") + ylab("Coefficient from PLS model") +
   geom_hline(yintercept = 0, linetype = "dashed") +
@@ -48,7 +40,7 @@ both <- align_plots(p1, p2, align = "hv", axis = "tblr")
 p1x <- ggdraw(both[[1]])
 p2x <- ggdraw(both[[2]])
 
-ggsave("FA_endogenous.png", height = 140, width = 240, units = "mm")
+ggsave("endogenous.png", height = 100, width = 180, units = "mm")
 
 # Venn diagram for compounds
 library(VennDiagram)
