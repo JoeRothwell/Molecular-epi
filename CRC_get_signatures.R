@@ -3,7 +3,7 @@ source("CRC_prep_data.R")
 
 # Get compound matrix and questionnaire scores
 get.plsdata <- function(dat, cor.data = F){
- 
+ # changes
   # Adjusts and scales the controls metabolite matrices for confounders and binds scores for model
   library(tidyverse)
   library(lme4)

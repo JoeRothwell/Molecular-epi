@@ -20,6 +20,7 @@ all <- left_join(mm, meta, by = "Compound")
 # Calculate correlations
 cormat <- cor(dat, use = "pairwise.complete.obs")
 rownames(cormat) <- all$displayname
+colnames(cormat) <- all$displayname
 
 # Correlation matrix (large)
 library(corrplot)
@@ -48,9 +49,10 @@ circlize
 library(reshape2)
 all.correlations <- melt(cormat) %>% filter(value != 1) %>% arrange(desc(value))
 all.correlations %>% filter(Var1 == "P17_0")
-t1 <- all.correlations %>% filter(Var1 %in% meta.fa$displayname & Var2 %in% meta.bioc$Compound)
+t1 <- all.correlations %>% filter(Var1 %in% meta.fa$displayname & Var2 %in% meta.bioc$displayname)
 
 # Heatmap Biocrates vs fatty acids only
 mat <- acast(t1, Var2 ~ Var1, value.var = "value")
+
 library(pheatmap)
-pheatmap(castdf)
+pheatmap(mat, fontsize = 8)
