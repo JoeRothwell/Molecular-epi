@@ -1,8 +1,10 @@
-# LIFEPATH data exploratory
+# Breast cancer NMR metabolomics data exploratory analysis
+# Scaled and unscaled data (already done in SIMCA). Updated after receiving scaled data.
 library(tidyverse)
 library(readxl)
 
-# Read 1623 observations of 44 intensity variables (appears to be final scaled data) and metadata
+# Read scaled and unscaled data (for comparison) and metadata
+ints0 <- read_tsv("1510_XMetaboliteE3N_cpmg_unscaled.txt")
 ints <- read_tsv("1507_XMetabolite_std_cpmg_E3N.txt")
 meta <- read.csv("Lifepath_meta.csv")
 
@@ -12,17 +14,25 @@ walk2(ints, colnames(ints), ~ plot(.x, main = .y, col = meta$RACK))
 # subset IDs to get subjects included in CC. Get positions of final CC samples in metadata
 samples <- ints$CODBMB %in% meta$CODBMB
 
-# baseline characteristics table: see baseline_lifepath.R
+# For baseline characteristics table: see BC_baseline_char.R
 
-# Exploratory analysis --------------------------------------------
-# Check total intensities for each metabolite
-ints <- ints[samples, ]
-plot(colSums(ints[ , -1]), xlab = "Compound number", ylab = "Scaled intensity",
-     pch = 19, col = "dodgerblue", font.main = 1,
-     main = "Summed intensities of 44 metabolites for 1582 subjects")
+# Distributions all data
+par(mfrow = c(2,1))
+hist(as.matrix(ints0[, -1]), breaks = 50, col = "dodgerblue")
+hist(as.matrix(ints[ , -1 ]), breaks = 50, col = "dodgerblue")
+
+# Median intensities before scaling
+dev.off()
+points0 <- apply(ints0, 2, median)
+plot(points0, col = "white", main = "Median compound intensities")
+text(points0, labels = colnames(ints0))
+
+# After scaling
+points <- apply(ints[, -1], 2, median)
+plot(points, col = "white", main = "Median compound intensities")
+text(points, labels = colnames(ints[, -1]))
 
 # Time to centrifugation vs fasting status
-
 boxplot(CENTTIME ~ FASTING, data = meta, varwidth = T)
 meta1 <- meta[meta$CENTTIME < 100, ]
 library(gplots)
@@ -39,8 +49,11 @@ corrplot(cormat, method = "square", tl.col = "black", tl.cex = 0.8)
 # The fatty acids are inversely correlated with many compounds
 
 # Run PCA of all samples
+pca0 <- prcomp(ints0, scale. = F, center = F)
+biplot(pca0)
+
 pca <- prcomp(ints[, -1], scale.=F)
-plot(pca)
+biplot(pca)
 
 # Plot 
 library(pca3d)
