@@ -56,3 +56,15 @@ mat <- acast(t1, Var2 ~ Var1, value.var = "value")
 
 library(pheatmap)
 pheatmap(mat, fontsize = 8)
+
+# With Complex Heatmap
+# https://jokergoo.github.io/ComplexHeatmap-reference/book/a-single-heatmap.html
+library(ComplexHeatmap)
+library(circlize)
+col_fun = colorRamp2(c(-0.5, 0, 0.91), c("green", "white", "red"))
+col_fun(seq(-3, 3))
+Heatmap(mat, column_title = "Fatty acids", row_title = "Endogenous metabolites", 
+        column_km = 3, row_km = 3, row_names_side = "left")
+
+ha <- rowAnnotation(foo = anno_mark(at = c(10, 20, 50, 100), labels = c("metabo1", "metabo2", "metabo3", "metabo4")))
+Heatmap(mat, right_annotation = ha)
