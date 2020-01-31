@@ -61,6 +61,7 @@ st1 <- summary_table(group_by(crc1a, Cncr_Caco_Clrt), crc_sum)
 st2 <- summary_table(group_by(crc2a, Cncr_Caco_Clrt), crc_sum)
 both <- cbind(st1, st2)
 print(both, cnames = c("CRC1 cases", "CRC1 controls", "CRC2 cases", "CRC2 controls"))
+# Copy and paste output into an Rmarkdown file and render to word/pdf etc
 
 
 # Tests for p-values for table -----------------------------

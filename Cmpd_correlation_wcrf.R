@@ -51,20 +51,60 @@ all.correlations <- melt(cormat) %>% filter(value != 1) %>% arrange(desc(value))
 all.correlations %>% filter(Var1 == "P17_0")
 t1 <- all.correlations %>% filter(Var1 %in% meta.fa$displayname & Var2 %in% meta.bioc$displayname)
 
+# Get correlations > 0.5 in correct order
+t2 <- melt(cormat) %>% 
+  filter(value > 0.5, Var1 %in% meta.fa$displayname & Var2 %in% meta.bioc$displayname)
+colnames(t2) <- c("displayname2", "displayname", "value")
+
+
 # Heatmap Biocrates vs fatty acids only
 mat <- acast(t1, Var2 ~ Var1, value.var = "value")
 
 library(pheatmap)
-pheatmap(mat, fontsize = 8)
+pheatmap(mat, fontsize = 8, color = colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))(100),)
+
+# Make data for annotations
+cmpd_meta <- read_csv("Biocrates_cmpd_metadata.csv")
+df <- data_frame(displayname = rownames(mat))
+annotation_df <- inner_join(df, cmpd_meta, by = "displayname")
+
+t3 <- inner_join(t2, annotation_df, by = "displayname")
+
+row_ha <- rowAnnotation(Class = annotation_df$class)
 
 # With Complex Heatmap
 # https://jokergoo.github.io/ComplexHeatmap-reference/book/a-single-heatmap.html
 library(ComplexHeatmap)
 library(circlize)
-col_fun = colorRamp2(c(-0.5, 0, 0.91), c("green", "white", "red"))
-col_fun(seq(-3, 3))
-Heatmap(mat, column_title = "Fatty acids", row_title = "Endogenous metabolites", 
-        column_km = 3, row_km = 3, row_names_side = "left")
+library(RColorBrewer)
+Heatmap(mat, col = colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))(100),
+        #column_title = "Fatty acids", 
+        cluster_rows = F,
+        #row_title = "Endogenous metabolites", 
+        #column_km = 3, 
+        #row_km = 3, 
+        row_split = annotation_df$class,
+        row_title = NULL,
+        row_names_side = "right", show_row_names = T,
+        row_names_gp = gpar(fontsize = 10),
+        column_names_gp = gpar(fontsize = 10),
+        left_annotation = row_ha,
+        #row_gap = unit(0, "mm"),
+        border = F)
 
 ha <- rowAnnotation(foo = anno_mark(at = c(10, 20, 50, 100), labels = c("metabo1", "metabo2", "metabo3", "metabo4")))
 Heatmap(mat, right_annotation = ha)
+
+
+
+
+
+
+
+
+
+
+
+
+
+

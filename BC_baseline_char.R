@@ -197,7 +197,22 @@ ll <- list(
   chisq.test(meta$CT, meta$Trait_Horm)
 )
 
-t.test(meta$DURTHSDIAG ~ meta$CT)$p.value
+ll <- list(
+  mcnemar.test(meta$CT, meta$RTHCat1),
+  mcnemar.test(meta$CT, meta$BMICat1),
+  mcnemar.test(meta$CT, meta$SMK),
+  mcnemar.test(meta$CT, meta$DIABETE),
+  mcnemar.test(meta$CT, meta$BP),
+  mcnemar.test(meta$CT, meta$Life_Alcohol_Pattern_1),
+  mcnemar.test(meta$CT, meta$Trait_Horm)
+)
+
+
+
+
+#t.test(meta$DURTHSDIAG ~ meta$CT)$p.value
+test1 <- wilcox.test(meta$DURTHSDIAG ~ meta$CT)
+
 
 # Pre/post menopausal models
 l  <- list(
