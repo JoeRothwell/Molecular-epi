@@ -3,21 +3,23 @@ source("CRC_get_signatures.R")
 
 # Coefficient plots
 library(ggplot2)
+library(ggrepel)
 
 # To change legend order, reorder factor levels
 pltdata1 <- pltdata %>% mutate(compound1 = ifelse(abs(Coefficient) > 0.022, compound, NA))
 
-
-p1 <- ggplot(pltdata1, aes(x = compound, y = Coefficient, shape = str_wrap(class, 20))) + 
+p1 <- 
+  ggplot(pltdata1, aes(x = compound, y = Coefficient, shape = str_wrap(class, 20))) + 
   geom_point() + theme_bw() +
   theme(panel.grid.major = element_blank(),
         axis.text.x = element_blank(),
-        legend.title = element_blank(),
-        axis.ticks.x = element_blank()) +
+        axis.ticks.x = element_line(),
+        legend.title = element_blank()) +
   scale_shape_manual(values = c(15, 1, 19, 25, 22, 14, 3, 4)) +
   xlab("Endogenous metabolite") + ylab("Coefficient from PLS model") +
   geom_hline(yintercept = 0, linetype = "dashed") +
-  geom_text(aes(label = compound1), hjust = -0.1, vjust = 0, size = 3) +
+  #geom_text(aes(label = compound1), hjust = -0.1, vjust = 0, size = 3) +
+  geom_text_repel(aes(label = compound1), size = 3) +
   ggtitle("A")
 
 faplot1 <- faplot %>% mutate(compound1 = ifelse(abs(Coefficient) > 0.045, compound, NA))
@@ -31,16 +33,17 @@ p2 <- ggplot(faplot1, aes(x = 1:nrow(faplot), y = Coefficient, shape = class)) +
   scale_shape_manual(values = c(6, 16, 1, 4, 3)) +
   xlab("Fatty acid") + ylab("Coefficient from PLS model") +
   geom_hline(yintercept = 0, linetype = "dashed") +
-  geom_text(aes(label = compound1), hjust = -0.1, vjust = 0, size = 3) +
+  #geom_text(aes(label = compound1), hjust = -0.1, vjust = 0, size = 3) +
+  geom_text_repel(aes(label = compound1), size = 3) +
   ggtitle("B")
 
 # Generate aligned plots
 library(cowplot)
 both <- align_plots(p1, p2, align = "hv", axis = "tblr")
-p1x <- ggdraw(both[[1]])
-p2x <- ggdraw(both[[2]])
-
+ggdraw(both[[1]])
 ggsave("endogenous.png", height = 100, width = 180, units = "mm")
+ggdraw(both[[2]])
+ggsave("FAs.png", height = 100, width = 180, units = "mm")
 
 # Venn diagram for compounds
 library(VennDiagram)
@@ -60,8 +63,6 @@ ggplot(all, aes(y = Class, x = Coefficient, colour = Class)) +
         axis.line.y = element_line()) +
   facet_grid(Metabolites ~ ., scales = "free", space = "free", switch = "y")
 
-
-
 # Old coefficient scatter (top and bottom percentiles)
 
 # Vector of black and grey for plot points
@@ -74,20 +75,3 @@ plot(sort(coeff$value), pch = 17, col=vec, xlab = "", ylab = "Coefficient",
 text(nrow(dat) : (nrow(dat) - n_top), df1$Coefficient, df1$compound, pos=2, cex = 0.6)
 text(1:nrow(df2), df2$Coefficient, df2$compound, pos=4, cex=0.6)
 abline(a=0, b=0, lty = "dotted")
-
-#p1 <- ggplot(pltdata, aes(y = Class, x = Coefficient, colour = Class)) + 
-#geom_jitter(height = 0.1) + 
-#theme_bw() + geom_vline(xintercept = 0, linetype = "dashed") +
-#theme(legend.position = "none", axis.title.y = element_blank()) +
-#xlab("Coefficient from first PLS latent variable") + ggtitle("A") +
-#scale_y_discrete(labels = c("Phosphatidylcholine (acyl-alkyl)" = "Phosphatidylcholine\n(acyl-alkyl)",
-#                           "Phosphatidylcholine (acyl-acyl)" = "Phosphatidylcholine\n(acyl-acyl)",
-#                          "Lysophosphatidylcholine" = "Lysophosphatidyl-\ncholine"))
-
-
-#p2 <- ggplot(faplot, aes(y = Class, x = Coefficient, colour = Class)) + 
-#geom_jitter(height = 0) + 
-#xlab("Coefficient from first PLS latent variable") +
-#theme_half_open() + geom_vline(xintercept = 0, linetype = "dashed") +
-#theme(legend.position = "none", axis.title.y = element_blank()) +
-#ggtitle("B")
