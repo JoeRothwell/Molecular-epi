@@ -85,7 +85,8 @@ select.ctrl.cmpds <- function(crc, no.subset = F, cor.data = F){
   controls <- controls %>% select(one_of(common.cols))
   
   # Make dataset for correlation with FAs
-  Biocrates <- crc %>% select(Idepic, one_of(common.cols))
+  common.cols1 <- sort(common.cols)
+  Biocrates <- crc %>% select(Idepic, one_of(common.cols1))
   
   if(cor.data == T) return(Biocrates)
   return(controls)
