@@ -40,10 +40,8 @@ dend1 <- cormat %>% dist %>% hclust %>% as.dendrogram %>%
   set("labels_cex", c(0.6)) #%>%
 #hang.dendrogram(hang_height = 0.3)
 
-circlize_dendrogram(dend1, dend_track_height = 0.85)
-
 library(circlize)
-circlize
+circlize_dendrogram(dend1, dend_track_height = 0.85)
 
 # Get table of correlations in descending order
 library(reshape2)
@@ -53,12 +51,13 @@ t1 <- all.correlations %>% filter(Var1 %in% meta.fa$displayname & Var2 %in% meta
 
 # Get correlations > 0.5 in correct order
 t2 <- melt(cormat) %>% 
-  filter(value > 0.5, Var1 %in% meta.fa$displayname & Var2 %in% meta.bioc$displayname)
+  filter(value > 0.55, Var1 %in% meta.fa$displayname & Var2 %in% meta.bioc$displayname)
 colnames(t2) <- c("displayname2", "displayname", "value")
 
 
 # Heatmap Biocrates vs fatty acids only
 mat <- acast(t1, Var2 ~ Var1, value.var = "value")
+rownames(mat) <- NULL
 
 library(pheatmap)
 pheatmap(mat, fontsize = 8, color = colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))(100),)
@@ -69,6 +68,8 @@ df <- data_frame(displayname = rownames(mat))
 annotation_df <- inner_join(df, cmpd_meta, by = "displayname")
 
 t3 <- inner_join(t2, annotation_df, by = "displayname")
+corr.cmpds <- unique(t3$displayname)
+cmpd.pos <- which(annotation_df$displayname %in% corr.cmpds)
 
 row_ha <- rowAnnotation(Class = annotation_df$class)
 
@@ -77,23 +78,24 @@ row_ha <- rowAnnotation(Class = annotation_df$class)
 library(ComplexHeatmap)
 library(circlize)
 library(RColorBrewer)
+
+row_ha <- rowAnnotation(Class = annotation_df$class)
+ha <- rowAnnotation(foo = anno_mark(at = cmpd.pos, labels = corr.cmpds, 
+                                    labels_gp = gpar(fontsize = 9)))
+
 Heatmap(mat, col = colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))(100),
-        #column_title = "Fatty acids", 
+        #column_title = "Fatty acids", row_title = "Endogenous metabolites", 
         cluster_rows = F,
-        #row_title = "Endogenous metabolites", 
-        #column_km = 3, 
-        #row_km = 3, 
-        row_split = annotation_df$class,
+        #column_km = 3, row_km = 3, 
+        #row_split = annotation_df$class,
         row_title = NULL,
-        row_names_side = "right", show_row_names = T,
+        #row_names_side = "right", show_row_names = T,
         row_names_gp = gpar(fontsize = 10),
         column_names_gp = gpar(fontsize = 10),
         left_annotation = row_ha,
+        right_annotation = ha,
         #row_gap = unit(0, "mm"),
         border = F)
-
-ha <- rowAnnotation(foo = anno_mark(at = c(10, 20, 50, 100), labels = c("metabo1", "metabo2", "metabo3", "metabo4")))
-Heatmap(mat, right_annotation = ha)
 
 
 
