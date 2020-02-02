@@ -2,24 +2,39 @@
 # Scaled and unscaled data (already done in SIMCA). Updated after receiving scaled data.
 library(tidyverse)
 library(readxl)
-
-# Read scaled and unscaled data (for comparison) and metadata
+library(gplots)
+# Read unscaled data and metadata (each 1882 obs)
 ints0 <- read_tsv("1510_XMetaboliteE3N_cpmg_unscaled.txt")
-ints <- read_tsv("1507_XMetabolite_std_cpmg_E3N.txt")
 meta <- read.csv("Lifepath_meta.csv")
 
-# Plot metabolites one by one (need walk2 because names are an attribute of df)
-walk2(ints, colnames(ints), ~ plot(.x, main = .y, col = meta$RACK))
+# Read scaled data and subset samples from meta
+ints.all <- read.delim("1507_XMetabolite_std_cpmg_E3N.txt")
+meta <- read.csv("Lifepath_meta.csv")
 
 # subset IDs to get subjects included in CC. Get positions of final CC samples in metadata
-samples <- ints$CODBMB %in% meta$CODBMB
-
-# For baseline characteristics table: see BC_baseline_char.R
+samples <- ints.all$CODBMB %in% meta$CODBMB
+ints <- ints.all[samples, ]
 
 # Distributions all data
 par(mfrow = c(2,1))
 hist(as.matrix(ints0[, -1]), breaks = 50, col = "dodgerblue")
 hist(as.matrix(ints[ , -1 ]), breaks = 50, col = "dodgerblue")
+
+# Plot metabolites one by one (need walk2 because names are an attribute of df)
+walk2(ints, colnames(ints), ~ plot(.x, main = .y, col = meta$RACK))
+walk2(ints, colnames(ints), ~ boxplot2(.x ~ meta$MENOPAUSE, main = .y, top = T))
+
+# Plot distributions by compound and menopause
+ints1 <- cbind(meno = meta$MENOPAUSE, ints[, -1])
+ints.melt <- gather(ints1, compound, value, -meno)
+ggplot(ints.melt, aes(as.factor(meno), value)) + 
+  geom_boxplot(outlier.size = 0.1) + theme_bw() +
+  geom_jitter(width=0.3, alpha = 0.3, size = 0.1) +
+  facet_wrap( ~ compound, ncol = 8, scales = "free_y")
+
+  
+
+# For baseline characteristics table: see BC_baseline_char.R
 
 # Median intensities before scaling
 dev.off()
@@ -32,28 +47,29 @@ points <- apply(ints[, -1], 2, median)
 plot(points, col = "white", main = "Median compound intensities")
 text(points, labels = colnames(ints[, -1]))
 
-# Time to centrifugation vs fasting status
-boxplot(CENTTIME ~ FASTING, data = meta, varwidth = T)
-meta1 <- meta[meta$CENTTIME < 100, ]
-library(gplots)
-boxplot2(CENTTIME ~ FASTING, data = meta1, varwidth = T, col = "dodgerblue",
-         xlab = "Fasting status", ylab = "TBC")
+# Visualise case-control differences
+ggplot(ints, aes(x= as.factor(meta$CT), y=log(Hypoxanthine))) + 
+  geom_line(aes(group = meta$MATCH), alpha = 0.5) + 
+  geom_point(aes(group = meta$MATCH), alpha = 0.5) + 
+  theme_minimal() + facet_grid( ~ meta$MENOPAUSE)
 
-# Check correlations
+# Check correlations: fatty acids are highly correlated
 library(corrplot)
 cormat <- cor(ints[, -1])
 colnames(cormat) <- NULL
 corrplot(cormat, method = "square", tl.col = "black", tl.cex = 0.8)
-
-# The three fatty acids are highly correlated, valine and leucine, NAC1 and 2
-# The fatty acids are inversely correlated with many compounds
 
 # Run PCA of all samples
 pca0 <- prcomp(ints0, scale. = F, center = F)
 biplot(pca0)
 
 pca <- prcomp(ints[, -1], scale.=F)
-biplot(pca)
+biplot(pca, cex = 0.7)
+scores <- data.frame(pca$x)
+ggplot(scores, aes(x = PC1, y = PC2, col = as.factor(meta$MENOPAUSE))) + 
+  geom_point() + scale_colour_manual(values = c("black", "grey"))
+
+
 
 # Plot 
 library(pca3d)
@@ -89,13 +105,20 @@ adj <- function(x) residuals(lm(x ~ BMI + SMK + DIABETE, data = alldata))
 adjmat <- apply(ints1, 2, adj)
 
 # Repeat PCA
-pca2 <- prcomp(adjmat, scale.=F)
+pca2 <- prcomp(adjmat, scale. = F)
 pca2d(pca2, group = alldata$CT)
 title("Residuals-adjusted metabolite\nprofiles of 1582 samples", font.main = 1)
 box(which = "plot", lty = "solid")
 legend("topleft", legend = plt$groups, col=plt$colors, pch=plt$pch)
 
+# Old ------------------------------
 
+# Time to centrifugation vs fasting status
+boxplot(CENTTIME ~ FASTING, data = meta, varwidth = T)
+meta1 <- meta[meta$CENTTIME < 100, ]
+library(gplots)
+boxplot2(CENTTIME ~ FASTING, data = meta1, varwidth = T, col = "dodgerblue",
+         xlab = "Fasting status", ylab = "TBC")
 
 # Other files ----
 
