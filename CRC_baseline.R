@@ -8,7 +8,7 @@ crc1a <- crc1 %>% group_by(Match_Caseset) %>% filter(n() == 2) %>%
          Wcrf_C_Cal, Cncr_Caco_Clrt) %>% mutate(Study = "CRC1")
 
 crc2a <- crc2 %>% #left_join(wcrf, by = "Idepic") %>%
-  select(Sex, Age_Blood, Height_C, Weight_C, Bmi_C, Qe_Energy, Country, Pa_Mets, Smoke_Stat, Qe_Alc,
+  select(Match_Caseset, Sex, Age_Blood, Height_C, Weight_C, Bmi_C, Qe_Energy, Country, Pa_Mets, Smoke_Stat, Qe_Alc,
          Wcrf_C_Cal, Cncr_Caco_Clrt) %>% mutate(Study = "CRC2")
 crcmetab <- bind_rows(crc1a, crc2a)
 
@@ -67,44 +67,41 @@ print(both, cnames = c("CRC1 cases", "CRC1 controls", "CRC2 cases", "CRC2 contro
 # Tests for p-values for table -----------------------------
 # McNemar and Wilcoxon signed rank test?
 
+# Arrange df to pair cases and controls
+df1 <- crc1a %>% arrange(Cncr_Caco_Clrt, Match_Caseset)
+
 # Case/control models
 ll1 <- list(
-  chisq.test(crc1a$Cncr_Caco_Clrt, crc1a$Height_C),
-  chisq.test(crc1a$Cncr_Caco_Clrt, crc1a$Weight_C),
-  chisq.test(crc1a$Cncr_Caco_Clrt, crc1a$Age_Blood),
-  chisq.test(crc1a$Cncr_Caco_Clrt, crc1a$Bmi_C),
-  chisq.test(crc1a$Cncr_Caco_Clrt, crc1a$Qe_Energy),
-  chisq.test(crc1a$Cncr_Caco_Clrt, crc1a$Qe_Alc),
-  chisq.test(crc1a$Cncr_Caco_Clrt, crc1a$Smoke_Stat)
+  t.test(df1$Height_C ~ df1$Cncr_Caco_Clrt, paired = T),
+  t.test(df1$Weight_C ~ df1$Cncr_Caco_Clrt, paired = T),
+  t.test(df1$Age_Blood ~ df1$Cncr_Caco_Clrt, paired = T),
+  t.test(df1$Bmi_C ~ df1$Cncr_Caco_Clrt, paired = T),
+  wilcox.test(df1$Qe_Alc ~ df1$Cncr_Caco_Clrt, paired = T),
+  chisq.test(df1$Cncr_Caco_Clrt, df1$Smoke_Stat)
 )
+
+# Contain NAs
+ind <- !is.na(df1$Qe_Energy) 
+t.test(df1$Qe_Energy[ind] ~ df1$Cncr_Caco_Clrt[ind], paired = T)
+
+
+
+df2 <- crc2a %>% arrange(Cncr_Caco_Clrt, Match_Caseset)
 
 # Case/control models
 ll2 <- list(
-  chisq.test(crc2a$Cncr_Caco_Clrt, crc2a$Height_C),
-  chisq.test(crc2a$Cncr_Caco_Clrt, crc2a$Weight_C),
-  chisq.test(crc2a$Cncr_Caco_Clrt, crc2a$Age_Blood),
-  chisq.test(crc2a$Cncr_Caco_Clrt, crc2a$Bmi_C),
-  chisq.test(crc2a$Cncr_Caco_Clrt, crc2a$Qe_Energy),
-  chisq.test(crc2a$Cncr_Caco_Clrt, crc2a$Qe_Alc),
-  chisq.test(crc2a$Cncr_Caco_Clrt, crc2a$Smoke_Stat)
+  t.test(df2$Cncr_Caco_Clrt, df2$Height_C, paired = T),
+  t.test(df2$Cncr_Caco_Clrt, df2$Weight_C, paired = T),
+  t.test(df2$Cncr_Caco_Clrt, df2$Age_Blood, paired = T),
+  t.test(df2$Cncr_Caco_Clrt, df2$Bmi_C, paired = T),
+  t.test(df2$Cncr_Caco_Clrt, df2$Qe_Energy, paired = T, na.rm = T),
+  wilcox.test(df2$Cncr_Caco_Clrt, df2$Qe_Alc, paired = T),
+  chisq.test(df2$Cncr_Caco_Clrt, df2$Smoke_Stat, paired = T)
 )
 
+t.test(df1$Cncr_Caco_Clrt, df1$Qe_Energy, paired = T, na.rm = T)
+t.test(Qe_Energy ~ Cncr_Caco_Clrt, paired = T, data = df1)
 
-t.test(meta$DURTHSDIAG ~ meta$CT)$p.value
-
-# Pre/post menopausal models
-l  <- list(
-  chisq.test(meta$MENOPAUSE, meta$DIAGSAMPLINGCat1),
-  chisq.test(meta$MENOPAUSE, meta$BEHAVIOUR),
-  fisher.test(meta$MENOPAUSE, meta$SUBTYPE),
-  chisq.test(meta$MENOPAUSE, meta$ER),
-  chisq.test(meta$MENOPAUSE, meta$PR),
-  chisq.test(meta$MENOPAUSE, meta$GRADE),
-  fisher.test(meta$MENOPAUSE, meta$STADE)
-)
-
-
-t.test(meta$DURTHSDIAG ~ meta$CT)$names
 
 # Extract data from models
 library(purrr)
