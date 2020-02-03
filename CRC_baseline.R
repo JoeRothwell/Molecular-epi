@@ -70,43 +70,36 @@ print(both, cnames = c("CRC1 cases", "CRC1 controls", "CRC2 cases", "CRC2 contro
 # Arrange df to pair cases and controls
 df1 <- crc1a %>% arrange(Cncr_Caco_Clrt, Match_Caseset)
 
-# Case/control models
-ll1 <- list(
-  t.test(df1$Height_C ~ df1$Cncr_Caco_Clrt, paired = T),
-  t.test(df1$Weight_C ~ df1$Cncr_Caco_Clrt, paired = T),
-  t.test(df1$Age_Blood ~ df1$Cncr_Caco_Clrt, paired = T),
-  t.test(df1$Bmi_C ~ df1$Cncr_Caco_Clrt, paired = T),
-  wilcox.test(df1$Qe_Alc ~ df1$Cncr_Caco_Clrt, paired = T),
-  chisq.test(df1$Cncr_Caco_Clrt, df1$Smoke_Stat)
-)
+# Case/control models: CRC A
+t.test(df1$Height_C ~ df1$Cncr_Caco_Clrt, paired = T)$p.value
+t.test(df1$Weight_C ~ df1$Cncr_Caco_Clrt, paired = T)$p.value
+t.test(df1$Age_Blood ~ df1$Cncr_Caco_Clrt, paired = T)$p.value
+t.test(df1$Bmi_C ~ df1$Cncr_Caco_Clrt, paired = T)$p.value
+chisq.test(df1$Cncr_Caco_Clrt, df1$Smoke_Stat)$p.value
 
 # Contain NAs
-ind <- !is.na(df1$Qe_Energy) 
-t.test(df1$Qe_Energy[ind] ~ df1$Cncr_Caco_Clrt[ind], paired = T)
+df1a <- df1 %>% group_by(Match_Caseset) %>% filter(!anyNA(Qe_Energy))
+t.test(df1a$Qe_Energy ~ df1a$Cncr_Caco_Clrt, paired = T)$p.value
 
+df1b <- df1 %>% group_by(Match_Caseset) %>% filter(!anyNA(Qe_Alc))
+wilcox.test(df1b$Qe_Alc ~ df1b$Cncr_Caco_Clrt, paired = T)$p.value
 
 
 df2 <- crc2a %>% arrange(Cncr_Caco_Clrt, Match_Caseset)
 
-# Case/control models
-ll2 <- list(
-  t.test(df2$Cncr_Caco_Clrt, df2$Height_C, paired = T),
-  t.test(df2$Cncr_Caco_Clrt, df2$Weight_C, paired = T),
-  t.test(df2$Cncr_Caco_Clrt, df2$Age_Blood, paired = T),
-  t.test(df2$Cncr_Caco_Clrt, df2$Bmi_C, paired = T),
-  t.test(df2$Cncr_Caco_Clrt, df2$Qe_Energy, paired = T, na.rm = T),
-  wilcox.test(df2$Cncr_Caco_Clrt, df2$Qe_Alc, paired = T),
-  chisq.test(df2$Cncr_Caco_Clrt, df2$Smoke_Stat, paired = T)
-)
+# Case/control models: CRC B
+t.test(df2$Height_C ~ df2$Cncr_Caco_Clrt, paired = T)$p.value
+t.test(df2$Weight_C ~ df2$Cncr_Caco_Clrt, paired = T)$p.value
+t.test(df2$Age_Blood ~ df2$Cncr_Caco_Clrt, paired = T)$p.value
+t.test(df2$Bmi_C ~ df2$Cncr_Caco_Clrt, paired = T)$p.value
+chisq.test(df2$Cncr_Caco_Clrt, df2$Smoke_Stat)$p.value
 
-t.test(df1$Cncr_Caco_Clrt, df1$Qe_Energy, paired = T, na.rm = T)
-t.test(Qe_Energy ~ Cncr_Caco_Clrt, paired = T, data = df1)
+# Contain NAs
+df2a <- df2 %>% group_by(Match_Caseset) %>% filter(!anyNA(Qe_Energy))
+t.test(df2a$Qe_Energy ~ df2a$Cncr_Caco_Clrt, paired = T)$p.value
 
+df2b <- df2 %>% group_by(Match_Caseset) %>% filter(!anyNA(Qe_Alc))
+wilcox.test(df2b$Qe_Alc ~ df2b$Cncr_Caco_Clrt, paired = T)$p.value
 
-# Extract data from models
-library(purrr)
-library(broom)
-map_df(ll, tidy)
-map_df(l, tidy)
 
 # Alcohol intake
