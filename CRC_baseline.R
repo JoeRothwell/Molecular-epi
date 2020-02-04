@@ -77,12 +77,19 @@ t.test(df1$Age_Blood ~ df1$Cncr_Caco_Clrt, paired = T)$p.value
 t.test(df1$Bmi_C ~ df1$Cncr_Caco_Clrt, paired = T)$p.value
 chisq.test(df1$Cncr_Caco_Clrt, df1$Smoke_Stat)$p.value
 
+
 # Contain NAs
 df1a <- df1 %>% group_by(Match_Caseset) %>% filter(!anyNA(Qe_Energy))
 t.test(df1a$Qe_Energy ~ df1a$Cncr_Caco_Clrt, paired = T)$p.value
 
 df1b <- df1 %>% group_by(Match_Caseset) %>% filter(!anyNA(Qe_Alc))
 wilcox.test(df1b$Qe_Alc ~ df1b$Cncr_Caco_Clrt, paired = T)$p.value
+
+df1c <- df1 %>% group_by(Match_Caseset) %>% filter(!anyNA(Pa_Mets))
+t.test(df1c$Pa_Mets ~ df1c$Cncr_Caco_Clrt, paired = T)$p.value
+
+df1d <- df1 %>% group_by(Match_Caseset) %>% filter(!anyNA(Wcrf_C_Cal))
+t.test(df1d$Wcrf_C_Cal ~ df1d$Cncr_Caco_Clrt, paired = T)$p.value
 
 
 df2 <- crc2a %>% arrange(Cncr_Caco_Clrt, Match_Caseset)
@@ -101,5 +108,8 @@ t.test(df2a$Qe_Energy ~ df2a$Cncr_Caco_Clrt, paired = T)$p.value
 df2b <- df2 %>% group_by(Match_Caseset) %>% filter(!anyNA(Qe_Alc))
 wilcox.test(df2b$Qe_Alc ~ df2b$Cncr_Caco_Clrt, paired = T)$p.value
 
+df2c <- df2 %>% group_by(Match_Caseset) %>% filter(!anyNA(Pa_Mets))
+t.test(df2c$Pa_Mets ~ df2c$Cncr_Caco_Clrt, paired = T)$p.value
 
-# Alcohol intake
+df2d <- df2 %>% group_by(Match_Caseset) %>% filter(!anyNA(Wcrf_C_Cal))
+t.test(df2d$Wcrf_C_Cal ~ df2d$Cncr_Caco_Clrt, paired = T)$p.value
