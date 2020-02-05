@@ -1,28 +1,6 @@
-# BC risk models for metabolites
-library(tidyverse)
-library(readxl)
-
-# Update 11/10/19: Updated with unscaled data (see BC_compounds_scaling for old data)
-ints0 <- read_tsv("1510_XMetaboliteE3N_cpmg_unscaled.txt")
-
-# Compounds as continuous variables ----
-ints <- scale(ints0)
-
-# Look at intensity ranges for each compound
-walk2(ints0, colnames(ints0), ~ plot(.x, main = .y, col = ifelse(.x < 0, "red", "grey")))
-which(apply(as.matrix(ints0), 2, min) < 0)
-# 3 compounds have values < 0: formate, hypoxanthine, inosine
-
-# Replace negative values with half the minimum positive value
-rm.neg.values <- function(x) ifelse(x < 0, min(x[x > 0])/2, x)
-ints <- apply(ints0, 2, rm.neg.values)
-# Check
-which(apply(as.matrix(ints), 2, min) < 0)
-
-# Lifestyle data. Subset variables needed
-meta <- read_csv("Lifepath_meta.csv", na = "9999") %>%
-  select(CT, BMI, SMK, DIABETE, RTH, ALCOHOL, DURTHSDIAG, CENTTIME, STOCKTIME, RACK, MATCH, MENOPAUSE) %>%
-    mutate_at(vars(SMK, DIABETE, RACK, MATCH), as.factor)
+# BC risk models for metabolites and also for lifestyle variables alone
+# Also heatmap of differences
+source("BC_prep_data.R")
 
 # CLR models to get odds ratios for metabolites
 dat <- cbind(meta, ints)

@@ -1,4 +1,4 @@
-# Exploratory analysis of NMR compound datasets
+# Test to find differences between received datasets 
 
 library(tidyverse)
 library(readxl)
@@ -12,49 +12,27 @@ ints0 <- read_tsv("1510_XMetaboliteE3N_cpmg_unscaled.txt") #%>% as.matrix
 ints1 <- scale(ints0)
 
 # Lifestyle data. Subset variables needed
-meta <- read_csv("Lifepath_meta.csv", na = "9999") %>% select(CODBMB, CT, MATCH, PLACE, AGE, BMI, 
-        BP, RTH, ALCOHOL, MENOPAUSE, FASTING, SMK, DIABETE, CENTTIMECat1, CENTTIME, SAMPYEAR, STOCKTIME, DURTHSDIAG) 
+meta <- read_csv("Lifepath_meta.csv", na = "9999")
+samples <- ints$CODBMB %in% meta$CODBMB
+ints <- ints[samples, -1]
 
 # Exploratory of different datasets
-
-# CLR models to get odds ratios for metabolites
-dat <- left_join(meta, ints, by = "CODBMB")
-dat0 <- cbind(meta, ints0)
-
 library(MetabolAnalyze)
 
-# 1. Original data (1507)
-# 2. New data (no scaling)
-# 3. New data (unit scaled)
-# 4. New data (Pareto scaled)
-
-first <- dat %>% select(-(CODBMB:DURTHSDIAG)) %>% as.matrix
-new <- ints0 %>% as.matrix
+# 1. Original data (1507); 2. New data (no scaling); 3. New data (unit scaled); New data (Pareto scaled)
+new     <- ints0 %>% as.matrix
 unit    <- scale(ints0)
 pareto1 <- scaling(ints0, type = "pareto")
 
-pca.first <- prcomp(first, scale. = F, center = F)
-pca.new <- prcomp(new, scale. = F, center = F)
-pca.unit <- prcomp(unit, scale. = F, center = F)
-pca.pareto1 <- prcomp(pareto1, scale. = F, center = F)
-
-library(pca3d)
+ll <- lapply(list(ints, new, unit, pareto1), function(x) prcomp(x, scale. = F, center = F))
 par(mfrow = c(2,2))
-pca2d(pca.first, col = "hotpink")
-box(which = "plot")
-title(main = "1507_XMetabolite_std_cpmg_E3N.txt")
+lapply(ll, function(x,y) { pca2d(x)
+  title(main = paste("Scores plot"))
+  box(which = "plot")
+})
 
-pca2d(pca.new, col = "limegreen")
-box(which = "plot")
-title(main = "1510_XMetaboliteE3N_cpmg.txt")
-
-pca2d(pca.unit, col = "orange")
-box(which = "plot")
-title(main = "1510_XMetaboliteE3N_cpmg.txt, unit")
-
-pca2d(pca.pareto1, col = "dodgerblue")
-box(which = "plot")
-title(main = "1510_XMetaboliteE3N_cpmg.txt, Pareto")
+#how to make hotpink, limegreen, orange, dodgerblue and give different titles?
 
 # Conclusion: the old dataset seems to be a unit variance scaled version of the new dataset
-# (although they are not exactly the same)
+# (although they are not exactly the same; the new datasets has merged NAC1 and NAC2)
+# Decision: use unscaled dataset and apply unit scaling, discard old scaled dataset

@@ -3,13 +3,17 @@
 library(tidyverse)
 library(readxl)
 library(gplots)
+
 # Read unscaled data and metadata (each 1882 obs)
 ints0 <- read_tsv("1510_XMetaboliteE3N_cpmg_unscaled.txt")
+ints <- scale(ints0)
 meta <- read.csv("Lifepath_meta.csv")
 
 # Read scaled data and subset samples from meta
 ints.all <- read.delim("1507_XMetabolite_std_cpmg_E3N.txt")
-meta <- read.csv("Lifepath_meta.csv")
+
+which(apply(as.matrix(ints0), 2, min) < 0)
+# 3 compounds have values < 0: formate, hypoxanthine, inosine
 
 # subset IDs to get subjects included in CC. Get positions of final CC samples in metadata
 samples <- ints.all$CODBMB %in% meta$CODBMB
@@ -17,22 +21,26 @@ ints <- ints.all[samples, ]
 
 # Distributions all data
 par(mfrow = c(2,1))
-hist(as.matrix(ints0[, -1]), breaks = 50, col = "dodgerblue")
-hist(as.matrix(ints[ , -1 ]), breaks = 50, col = "dodgerblue")
+hist(as.matrix(ints0), breaks = 50, col = "dodgerblue")
+hist(as.matrix(ints),  breaks = 50, col = "dodgerblue")
 
-# Plot metabolites one by one (need walk2 because names are an attribute of df)
-walk2(ints, colnames(ints), ~ plot(.x, main = .y, col = meta$RACK))
+# Plot metabolites individually
+plot.ts(ints[, 1:10], type = "p", col = meta$SAMPYEAR, main = "Hydroxybutyrate - Creatinine")
+plot.ts(ints[, 11:20], type = "p", col = meta$SAMPYEAR, main = "Glucose - Glycerol")
+plot.ts(ints[, 21:30], type = "p", col = meta$SAMPYEAR, main = "GlyceroPC - Lactate")
+plot.ts(ints[, 31:40], type = "p", col = meta$SAMPYEAR, main = "Lysine - Methanol")
+plot.ts(ints[, 41:ncol(ints)], type = "p", col = meta$SAMPYEAR, main = "NAC1 - Succinate")
+
+# Or use walk2 to go through plotting all columns
+par(mfrow = c(5, 1), mai = c(0.3, 0.5, 0.2, 0.1))
+walk2(ints, colnames(ints), ~ plot(.x, main = .y, col = meta$SAMPYEAR))
 walk2(ints, colnames(ints), ~ boxplot2(.x ~ meta$MENOPAUSE, main = .y, top = T))
 
 # Plot distributions by compound and menopause
-ints1 <- cbind(meno = meta$MENOPAUSE, ints[, -1])
+ints1 <- cbind(meno = meta$MENOPAUSE, ints) %>% data.frame
 ints.melt <- gather(ints1, compound, value, -meno)
-ggplot(ints.melt, aes(as.factor(meno), value)) + 
-  geom_boxplot(outlier.size = 0.1) + theme_bw() +
-  geom_jitter(width=0.3, alpha = 0.3, size = 0.1) +
-  facet_wrap( ~ compound, ncol = 8, scales = "free_y")
-
-  
+ggplot(ints.melt, aes(as.factor(meno), value)) + geom_boxplot(outlier.shape = NA) + theme_bw() +
+  geom_jitter(width=0.3, alpha = 0.3, size = 0.1) + facet_wrap( ~ compound, ncol = 8, scales = "free_y")
 
 # For baseline characteristics table: see BC_baseline_char.R
 
@@ -58,6 +66,16 @@ library(corrplot)
 cormat <- cor(ints[, -1])
 colnames(cormat) <- NULL
 corrplot(cormat, method = "square", tl.col = "black", tl.cex = 0.8)
+
+# Dendrogram
+library(dendextend)
+dend <- hclust(dist(cormat)) %>% as.dendrogram
+par(mar=c(1,1,1,8))
+dend %>% 
+  set("labels_col", value = c("skyblue", "orange", "grey"), k = 3) %>%
+  set("branches_k_color", value = c("skyblue", "orange", "grey"), k = 3) %>%
+  plot(horiz = T, axes = F)
+
 
 # Run PCA of all samples
 pca0 <- prcomp(ints0, scale. = F, center = F)
