@@ -25,11 +25,18 @@ hist(as.matrix(ints0), breaks = 50, col = "dodgerblue")
 hist(as.matrix(ints),  breaks = 50, col = "dodgerblue")
 
 # Plot metabolites individually
-plot.ts(ints[, 1:10], type = "p", col = meta$SAMPYEAR, main = "Hydroxybutyrate - Creatinine")
-plot.ts(ints[, 11:20], type = "p", col = meta$SAMPYEAR, main = "Glucose - Glycerol")
-plot.ts(ints[, 21:30], type = "p", col = meta$SAMPYEAR, main = "GlyceroPC - Lactate")
-plot.ts(ints[, 31:40], type = "p", col = meta$SAMPYEAR, main = "Lysine - Methanol")
-plot.ts(ints[, 41:ncol(ints)], type = "p", col = meta$SAMPYEAR, main = "NAC1 - Succinate")
+library(RColorBrewer)
+
+#palette(rainbow(5))
+palette(brewer.pal(5, "Dark2"))
+plot.ts(ints[, 1:10], type = "p", col = meta$SAMPYEAR, main = "Hydroxybutyrate - Creatine")
+plot.ts(ints[, 11:20], type = "p", col = meta$SAMPYEAR, main = "Creatinine - Glutamate")
+plot.ts(ints[, 21:30], type = "p", col = meta$SAMPYEAR, main = "Glycerol - Isoleucine")
+plot.ts(ints[, 31:40], type = "p", col = meta$SAMPYEAR, main = "Lactate - Malonate")
+plot.ts(ints[, 41:ncol(ints)], type = "p", col = meta$SAMPYEAR, main = "Malonate - Succinate")
+
+# Problem compounds only
+plot.ts(ints[, c(13, 14, 23, 24, 39, 43)], type = "p", col = meta$SAMPYEAR)
 
 # Or use walk2 to go through plotting all columns
 par(mfrow = c(5, 1), mai = c(0.3, 0.5, 0.2, 0.1))
@@ -46,14 +53,10 @@ ggplot(ints.melt, aes(as.factor(meno), value)) + geom_boxplot(outlier.shape = NA
 
 # Median intensities before scaling
 dev.off()
-points0 <- apply(ints0, 2, median)
-plot(points0, col = "white", main = "Median compound intensities")
-text(points0, labels = colnames(ints0))
-
-# After scaling
-points <- apply(ints[, -1], 2, median)
-plot(points, col = "white", main = "Median compound intensities")
-text(points, labels = colnames(ints[, -1]))
+Intensity <- apply(ints0, 2, median)
+plot(Intensity, col = "white", main = "Median compound intensities")
+text(Intensity, labels = colnames(ints0))
+# Fatty acids and glucose strongest signals, then lactate, glycerophosphocholine.
 
 # Visualise case-control differences
 ggplot(ints, aes(x= as.factor(meta$CT), y=log(Hypoxanthine))) + 
@@ -63,9 +66,10 @@ ggplot(ints, aes(x= as.factor(meta$CT), y=log(Hypoxanthine))) +
 
 # Check correlations: fatty acids are highly correlated
 library(corrplot)
+#cormat <- cor(ints, use = "pairwise.complete.obs")
 cormat <- cor(ints[, -1])
 colnames(cormat) <- NULL
-corrplot(cormat, method = "square", tl.col = "black", tl.cex = 0.8)
+corrplot(cormat, method = "square", tl.col = "black", tl.cex = 0.8, order = "hclust")
 
 # Dendrogram
 library(dendextend)
