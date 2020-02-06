@@ -4,6 +4,7 @@ source("BC_prep_data.R")
 
 # CLR models to get odds ratios for metabolites
 dat <- cbind(meta, ints)
+dat <- cbind(meta1, ints)
   
 # Run models for all, pre-menopausal only and post-menopausal only
 library(survival)
@@ -20,7 +21,7 @@ fits2 <- apply(ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCO
 
 # Analysis by quartiles of metabolite concentration (resist outliers). Get quartiles for each compound from unscaled data
 quartiles <- ints0 %>% mutate_all(funs(cut_number(., n = 4, labels = 1:4))) 
-dat <- cbind(meta, quartiles)
+dat <- cbind(meta1, quartiles)
 
 library(survival)
 
@@ -28,7 +29,7 @@ library(survival)
 fits0 <- apply(quartiles, 2, function(x) {
   Q1Q4 <- x == 1 | x == 4
   clogit(CT ~  x[Q1Q4] + BMI + SMK + DIABETE + RTH + ALCOHOL + DURTHSDIAG + CENTTIME + 
-           STOCKTIME + RACK + strata(MATCH), data = meta[Q1Q4, ])
+           STOCKTIME + RACK + strata(MATCH), data = meta1[Q1Q4, ])
   } )
 
 fits1 <- apply(quartiles, 2, function(x) {
@@ -46,8 +47,8 @@ fits2 <- apply(quartiles, 2, function(x) {
 cmpd_meta <- read.csv("NMR_cmpd_metadata_new.csv")
 
 library(broom)
-t2 <- map_df(fits2, tidy) %>% filter(str_detect(term, "x")) %>% bind_cols(cmpd_meta) %>% arrange(description)
-t2a <- map_df(fits1b, tidy) %>% filter(term == "x") %>% bind_cols(cmpd_meta) %>% arrange(description)
+t2 <- map_df(fits1, tidy) %>% filter(str_detect(term, "x")) %>% bind_cols(cmpd_meta) %>% arrange(description)
+#t2a <- map_df(fits1b, tidy) %>% filter(term == "x") %>% bind_cols(cmpd_meta) %>% arrange(description)
 
 # Plot data with Metafor (pre-menopausal for manuscript)
 # Get vectors for row spacings using groups (may add compound classes later)

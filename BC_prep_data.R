@@ -24,15 +24,16 @@ ints0 <- read_tsv("1510_XMetaboliteE3N_cpmg_unscaled.txt")
 filt <- !(meta$RACK %in% c(10, 29, 33, 34))
 ints0 <- ints0[filt, ]
 
-# Remove top 1% of each compound and replace with NA
-logicalmat <- apply(ints0, 2, function(x) x > quantile(x, probs = 0.99 ))
+# Remove top and bottom 1% of each compound and replace with NA
+outliers <- function(x) x > quantile(x, probs = 0.99) | x < quantile(x, probs = 0.01)
+logicalmat <- apply(ints0, 2, outliers)
 ints0[logicalmat] <- NA
 
 # Replace negative values with half the minimum positive value
-rm.neg.values <- function(x) ifelse(x < 0, min(x[x > 0])/2, x)
-ints0 <- apply(ints0, 2, rm.neg.values)
+#rm.neg.values <- function(x) ifelse(x < 0, min(x[x > 0])/2, x)
+#ints0 <- apply(ints0, 2, rm.neg.values)
 # Check
-which(apply(as.matrix(ints0), 2, min) < 0)
+#which(apply(as.matrix(ints0), 2, min) < 0)
 
 # Scale to unit variance
 ints <- scale(ints0)
