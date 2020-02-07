@@ -29,13 +29,15 @@ library(survival)
 fits0 <- apply(quartiles, 2, function(x) {
   Q1Q4 <- x == 1 | x == 4
   clogit(CT ~  x[Q1Q4] + BMI + SMK + DIABETE + RTH + ALCOHOL + DURTHSDIAG + CENTTIME + 
-           STOCKTIME + RACK + strata(MATCH), data = meta1[Q1Q4, ])
+           STOCKTIME + #RACK + 
+           strata(MATCH), data = meta1[Q1Q4, ])
   } )
 
 fits1 <- apply(quartiles, 2, function(x) {
   Q1Q4 <- x == 1 | x == 4
   clogit(CT ~  x[Q1Q4] + BMI + SMK + DIABETE + RTH + ALCOHOL + DURTHSDIAG + CENTTIME + 
-           STOCKTIME + RACK + strata(MATCH), data = meta[Q1Q4, ], subset = MENOPAUSE == 0)
+           STOCKTIME + #RACK + 
+           strata(MATCH), data = meta1[Q1Q4, ], subset = MENOPAUSE == 0)
   } )
 
 fits2 <- apply(quartiles, 2, function(x) {
@@ -43,8 +45,6 @@ fits2 <- apply(quartiles, 2, function(x) {
   clogit(CT ~  x[Q1Q4] + BMI + SMK + DIABETE + RTH + ALCOHOL + DURTHSDIAG + CENTTIME + 
            STOCKTIME + strata(MATCH), data = meta[Q1Q4, ], subset = MENOPAUSE == 1)
   } )
-
-cmpd_meta <- read.csv("NMR_cmpd_metadata_new.csv")
 
 library(broom)
 t2 <- map_df(fits1, tidy) %>% filter(str_detect(term, "x")) %>% bind_cols(cmpd_meta) %>% arrange(description)
