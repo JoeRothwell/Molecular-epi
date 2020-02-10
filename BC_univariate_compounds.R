@@ -2,10 +2,7 @@
 # Also heatmap of differences
 source("BC_prep_data.R")
 
-# CLR models to get odds ratios for metabolites
-  
-# Run models for all, pre-menopausal only and post-menopausal only
-library(survival)
+# CLR models to get odds ratios for metabolites: all, pre-menopausal only and post-menopausal only
 
 # All subjects -------------------
 
@@ -13,11 +10,7 @@ fits0 <- apply(ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCO
          DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH) + x, data = meta))
 
 # Analysis by quartiles of metabolite concentration (resist outliers). 
-# Get quartiles for each compound from unscaled data
 quartiles <- ints0 %>% mutate_all(funs(cut_number(., n = 4, labels = 1:4))) 
-dat <- cbind(meta, quartiles)
-
-library(survival)
 
 # Apply across all compounds
 fits0a <- apply(quartiles, 2, function(x) {
@@ -28,9 +21,7 @@ fits0a <- apply(quartiles, 2, function(x) {
 
 # Tidy and plot
 library(broom)
-t1 <- map_df(fits0, tidy) %>% filter(str_detect(term, "x")) %>% bind_cols(cmpd_meta) %>% arrange(description)
-cmpds_ordered <- cmpd_meta %>% arrange(description) %>% mutate(row = 1:n() + (as.numeric(description)-1))
-rowvec <- cmpds_ordered$row
+t1 <- map_df(fits0, tidy) %>% filter(str_detect(term, "x")) %>% bind_cols(cmpd.meta) %>% arrange(description)
 
 par(mfrow = c(1,2))
 par(mar=c(5,4,1,2))
@@ -44,9 +35,7 @@ hh <- par("usr")
 text(hh[1], max(rowvec) + 2, "Metabolite", pos = 4, cex = 0.8)
 text(hh[2], max(rowvec) + 2, "OR [95% CI]", pos = 2, cex = 0.8)
 
-t2 <- map_df(fits0a, tidy) %>% filter(str_detect(term, "x")) %>% bind_cols(cmpd_meta) %>% arrange(description)
-cmpds_ordered <- cmpd_meta %>% arrange(description) %>% mutate(row = 1:n() + (as.numeric(description)-1))
-rowvec <- cmpds_ordered$row
+t2 <- map_df(fits0a, tidy) %>% filter(str_detect(term, "x")) %>% bind_cols(cmpd.meta) %>% arrange(description)
 
 par(mar=c(5,4,1,2))
 library(metafor)
@@ -63,55 +52,89 @@ text(hh[2], max(rowvec) + 2, "OR [95% CI]", pos = 2, cex = 0.8)
 # Pre-menopausal -------------------
 
 quartiles <- ints0[pre, ] %>% mutate_all(funs(cut_number(., n = 4, labels = 1:4))) 
-dat <- cbind(meta[pre, ], quartiles)
+meta1 <- meta[pre, ]
 
 fits1 <- apply(ints[pre, ], 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
           DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH) + x, data = meta[pre, ], subset = MENOPAUSE == 0))
 
-fits1 <- apply(quartiles, 2, function(x) {
+fits1a <- apply(quartiles, 2, function(x) {
   Q1Q4 <- x == 1 | x == 4
   clogit(CT ~  x[Q1Q4] + BMI + SMK + DIABETE + RTH + ALCOHOL + DURTHSDIAG + CENTTIME + 
-           STOCKTIME + #RACK + 
-           strata(MATCH), data = meta[Q1Q4, ], subset = MENOPAUSE == 0)
+           STOCKTIME + strata(MATCH), data = meta1[Q1Q4, ])
 } )
 
-
-
-# Post-menopausal --------------------
-
-fits2 <- apply(ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
-          DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH) + x, data = meta1, subset = MENOPAUSE == 1))
-
-fits2 <- apply(quartiles, 2, function(x) {
-  Q1Q4 <- x == 1 | x == 4
-  clogit(CT ~  x[Q1Q4] + BMI + SMK + DIABETE + RTH + ALCOHOL + DURTHSDIAG + CENTTIME + 
-           STOCKTIME + strata(MATCH), data = meta[Q1Q4, ], subset = MENOPAUSE == 1)
-  } )
-
-
-
 library(broom)
-t2 <- map_df(fits2, tidy) %>% filter(str_detect(term, "x")) %>% bind_cols(cmpd_meta) %>% arrange(description)
-#t2a <- map_df(fits1b, tidy) %>% filter(term == "x") %>% bind_cols(cmpd_meta) %>% arrange(description)
+t1 <- map_df(fits1, tidy) %>% filter(str_detect(term, "x")) %>% bind_cols(cmpd.meta) %>% arrange(description)
 
-# Plot data with Metafor (pre-menopausal for manuscript)
-# Get vectors for row spacings using groups (may add compound classes later)
-cmpds_ordered <- cmpd_meta %>% arrange(description) %>% mutate(row = 1:n() + (as.numeric(description)-1))
-rowvec <- cmpds_ordered$row
-
+par(mfrow = c(1,2))
 par(mar=c(5,4,1,2))
 library(metafor)
-forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1,
-       ylim = c(1, max(rowvec) + 3), #at = 0:5,
-       xlab = "Multivariable-adjusted odds ratio", 
-       transf = exp, rows = rowvec, efac = 0.5,
-       pch = 18, cex = 0.8, psize = 1.5, 
-       annosym = c("  (", " to ", ")"),
-       slab = t2$display_name)
+forest(t1$estimate, ci.lb = t1$conf.low, ci.ub = t1$conf.high, refline = 1,
+       ylim = c(1, max(rowvec) + 3), xlab = "Odds ratio per SD increase in conc", 
+       transf = exp, rows = rowvec, efac = 0.5, pch = 18, cex = 0.8, psize = 1.5, 
+       annosym = c("  (", " to ", ")"), slab = t1$display_name)
 
 hh <- par("usr")
 text(hh[1], max(rowvec) + 2, "Metabolite", pos = 4, cex = 0.8)
 text(hh[2], max(rowvec) + 2, "OR [95% CI]", pos = 2, cex = 0.8)
+
+t2 <- map_df(fits1a, tidy) %>% filter(str_detect(term, "x")) %>% bind_cols(cmpd.meta) %>% arrange(description)
+
+par(mar=c(5,4,1,2))
+library(metafor)
+forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1,
+       ylim = c(1, max(rowvec) + 3), xlab = "Odds ratio Q4 vs Q1", 
+       transf = exp, rows = rowvec, efac = 0.5, pch = 18, cex = 0.8, psize = 1.5, 
+       annosym = c("  (", " to ", ")"), slab = t2$display_name)
+
+hh <- par("usr")
+text(hh[1], max(rowvec) + 2, "Metabolite", pos = 4, cex = 0.8)
+text(hh[2], max(rowvec) + 2, "OR [95% CI]", pos = 2, cex = 0.8)
+
+# Post-menopausal --------------------
+
+quartiles <- ints0[post, ] %>% mutate_all(funs(cut_number(., n = 4, labels = 1:4))) 
+meta2 <- meta[post, ]
+
+fits2 <- apply(ints[post, ], 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
+  DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH) + x, data = meta2))
+
+fits2a <- apply(quartiles, 2, function(x) {
+  Q1Q4 <- x == 1 | x == 4
+  clogit(CT ~  x[Q1Q4] + BMI + SMK + DIABETE + RTH + ALCOHOL + DURTHSDIAG + CENTTIME + 
+           STOCKTIME + strata(MATCH), data = meta2[Q1Q4, ])
+} )
+
+library(broom)
+t1 <- map_df(fits2, tidy) %>% filter(str_detect(term, "x")) %>% bind_cols(cmpd.meta) %>% arrange(description)
+
+par(mfrow = c(1,2))
+par(mar=c(5,4,1,2))
+library(metafor)
+forest(t1$estimate, ci.lb = t1$conf.low, ci.ub = t1$conf.high, refline = 1,
+       ylim = c(1, max(rowvec) + 3), xlab = "Odds ratio per SD increase in conc", 
+       transf = exp, rows = rowvec, efac = 0.5, pch = 18, cex = 0.8, psize = 1.5, 
+       annosym = c("  (", " to ", ")"), slab = t1$display_name)
+
+hh <- par("usr")
+text(hh[1], max(rowvec) + 2, "Metabolite", pos = 4, cex = 0.8)
+text(hh[2], max(rowvec) + 2, "OR [95% CI]", pos = 2, cex = 0.8)
+
+t2 <- map_df(fits2a, tidy) %>% filter(str_detect(term, "x")) %>% bind_cols(cmpd.meta) %>% arrange(description)
+
+par(mar=c(5,4,1,2))
+library(metafor)
+forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1,
+       ylim = c(1, max(rowvec) + 3), xlab = "Odds ratio Q4 vs Q1", 
+       transf = exp, rows = rowvec, efac = 0.5, pch = 18, cex = 0.8, psize = 1.5, 
+       annosym = c("  (", " to ", ")"), slab = t2$display_name)
+
+hh <- par("usr")
+text(hh[1], max(rowvec) + 2, "Metabolite", pos = 4, cex = 0.8)
+text(hh[2], max(rowvec) + 2, "OR [95% CI]", pos = 2, cex = 0.8)
+
+
+
 
 # Funnel plots for metabolites
 funnel(x = t2$estimate, sei = t2$std.error)

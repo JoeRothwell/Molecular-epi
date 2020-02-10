@@ -3,19 +3,26 @@
 
 library(tidyverse)
 library(readxl)
+library(survival)
 
 # First get metadata. Subset variables needed
 meta <- read_csv("Lifepath_meta.csv", na = "9999") %>%
   select(CT, BMI, SMK, DIABETE, RTH, ALCOHOL, DURTHSDIAG, CENTTIME, STOCKTIME, RACK, MATCH, MENOPAUSE) %>%
   mutate_at(vars(SMK, DIABETE, RACK, MATCH), as.factor)
 
-cmpd_meta <- read.csv("NMR_cmpd_metadata_new.csv")
+# For subsetting
+pre <- meta$MENOPAUSE == 0
+post <- meta$MENOPAUSE == 1 
 
 # For removal of problem racks for Ethanol
 #meta1 <- meta %>% filter(!RACK %in% c(10, 29, 33, 34))
 
-# Continuous. Read scaled data and subset to get subjects included in CC
+# Compound data for forest plots
+cmpd.meta <- read.csv("NMR_cmpd_metadata_new.csv")
+cmpds.ordered <- cmpd.meta %>% arrange(description) %>% mutate(row = 1:n() + (as.numeric(description)-1))
+rowvec <- cmpds.ordered$row
 
+# Unscaled data
 ints0 <- read_tsv("1510_XMetaboliteE3N_cpmg_unscaled.txt")
 
 #ints.all <- read.delim("1507_XMetabolite_std_cpmg_E3N.txt")
@@ -34,10 +41,6 @@ ints0[logicalmat] <- NA
 # Scale to unit variance
 ints <- scale(ints0)
 
-pre <- meta$MENOPAUSE == 0
-post <- meta$MENOPAUSE == 1 
-
-
 
 # Replace negative values with half the minimum positive value
 #rm.neg.values <- function(x) ifelse(x < 0, min(x[x > 0])/2, x)
@@ -45,9 +48,5 @@ post <- meta$MENOPAUSE == 1
 # Check
 #which(apply(as.matrix(ints0), 2, min) < 0)
 
-# Categorical
 
-# Update 11/10/19: Updated with unscaled data (see BC_compounds_scaling for old data)
-#ints0 <- read_tsv("1510_XMetaboliteE3N_cpmg_unscaled.txt")
-quartiles <- ints.filt %>% mutate_all(funs(cut_number(., n = 4, labels = 1:4))) 
-dat1 <- cbind(meta[filt, ], quartiles)
+
