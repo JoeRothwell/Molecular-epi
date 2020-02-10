@@ -12,7 +12,7 @@ meta <- read_csv("Lifepath_meta.csv", na = "9999") %>%
 cmpd_meta <- read.csv("NMR_cmpd_metadata_new.csv")
 
 # For removal of problem racks for Ethanol
-meta1 <- meta %>% filter(!RACK %in% c(10, 29, 33, 34))
+#meta1 <- meta %>% filter(!RACK %in% c(10, 29, 33, 34))
 
 # Continuous. Read scaled data and subset to get subjects included in CC
 
@@ -23,16 +23,21 @@ ints0 <- read_tsv("1510_XMetaboliteE3N_cpmg_unscaled.txt")
 #ints <- ints.all[samples, -1]
 
 # Remove problem racks
-filt <- !(meta$RACK %in% c(10, 29, 33, 34))
-ints.filt <- ints0[filt, ]
+#filt <- !(meta$RACK %in% c(10, 29, 33, 34))
+#ints.filt <- ints0[filt, ]
 
 # Remove top and bottom 1% of each compound and replace with NA
 outliers <- function(x) x > quantile(x, probs = 0.99) | x < quantile(x, probs = 0.01)
-logicalmat <- apply(ints.con, 2, outliers)
-ints.filt[logicalmat] <- NA
+logicalmat <- apply(ints0, 2, outliers)
+ints0[logicalmat] <- NA
 
 # Scale to unit variance
 ints <- scale(ints0)
+
+pre <- meta$MENOPAUSE == 0
+post <- meta$MENOPAUSE == 1 
+
+
 
 # Replace negative values with half the minimum positive value
 #rm.neg.values <- function(x) ifelse(x < 0, min(x[x > 0])/2, x)
