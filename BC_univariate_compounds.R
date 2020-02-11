@@ -15,8 +15,8 @@ quartiles <- ints0 %>% mutate_all(funs(cut_number(., n = 4, labels = 1:4)))
 # Apply across all compounds
 fits0a <- apply(quartiles, 2, function(x) {
   Q1Q4 <- x == 1 | x == 4
-  clogit(CT ~  x[Q1Q4] + BMI + SMK + DIABETE + RTH + ALCOHOL + DURTHSDIAG + CENTTIME + STOCKTIME + #RACK + 
-           strata(MATCH), data = meta[Q1Q4, ])
+  clogit(CT ~ x[Q1Q4] + BMI + SMK + DIABETE + RTH + ALCOHOL + DURTHSDIAG + CENTTIME + #RACK +
+           STOCKTIME + strata(MATCH), data = meta[Q1Q4, ])
 } )
 
 # Tidy and plot
@@ -38,7 +38,6 @@ text(hh[2], max(rowvec) + 2, "OR [95% CI]", pos = 2, cex = 0.8)
 t2 <- map_df(fits0a, tidy) %>% filter(str_detect(term, "x")) %>% bind_cols(cmpd.meta) %>% arrange(description)
 
 par(mar=c(5,4,1,2))
-library(metafor)
 forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1,
        ylim = c(1, max(rowvec) + 3), xlab = "Odds ratio Q4 vs Q1", 
        transf = exp, rows = rowvec, efac = 0.5, pch = 18, cex = 0.8, psize = 1.5, 
@@ -55,11 +54,11 @@ quartiles <- ints0[pre, ] %>% mutate_all(funs(cut_number(., n = 4, labels = 1:4)
 meta1 <- meta[pre, ]
 
 fits1 <- apply(ints[pre, ], 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
-          DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH) + x, data = meta[pre, ], subset = MENOPAUSE == 0))
+          DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH) + x, data = meta[pre, ]))
 
 fits1a <- apply(quartiles, 2, function(x) {
   Q1Q4 <- x == 1 | x == 4
-  clogit(CT ~  x[Q1Q4] + BMI + SMK + DIABETE + RTH + ALCOHOL + DURTHSDIAG + CENTTIME + 
+  clogit(CT ~ x[Q1Q4] + BMI + SMK + DIABETE + RTH + ALCOHOL + DURTHSDIAG + CENTTIME + 
            STOCKTIME + strata(MATCH), data = meta1[Q1Q4, ])
 } )
 
@@ -81,7 +80,6 @@ text(hh[2], max(rowvec) + 2, "OR [95% CI]", pos = 2, cex = 0.8)
 t2 <- map_df(fits1a, tidy) %>% filter(str_detect(term, "x")) %>% bind_cols(cmpd.meta) %>% arrange(description)
 
 par(mar=c(5,4,1,2))
-library(metafor)
 forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1,
        ylim = c(1, max(rowvec) + 3), xlab = "Odds ratio Q4 vs Q1", 
        transf = exp, rows = rowvec, efac = 0.5, pch = 18, cex = 0.8, psize = 1.5, 
@@ -123,7 +121,6 @@ text(hh[2], max(rowvec) + 2, "OR [95% CI]", pos = 2, cex = 0.8)
 t2 <- map_df(fits2a, tidy) %>% filter(str_detect(term, "x")) %>% bind_cols(cmpd.meta) %>% arrange(description)
 
 par(mar=c(5,4,1,2))
-library(metafor)
 forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1,
        ylim = c(1, max(rowvec) + 3), xlab = "Odds ratio Q4 vs Q1", 
        transf = exp, rows = rowvec, efac = 0.5, pch = 18, cex = 0.8, psize = 1.5, 
@@ -140,6 +137,7 @@ text(hh[2], max(rowvec) + 2, "OR [95% CI]", pos = 2, cex = 0.8)
 funnel(x = t2$estimate, sei = t2$std.error)
 funnel(x = t2$estimate, sei = t2$std.error, yaxis = "vi")
 
+# ---------------------------------------------------------------
 
 # Tables for manuscript
 # Generate tidy output table from models
@@ -151,13 +149,13 @@ tidy.output <- function(mod) {
   df <- map_df(mod, tidy) %>% filter(term == "x") %>%
     mutate_at(.vars = c(OR = "estimate", "conf.low", "conf.high"), .funs = round.exp) %>%
     cbind(Compound = names(mod)) %>%
-    left_join(cmpd_meta, by  = "Compound")
+    left_join(cmpd.meta, by  = "Compound")
   
   # Make columns
-  df$P.value <- round(df$p.value, 3)
-  df$FDR <- round(p.adjust(df$p.value, method = "fdr"), 3)
+  df$P.value    <- round(df$p.value, 3)
+  df$FDR        <- round(p.adjust(df$p.value, method = "fdr"), 3)
   df$Bonferroni <- round(p.adjust(df$p.value, method = "bonferroni"), 3)
-  df$CI.95 <- paste("(", df$conf.low, ", ", df$conf.high, ")", sep = "")
+  df$CI.95      <- paste("(", df$conf.low, ", ", df$conf.high, ")", sep = "")
 
   # Select columns and order
   output <- df %>% 
@@ -264,8 +262,6 @@ ggplot(dat1, aes(x= MATCH, y = compound, fill = difference)) + geom_tile() +
   facet_grid(. ~ MENOPAUSE, scales = "free", space = "free") +
   scale_fill_gradientn(colours = colpalette2)
 
-
-
 # ---------------------------------------------------------------------------------------------------
 
 # Conditional logistic regression to get odds ratios for lifestyle factors
@@ -279,8 +275,6 @@ fit2 <- clogit(CT ~ scale(ALCOHOL) + BMI + SMK + DIABETE + RTH + DURTHSDIAG + CE
 # fit0: 1.0784 [0.9704, 1.199]
 # fit1: 0.9569 [0.77228, 1.186]
 # fit2: 1.1035 [0.9739 , 1.250]
-
-
 
 fit <- clogit(CT ~ scale(BMI) + SMK + DIABETE + #BP + 
                 scale(RTH) + scale(ALCOHOL) + scale(DURTHSDIAG) + 
