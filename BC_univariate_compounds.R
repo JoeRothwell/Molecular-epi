@@ -7,7 +7,7 @@ source("BC_prep_data.R")
 # All subjects -------------------
 
 fits0 <- apply(ints, 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
-         DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH) + x, data = meta))
+         DURTHSBMB + CENTTIME + STOCKTIME + strata(MATCH) + x, data = meta))
 
 # Analysis by quartiles of metabolite concentration (resist outliers). 
 quartiles <- ints0 %>% mutate_all(funs(cut_number(., n = 4, labels = 1:4))) 
@@ -15,7 +15,7 @@ quartiles <- ints0 %>% mutate_all(funs(cut_number(., n = 4, labels = 1:4)))
 # Apply across all compounds
 fits0a <- apply(quartiles, 2, function(x) {
   Q1Q4 <- x == 1 | x == 4
-  clogit(CT ~ x[Q1Q4] + BMI + SMK + DIABETE + RTH + ALCOHOL + DURTHSDIAG + CENTTIME + #RACK +
+  clogit(CT ~ x[Q1Q4] + BMI + SMK + DIABETE + RTH + ALCOHOL + DURTHSBMB + CENTTIME + #RACK +
            STOCKTIME + strata(MATCH), data = meta[Q1Q4, ])
 } )
 
@@ -53,13 +53,15 @@ text(hh[2], max(rowvec) + 2, "OR [95% CI]", pos = 2, cex = 0.8)
 quartiles <- ints0[pre, ] %>% mutate_all(funs(cut_number(., n = 4, labels = 1:4))) 
 meta1 <- meta[pre, ]
 
+# Note: need to remove hormone treatment therapy variable
 fits1 <- apply(ints[pre, ], 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
-          DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH) + x, data = meta[pre, ]))
+         #DURTHSBMB + 
+           CENTTIME + STOCKTIME + strata(MATCH) + x, data = meta[pre, ]))
 
 fits1a <- apply(quartiles, 2, function(x) {
   Q1Q4 <- x == 1 | x == 4
-  clogit(CT ~ x[Q1Q4] + BMI + SMK + DIABETE + RTH + ALCOHOL + DURTHSDIAG + CENTTIME + 
-           STOCKTIME + strata(MATCH), data = meta1[Q1Q4, ])
+  clogit(CT ~ x[Q1Q4] + BMI + SMK + DIABETE + RTH + ALCOHOL + #DURTHSBMB + 
+           CENTTIME + STOCKTIME + strata(MATCH), data = meta1[Q1Q4, ])
 } )
 
 library(broom)
@@ -95,11 +97,11 @@ quartiles <- ints0[post, ] %>% mutate_all(funs(cut_number(., n = 4, labels = 1:4
 meta2 <- meta[post, ]
 
 fits2 <- apply(ints[post, ], 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
-  DURTHSDIAG + CENTTIME + STOCKTIME + strata(MATCH) + x, data = meta2))
+          DURTHSBMB + CENTTIME + STOCKTIME + strata(MATCH) + x, data = meta2))
 
 fits2a <- apply(quartiles, 2, function(x) {
   Q1Q4 <- x == 1 | x == 4
-  clogit(CT ~  x[Q1Q4] + BMI + SMK + DIABETE + RTH + ALCOHOL + DURTHSDIAG + CENTTIME + 
+  clogit(CT ~  x[Q1Q4] + BMI + SMK + DIABETE + RTH + ALCOHOL + DURTHSBMB + CENTTIME + 
            STOCKTIME + strata(MATCH), data = meta2[Q1Q4, ])
 } )
 

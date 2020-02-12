@@ -10,17 +10,19 @@ meta <- read_csv("Lifepath_meta.csv", na = "9999") %>%
          MENOPAUSE,             # menopausal status at blood collection
          SMK, 
          DIABETE, 
-         Life_Alcohol_Pattern_1, 
+         Life_Alcohol_Pattern_1,
+         #ALCOHOL,
          BP, 
          CO,                    # previous oral contraceptive use
          Trait_Horm,            # menopausal treatment therapy taken 24h before blood collection
-         DURTHSDIAG,            # Duration of use of therapy at date of diagnosis
+         #DURTHSDIAG,            # Duration of use of therapy at date of diagnosis
+         DURTHSBMB,             # Duration of use of therapy at blood collection
          #CENTTIMECat1,          # time before centrifugation (?) OMIT not of interest
          FASTING, 
          STOCKTIME,             # Storage time (years)
          BEHAVIOUR,             # Tumour behaviour
          SUBTYPE, 
-         #CERB2,                 # HER2 receptor OMIT mostly unknown
+         #CERB2,                # HER2 receptor OMIT mostly unknown
          ER,                    # Estrogen receptor
          PR,                    # Progesterone receptor
          SBR, 
@@ -73,6 +75,10 @@ summ <-
               "Light consumers (1-10 g/day)" =  ~ n_perc0(Life_Alcohol_Pattern_1 == 1, na_rm = T, digits = 1),
               "Drinkers (>10 g/day)"         =  ~ n_perc0(Life_Alcohol_Pattern_1 == 2, na_rm = T, digits = 1),
               "Unknown"                      =  ~ n_perc0(is.na(Life_Alcohol_Pattern_1), digits = 1)),
+     
+     "Alcohol intake (g/day)" =
+       
+       list("Mean (SD)" = ~ mean_sd(ALCOHOL)),
        
      "Blood pressure" =
        
@@ -90,9 +96,9 @@ summ <-
         list("Yes" =  ~ n_perc0(Trait_Horm == 1, digits = 1),
              "No"  =  ~ n_perc0(Trait_Horm == 0, digits = 1)),
        
-     "Duration of use of menopause hormonal treatment" =
+     "Duration of use of menopause hormonal treatment at baseline" =
        
-        list("Mean (SD)" =  ~ mean_sd(DURTHSDIAG)),
+        list("Mean (SD)" =  ~ mean_sd(DURTHSBMB)),
        
      #"Time before centrifugation" =
      #  list("< 12h"   =  ~ n_perc0(CENTTIMECat1 == 1, na_rm = T),

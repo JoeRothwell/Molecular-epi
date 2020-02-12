@@ -29,11 +29,11 @@ library(RColorBrewer)
 
 #palette(rainbow(5))
 palette(brewer.pal(5, "Dark2"))
-plot.ts(ints[, 1:10], type = "p", col = meta$SAMPYEAR, main = "Hydroxybutyrate - Creatine")
-plot.ts(ints[, 11:20], type = "p", col = meta$SAMPYEAR, main = "Creatinine - Glutamate")
-plot.ts(ints[, 21:30], type = "p", col = meta$SAMPYEAR, main = "Glycerol - Isoleucine")
-plot.ts(ints[, 31:40], type = "p", col = meta$SAMPYEAR, main = "Lactate - Malonate")
-plot.ts(ints[, 41:ncol(ints)], type = "p", col = meta$SAMPYEAR, main = "Malonate - Succinate")
+plot.ts(ints[, 1:10], type = "p", col = meta$STOCKTIME, main = "Hydroxybutyrate - Creatine")
+plot.ts(ints[, 11:20], type = "p", col = meta$STOCKTIME, main = "Creatinine - Glutamate")
+plot.ts(ints[, 21:30], type = "p", col = meta$STOCKTIME, main = "Glycerol - Isoleucine")
+plot.ts(ints[, 31:40], type = "p", col = meta$STOCKTIME, main = "Lactate - Malonate")
+plot.ts(ints[, 41:ncol(ints)], type = "p", col = meta$STOCKTIME, main = "Malonate - Succinate")
 
 # Problem compounds only
 plot.ts(ints[, c(13, 14, 23, 24, 39, 43)], type = "p", col = meta$SAMPYEAR)
