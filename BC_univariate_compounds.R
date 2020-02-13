@@ -51,10 +51,15 @@ text(hh[2], max(rowvec) + 2, "OR [95% CI]", pos = 2, cex = 0.8)
 #plot(t1$statistic, -log10(t1$p.value))
 library(ggplot2)
 library(ggrepel)
+library(scales)
 ggplot(t1, aes(exp(estimate), -log10(p.value))) + geom_point() + theme_bw() +
-  xlim(c(0.8, 1.25)) + 
-  geom_text(aes(label = display_name), hjust = -0.1, vjust = 0, size = 3) +
-  geom_hline(yintercept = -log10(0.05), linetype = "dashed")
+  xlim(c(0.8, 1.2)) +
+  #scale_y_log10(breaks = log_breaks(5)) +
+  xlab("Odds ratio per SD increase concentration") + ylab("-log10(P-value)") +
+  geom_text_repel(aes(label = display_name), size = 3, #hjust = -0.1, vjust = 0, size = 3,
+            data = t1[t1$p.value < 0.3, ]) +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
+  ggtitle("A")
 
 
 # Pre-menopausal -------------------
@@ -100,6 +105,16 @@ hh <- par("usr")
 text(hh[1], max(rowvec) + 2, "Metabolite", pos = 4, cex = 0.8)
 text(hh[2], max(rowvec) + 2, "OR [95% CI]", pos = 2, cex = 0.8)
 
+library(ggplot2)
+library(ggrepel)
+ggplot(t1, aes(exp(estimate), -log10(p.value))) + geom_point() + theme_bw() +
+  xlim(c(0, 2)) + 
+  xlab("exp(Coefficient)") + ylab("-log10(P-value)") +
+  geom_text_repel(aes(label = display_name), size = 3, #hjust = -0.1, vjust = 0, size = 3,
+                  data = t1[t1$p.value < 0.05, ] ) +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
+  ggtitle("B")
+
 # Post-menopausal --------------------
 
 quartiles <- ints0[post, ] %>% mutate_all(funs(cut_number(., n = 4, labels = 1:4))) 
@@ -141,7 +156,15 @@ hh <- par("usr")
 text(hh[1], max(rowvec) + 2, "Metabolite", pos = 4, cex = 0.8)
 text(hh[2], max(rowvec) + 2, "OR [95% CI]", pos = 2, cex = 0.8)
 
-
+library(ggplot2)
+library(ggrepel)
+ggplot(t1, aes(exp(estimate), -log10(p.value))) + geom_point() + theme_bw() +
+  xlim(c(0.85, 1.15)) + 
+  xlab("Odds ratio per SD increase concentration") + ylab("-log10(P-value)") +
+  geom_text_repel(aes(label = display_name), size = 3, #hjust = -0.1, vjust = 0, size = 3,
+            data = t1[t1$p.value < 0.3, ]) +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
+  ggtitle("C")
 
 
 # Funnel plots for metabolites
