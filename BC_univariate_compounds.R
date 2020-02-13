@@ -47,6 +47,15 @@ hh <- par("usr")
 text(hh[1], max(rowvec) + 2, "Metabolite", pos = 4, cex = 0.8)
 text(hh[2], max(rowvec) + 2, "OR [95% CI]", pos = 2, cex = 0.8)
 
+# Smile plot
+#plot(t1$statistic, -log10(t1$p.value))
+library(ggplot2)
+library(ggrepel)
+ggplot(t1, aes(exp(estimate), -log10(p.value))) + geom_point() + theme_bw() +
+  xlim(c(0.8, 1.25)) + 
+  geom_text(aes(label = display_name), hjust = -0.1, vjust = 0, size = 3) +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed")
+
 
 # Pre-menopausal -------------------
 
