@@ -52,6 +52,7 @@ text(hh[2], max(rowvec) + 2, "OR [95% CI]", pos = 2, cex = 0.8)
 library(ggplot2)
 library(ggrepel)
 library(scales)
+# For slides, dimension 415 x 377
 ggplot(t1, aes(exp(estimate), -log10(p.value))) + geom_point() + theme_bw() +
   xlim(c(0.8, 1.2)) +
   #scale_y_log10(breaks = log_breaks(5)) +
@@ -59,7 +60,8 @@ ggplot(t1, aes(exp(estimate), -log10(p.value))) + geom_point() + theme_bw() +
   geom_text_repel(aes(label = display_name), size = 3, #hjust = -0.1, vjust = 0, size = 3,
             data = t1[t1$p.value < 0.3, ]) +
   geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
-  ggtitle("A")
+  geom_vline(xintercept = 1, linetype = "dashed") +
+  ggtitle("All subjects")
 
 
 # Pre-menopausal -------------------
@@ -109,10 +111,11 @@ library(ggplot2)
 library(ggrepel)
 ggplot(t1, aes(exp(estimate), -log10(p.value))) + geom_point() + theme_bw() +
   xlim(c(0, 2)) + 
-  xlab("exp(Coefficient)") + ylab("-log10(P-value)") +
+  xlab("Odds ratio per SD increase concentration") + ylab("-log10(P-value)") +
   geom_text_repel(aes(label = display_name), size = 3, #hjust = -0.1, vjust = 0, size = 3,
-                  data = t1[t1$p.value < 0.05, ] ) +
-  geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
+                  data = t1[t1$p.value < 0.04, ] ) +
+  geom_hline(yintercept = c(-log10(0.05), -log10(0.014)), linetype = "dashed") +
+  geom_vline(xintercept = 1, linetype = "dashed") +
   ggtitle("B")
 
 # Post-menopausal --------------------
@@ -162,8 +165,9 @@ ggplot(t1, aes(exp(estimate), -log10(p.value))) + geom_point() + theme_bw() +
   xlim(c(0.85, 1.15)) + 
   xlab("Odds ratio per SD increase concentration") + ylab("-log10(P-value)") +
   geom_text_repel(aes(label = display_name), size = 3, #hjust = -0.1, vjust = 0, size = 3,
-            data = t1[t1$p.value < 0.3, ]) +
+            data = t1[t1$p.value < 0.15, ]) +
   geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
+  geom_vline(xintercept = 1, linetype = "dashed") +
   ggtitle("C")
 
 

@@ -66,10 +66,12 @@ ggplot(ints, aes(x= as.factor(meta$CT), y=log(Hypoxanthine))) +
 
 # Check correlations: fatty acids are highly correlated
 library(corrplot)
-#cormat <- cor(ints, use = "pairwise.complete.obs")
+cormat <- cor(ints, use = "pairwise.complete.obs")
 cormat <- cor(ints[, -1])
 colnames(cormat) <- NULL
-corrplot(cormat, method = "square", tl.col = "black", tl.cex = 0.8, order = "hclust")
+rownames(cormat) <- NULL
+corrplot(cormat, method = "square", tl.col = "black", tl.cex = 0.8,  tl.srt = 30,
+                 hclust.method = "ward", order = "hclust", type = "lower")
 
 # Dendrogram
 library(dendextend)
