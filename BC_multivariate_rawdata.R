@@ -115,190 +115,55 @@ post  <- meta$MENOPAUSE == 1
 early <- meta$tdiag == 1
 late  <- meta$tdiag == 2
 
-
 library(caret)
-
-# 0. All subjects
-# Split into training and test sets on class, 75% to training set
-inTrain <- createDataPartition(y = all$class, p = 0.75, list = F)
-training <- all[inTrain, ]
-testing <- all[-inTrain, ]
-
-# Cross validation. The sample size is quite large so can use a large number of folds (10)
-set.seed(111)
-#folds <- createMultiFolds(y = training$class, k = 10, times = 5)
-folds <- createFolds(y = training$class, k = 10)
-control <- trainControl("repeatedcv", index = folds, selectionFunction = "oneSE")
-sapply(folds, length)
-
-# Train PLS model
-mod0 <- train(class ~ ., data = training, method = "pls", metric = "Accuracy", 
-             trControl = control, tuneLength = 20) 
-
-plot(mod0)
-confusionMatrix(mod0)
-#plot(varImp(mod0), 10)
-
-# Predict test set
-predictions0 <- predict(mod0, newdata = testing)
-confusionMatrix(predictions0, reference = testing$class)
-
-# Get AUC
 library(pROC)
-predictions0_1 <- predict(mod0, newdata = testing, type = "prob")
-result0 <- roc(testing$class, predictions0_1$`0`, ci = T)
-ci.auc(result0)
+# Function to train and fit the model and do a ROC analysis
+bc.roc <- function(dat, ...) {
+  
+  # Split into training and test sets on class, 75% to training set
+  inTrain <- createDataPartition(y = dat$class, p = 0.75, list = F)
+  training <- dat[inTrain, ]
+  testing <- dat[-inTrain, ]
+  
+  # Cross validation. If the sample size is large can use a large number of folds (10)
+  set.seed(111)
+  folds <- createMultiFolds(y = training$class, ...)
+  control <- trainControl("repeatedcv", index = folds, selectionFunction = "oneSE")
+  print(sapply(folds, length))
+  
+  # Train PLS model
+  mod0 <- train(class ~ ., data = training, method = "pls", metric = "Accuracy", 
+                trControl = control, tuneLength = 20) 
+  
+  #plot(mod0)
+  confusionMatrix(mod0)
+  
+  # Predict test set
+  predictions0 <- predict(mod0, newdata = testing)
+  confusionMatrix(predictions0, reference = testing$class)
+  
+  # Get AUC
+  predictions0_1 <- predict(mod0, newdata = testing, type = "prob")
+  result0 <- roc(testing$class, predictions0_1$`0`, ci = T)
+  
+}
 
-# Plot ROC curve
-plot(result0, main = "All subjects")
-plot.roc(result0, main = "All subjects", ci = T, auc.polygon.col = "lightblue")
+p0 <- bc.roc(all, k = 10)
+p1 <- bc.roc(all[post, ], k = 10)
+p2 <- bc.roc(all[pre, ], k = 5, times = 5)
+p3 <- bc.roc(all[early, ], k = 10)
+p4 <- bc.roc(all[late, ], k = 10)
 
+plot.roc(p0, ci = T, grid = T, print.auc = T)
+plot.roc(p1, grid = T, print.auc = T)
+plot.roc(p2, grid = T, print.auc = T)
+plot.roc(p3, grid = T, print.auc = T)
+plot.roc(p4, grid = T, print.auc = T)
 
-#-----------------------------------------------------------------------------------------
-
-# 1. Post-menopausal only
-# Split into training and test sets on class, 75% to training set
-post <- all[post, ]
-inTrain <- createDataPartition(y = post$class, p = 0.75, list = F)
-training <- post[inTrain, ]
-testing <- post[-inTrain, ]
-
-set.seed(222)
-folds <- createFolds(y = training$class, k = 10)
-control <- trainControl("repeatedcv", index = folds, selectionFunction = "oneSE")
-
-# Train PLS model
-mod1 <- train(class ~ ., data = training, method = "pls", metric = "Accuracy", 
-             trControl = control, tuneLength = 20) 
-
-plot(mod1)
-#confusionMatrix(mod1)
-#plot(varImp(mod1), 10)
-
-# Predict test set
-predictions1 <- predict(mod1, newdata = testing)
-confusionMatrix(predictions1, reference = testing$class)
-
-# Get AUC
-library(pROC)
-predictions1_1 <- predict(mod1, newdata = testing, type = "prob")
-result1 <- roc(testing$class, predictions1_1$`0`, ci = T)
-ci.auc(result1)
-
-# Plot ROC curve
-plot(result1, main = "Post-menopausal")
-
-
-#---------------------------------------------------------------------------------------
-
-# 2. Pre-menopausal only
-# Split into training and test sets on class, 75% to training set
-pre <- all[pre, ]
-inTrain <- createDataPartition(y = pre$class, p = 0.75, list = F)
-training <- pre[inTrain, ]
-testing <- pre[-inTrain, ]
-
-# Use a 10 times repeated 5-fold cross validation
-set.seed(333)
-folds <- createMultiFolds(y = training$class, k = 5, times = 5)
-control <- trainControl("repeatedcv", index = folds, selectionFunction = "oneSE")
-
-# Train PLS model
-mod2 <- train(class ~ ., data = training, method = "pls", metric = "Accuracy", 
-             trControl = control, tuneLength = 20) 
-
-plot(mod2)
-#confusionMatrix(mod2)
-#plot(varImp(mod2), 10)
-
-# Predict test set
-predictions2 <- predict(mod2, newdata = testing)
-confusionMatrix(predictions2, reference = testing$class)
-
-# Get AUC
-library(pROC)
-predictions2_1 <- predict(mod2, newdata = testing, type = "prob")
-result2 <- roc(testing$class, predictions2_1$`0`, ci = T)
-ci.auc(result2)
-
-# Plot ROC curve
-plot(result2, main = "Pre-menopasual")
-
-#---------------------------------------------------------------------------------------
-
-# 3. Early diagnosis only
-# Split into training and test sets on class, 75% to training set
-early <- all[early, ]
-inTrain <- createDataPartition(y = early$class, p = 0.75, list = F)
-training <- early[inTrain, ]
-testing <- early[-inTrain, ]
-
-# Use a 10 times repeated 5-fold cross validation
-set.seed(444)
-folds <- createFolds(y = training$class, k = 10)
-control <- trainControl("repeatedcv", index = folds, selectionFunction = "oneSE")
-
-# Train PLS model
-mod3 <- train(class ~ ., data = training, method = "pls", metric = "Accuracy", 
-             trControl = control, tuneLength = 20) 
-
-plot(mod3)
-#confusionMatrix(mod3)
-#plot(varImp(mod3), 10)
-
-# Predict test set
-predictions3 <- predict(mod3, newdata = testing)
-confusionMatrix(predictions3, reference = testing$class)
-
-# Get AUC
-library(pROC)
-predictions3_1 <- predict(mod3, newdata = testing, type = "prob")
-result3 <- roc(testing$class, predictions3_1$`0`, ci = T)
-ci.auc(result3)
-
-# Plot ROC curve
-plot(result3, main = "Diagnosis < 5y")
-
-#---------------------------------------------------------------------------------------
-
-# 4. Late diagnosis only
-# Split into training and test sets on class, 75% to training set
-late <- all[late, ]
-set.seed(555)
-inTrain <- createDataPartition(y = late$class, p = 0.75, list = F)
-training <- late[inTrain, ]
-testing <- late[-inTrain, ]
-
-# Use a 10 times repeated 5-fold cross validation
-set.seed(555)
-folds <- createFolds(y = training$class, k = 10)
-control <- trainControl("repeatedcv", index = folds, selectionFunction = "oneSE")
-
-# Train PLS model
-set.seed(555)
-mod4 <- train(class ~ ., data = training, method = "pls", metric = "Accuracy", 
-             trControl = control, tuneLength = 20) 
-
-plot(mod4)
-#confusionMatrix(mod4)
-#plot(varImp(mod), 10)
-
-# Predict test set
-predictions4 <- predict(mod4, newdata = testing)
-confusionMatrix(predictions4, reference = testing$class)
-
-# Get AUC
-library(pROC)
-predictions4_1 <- predict(mod4, newdata = testing, type = "prob")
-result4 <- roc(testing$class, predictions4_1$`0`, ci = T)
-result4
-ci.auc(result4)
-
-# Plot ROC curve
-plot(result4, main = "Diagnosis > 5y")
-
-
-#----------------------------------------------------------------------------------------
+library(ggROC)
+ggroc(p4, colour = "darkblue", size = 1) + theme_bw() +
+  geom_segment(aes(x = 1, xend = 0, y = 0, yend = 1), color="grey", linetype="dashed") +
+  ggsave("roc_late.png")
 
 # Compare models
 models <- resamples(list("All" = mod0, "Post-menopausal" = mod1,
