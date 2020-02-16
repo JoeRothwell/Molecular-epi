@@ -2,22 +2,19 @@
 
 # Data from Elodie Jobard 27-6-2019
 # Read in data with outliers and QCs (n=1739) or with QCs only
+# Read in NMR data and metadata. Dataset containing samples and QCs only 
+
+library(tidyverse)
+library(readxl)
+dat <- read_tsv("1510_XAlignedE3NcpmgssCitPEGfinal.txt") %>% select(-8501)
+meta <- read_xlsx("1510_MatriceY_CohorteE3N_Appar.xlsx", sheet = 4, na = ".")
+
+# Dataset containing all samples, QCs and blanks
+#mat <- read_delim("X_AlignedE3NData_cpmg_ssCitPEG_1112.txt", delim = ";", n_max = 1738) 
 
 # Subset samples only and plot PCA with pareto scaling
 prep.data <- function(incl.qc = F, pc.scores = T) {
-  
-  library(tidyverse)
-  library(readxl)
-  library(MetabolAnalyze)
-  
-  # Read in NMR data and metadata. Dataset containing samples and QCs only 
-  
-  dat <- read_tsv("1510_XAlignedE3NcpmgssCitPEGfinal.txt") %>% select(-8501)
-  meta <- read_xlsx("1510_MatriceY_CohorteE3N_Appar.xlsx", sheet = 4, na = ".")
-  
-  # Dataset containing all samples, QCs and blanks
-  #mat <- read_delim("X_AlignedE3NData_cpmg_ssCitPEG_1112.txt", delim = ";", n_max = 1738) 
-  
+
   samp <- meta$TYPE_ECH == 1 & !is.na(meta$CENTTIME)
     
   # Subset samples only (removing 112 QCs) from data and metadata
@@ -39,12 +36,11 @@ prep.data <- function(incl.qc = F, pc.scores = T) {
   print(paste("Dimensions", dim(mat0)))
 
   # Scale and run PCA  
+  library(MetabolAnalyze)
   scalemat <- scaling(mat0, type = "pareto")
   
   if(pc.scores == F) return(list(scalemat, meta))
-  
   pca <- prcomp(scalemat, scale. = F, center = T, rank. = 10)
-  
   output <- data.frame(pca$x) %>% bind_cols(meta)
 }
 
@@ -53,7 +49,7 @@ scores1 <- prep.data(incl.qc = T)
 
 # Scores plot for manuscript
 library(ggplot2)
-ggplot(output, aes(PC1, PC2, colour = as.factor(TYPE_ECH))) + geom_point() + theme_bw() +
+ggplot(scores, aes(PC1, PC2, colour = as.factor(TYPE_ECH))) + geom_point() + theme_bw() +
   xlab("Score on PC1") + ylab("Score on PC2") +
   scale_color_discrete(labels = c("Experimental samples", "QCs")) +
   theme(legend.position = "bottom", #legend.justification = c(0, 0), 
@@ -70,7 +66,7 @@ box(which = "plot", lty = "solid")
 # Output Pareto-scaled data and perform PCPR2
 
 dat <- prep.data(pc.scores = F)
-dat <- prep.data(data.only = T, exclude.tbc = T)
+#dat <- prep.data(data.only = T, exclude.tbc = T)
 
 concs <- dat[[1]]
 meta <- dat[[2]] %>%
@@ -82,7 +78,7 @@ Z_Meta <- meta %>% select(-MATCH, -CT, -CENTTIME, -DIAGSAMPLINGCat1)
 
 library(pcpr2)
 props.raw <- runPCPR2(concs, Z_Meta)
-plotProp(props.raw)
+plot(props.raw)
 
 # Greatest sources of variability are BMI > DIABETE > PLACE
 # Adjust for fixed effects only. Random effects model with lme4 did not work, boundary fit or didn't converge
@@ -92,9 +88,9 @@ adjmat <- apply(concs, 2, adj)
 
 props.adj <- runPCPR2(adjmat, Z_Meta)
 
-par(mfrow = c(2,1))
-plotProp(props.raw, main = "Raw feature intensities", font.main = 1)
-plotProp(props.adj, main = "Transformed to residuals of linear model of 
+par(mfrow = c(1, 2))
+plot(props.raw, main = "Raw feature intensities", font.main = 1)
+plot(props.adj, main = "Transformed to residuals of linear model of 
   intensity on confounders*", font.main = 1)
 
 # Check PCA of transformed matrix
@@ -150,11 +146,12 @@ confusionMatrix(predictions0, reference = testing$class)
 # Get AUC
 library(pROC)
 predictions0_1 <- predict(mod0, newdata = testing, type = "prob")
-result0 <- roc(testing$class, predictions0_1$`0`)
+result0 <- roc(testing$class, predictions0_1$`0`, ci = T)
 ci.auc(result0)
 
 # Plot ROC curve
-plot(result.roc)
+plot(result0, main = "All subjects")
+plot.roc(result0, main = "All subjects", ci = T, auc.polygon.col = "lightblue")
 
 
 #-----------------------------------------------------------------------------------------
@@ -185,11 +182,11 @@ confusionMatrix(predictions1, reference = testing$class)
 # Get AUC
 library(pROC)
 predictions1_1 <- predict(mod1, newdata = testing, type = "prob")
-result1 <- roc(testing$class, predictions1_1$`0`)
+result1 <- roc(testing$class, predictions1_1$`0`, ci = T)
 ci.auc(result1)
 
 # Plot ROC curve
-plot(result.roc)
+plot(result1, main = "Post-menopausal")
 
 
 #---------------------------------------------------------------------------------------
@@ -221,11 +218,11 @@ confusionMatrix(predictions2, reference = testing$class)
 # Get AUC
 library(pROC)
 predictions2_1 <- predict(mod2, newdata = testing, type = "prob")
-result2 <- roc(testing$class, predictions2_1$`0`)
+result2 <- roc(testing$class, predictions2_1$`0`, ci = T)
 ci.auc(result2)
 
 # Plot ROC curve
-plot(result2)
+plot(result2, main = "Pre-menopasual")
 
 #---------------------------------------------------------------------------------------
 
@@ -256,11 +253,11 @@ confusionMatrix(predictions3, reference = testing$class)
 # Get AUC
 library(pROC)
 predictions3_1 <- predict(mod3, newdata = testing, type = "prob")
-result3 <- roc(testing$class, predictions3_1$`0`)
+result3 <- roc(testing$class, predictions3_1$`0`, ci = T)
 ci.auc(result3)
 
 # Plot ROC curve
-plot(result3)
+plot(result3, main = "Diagnosis < 5y")
 
 #---------------------------------------------------------------------------------------
 
@@ -293,12 +290,13 @@ confusionMatrix(predictions4, reference = testing$class)
 # Get AUC
 library(pROC)
 predictions4_1 <- predict(mod4, newdata = testing, type = "prob")
-result4 <- roc(testing$class, predictions4_1$`0`)
+result4 <- roc(testing$class, predictions4_1$`0`, ci = T)
 result4
 ci.auc(result4)
 
 # Plot ROC curve
-plot(result4)
+plot(result4, main = "Diagnosis > 5y")
+
 
 #----------------------------------------------------------------------------------------
 
