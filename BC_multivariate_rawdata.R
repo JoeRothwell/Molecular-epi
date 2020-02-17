@@ -85,6 +85,7 @@ plot(props.raw)
 adj <- function(x) residuals(lm(x ~ PLACE + WEEKS + AGE + BMI + DIABETE + FASTING + SAMPYEAR + 
                                   CENTTIMECat1 + STOCKTIME, data = meta))
 adjmat <- apply(concs, 2, adj)
+#saveRDS(adjmat, "adjusted_NMR_features.rds")
 
 props.adj <- runPCPR2(adjmat, Z_Meta)
 
@@ -104,6 +105,8 @@ pca2d(scores.adj, group = scores$WEEKS)
 
 # Multivariate analysis. Subsets to be made:
 # 1. All samples; 2. Pre-menopausal only; 3. Post-menopausal only; 4. Diagnosed < 5 years only; 5. Diagnosed > 5 years only
+
+adjmat <- load("adjusted_NMR_features.rds")
 
 # First give each control the time to diagnosis time of the corresponding case
 meta <- meta %>% group_by(MATCH) %>% mutate(tdiag = max(as.numeric(DIAGSAMPLINGCat1), na.rm = T))
