@@ -8,7 +8,7 @@ library(survival)
 # First get metadata. Subset variables needed
 meta <- read_csv("Lifepath_meta.csv", na = "9999") %>%
   select(CT, BMI, SMK, DIABETE, RTH, DURTHSBMB, CENTTIME, STOCKTIME, MATCH, ALCOHOL, MENOPAUSE) %>%
-  mutate_at(vars(SMK, DIABETE, MATCH), as.factor)
+  mutate_at(vars(SMK, DIABETE), as.factor)
 
 # For subsetting
 pre <- meta$MENOPAUSE == 0
@@ -16,6 +16,12 @@ post <- meta$MENOPAUSE == 1
 
 # For removal of problem racks for Ethanol
 #meta1 <- meta %>% filter(!RACK %in% c(10, 29, 33, 34))
+
+# For removal of case-control pairs not matched by menopausal status
+unmatch_pairs <- meta %>% group_by(MATCH) %>% summarise(sum.men = sum(MENOPAUSE)) %>% 
+  filter(sum.men == 1) %>% select(MATCH) %>% pull() %>% as.numeric
+
+meta1 <- meta %>% filter(!MATCH %in% unmatch_pairs)
 
 # Compound data for forest plots
 cmpd.meta <- read.csv("NMR_cmpd_metadata_new.csv")
