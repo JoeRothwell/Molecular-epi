@@ -1,8 +1,10 @@
 # Generate R markdown for baseline characteristics table
 # To add something about triple negative?
+# Source prep data to remove the 10 subjects not matched on menopausal status
+source("BC_prep_data.R")
 
 library(tidyverse)
-meta <- read_csv("Lifepath_meta.csv", na = "9999") %>%
+meta <- read_csv("Lifepath_meta.csv", na = "9999") %>% filter(!(MATCH %in% unmatch_pairs)) %>%
   select(CT,                    # case-control status
          AGE,                   
          BMICat1, 
@@ -11,7 +13,7 @@ meta <- read_csv("Lifepath_meta.csv", na = "9999") %>%
          SMK, 
          DIABETE, 
          Life_Alcohol_Pattern_1,
-         #ALCOHOL,
+         ALCOHOL,
          BP, 
          CO,                    # previous oral contraceptive use
          Trait_Horm,            # menopausal treatment therapy taken 24h before blood collection
@@ -29,7 +31,8 @@ meta <- read_csv("Lifepath_meta.csv", na = "9999") %>%
          GRADE, 
          STADE, 
          DIAGSAMPLINGCat1) %>% 
-  mutate_at(vars(-AGE, -STOCKTIME, -DURTHSDIAG), as.factor)
+  mutate_at(vars(-AGE, -STOCKTIME, -ALCOHOL, -DURTHSBMB), as.factor)
+
 
 library(kableExtra)
 library(qwraps2)
@@ -184,7 +187,7 @@ summ <-
 
 # ----
 st <- summary_table(group_by(meta, CT), summ)
-print(st, cnames = c("Controls (N=791)", "Cases (N=791)"))
+print(st, cnames = c("Controls (N=786)", "Cases (N=786)"))
 # Copy and paste output into an Rmarkdown file and render to word/pdf etc
 
 # ---------------------------------------------------------------
