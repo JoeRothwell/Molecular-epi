@@ -21,7 +21,8 @@ post <- meta$MENOPAUSE == 1
 unmatch_pairs <- meta %>% group_by(MATCH) %>% summarise(sum.men = sum(MENOPAUSE)) %>% 
   filter(sum.men == 1) %>% select(MATCH) %>% pull() %>% as.numeric
 
-meta1 <- meta %>% filter(!MATCH %in% unmatch_pairs)
+log.vec <- !(meta$MATCH %in% unmatch_pairs)
+meta <- meta[log.vec, ]
 
 # Compound data for forest plots
 cmpd.meta <- read.csv("NMR_cmpd_metadata_new.csv")
@@ -35,9 +36,9 @@ ints0 <- read_tsv("1510_XMetaboliteE3N_cpmg_unscaled.txt")
 #samples <- ints.all$CODBMB %in% meta$CODBMB
 #ints <- ints.all[samples, -1]
 
-# Remove problem racks
+# Remove problem samples
 #filt <- !(meta$RACK %in% c(10, 29, 33, 34))
-#ints.filt <- ints0[filt, ]
+ints0 <- ints0[log.vec, ]
 
 # Remove top and bottom 1% of each compound and replace with NA
 outliers <- function(x) x > quantile(x, probs = 0.99) | x < quantile(x, probs = 0.01)
