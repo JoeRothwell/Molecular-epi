@@ -45,7 +45,7 @@ prep.data <- function(incl.qc = F, pc.scores = T) {
 }
 
 scores <- prep.data()
-scores1 <- prep.data(incl.qc = T)
+#scores1 <- prep.data(incl.qc = T)
 
 # Scores plot for manuscript
 library(ggplot2)
@@ -71,8 +71,9 @@ dat <- prep.data(pc.scores = F)
 concs <- dat[[1]]
 meta <- dat[[2]] %>%
   select(CT, MATCH, WEEKS, PLACE, AGE, BMI, MENOPAUSE, FASTING, SMK, DIABETE, CENTTIMECat1, CENTTIME, SAMPYEAR, 
-         DIAGSAMPLINGCat1, STOCKTIME) %>%
-  mutate_at(vars(-AGE, -BMI, -CENTTIME), as.factor)
+         DIAGSAMPLINGCat1, STOCKTIME, DURTHSBMB) %>%
+  mutate_at(vars(-AGE, -BMI, -CENTTIME, -DURTHSBMB), as.factor) %>%
+  mutate(DURTHSBMBCat = ifelse(DURTHSBMB > 0, 1, 0))
 
 Z_Meta <- meta %>% select(-MATCH, -CT, -CENTTIME, -DIAGSAMPLINGCat1)
 
@@ -82,10 +83,11 @@ plot(props.raw)
 
 # Greatest sources of variability are BMI > DIABETE > PLACE
 # Adjust for fixed effects only. Random effects model with lme4 did not work, boundary fit or didn't converge
-adj <- function(x) residuals(lm(x ~ PLACE + WEEKS + AGE + BMI + DIABETE + FASTING + SAMPYEAR + 
-                                  CENTTIMECat1 + STOCKTIME, data = meta))
+# Note: removed AGE, BMI and SAMPYEAR
+adj <- function(x) residuals(lm(x ~ PLACE + WEEKS + DIABETE + FASTING + CENTTIMECat1 + STOCKTIME, data = meta))
 adjmat <- apply(concs, 2, adj)
 #saveRDS(adjmat, "adjusted_NMR_features.rds")
+#saveRDS(adjmat, "adjusted_NMR_features_no_age.rds")
 
 props.adj <- runPCPR2(adjmat, Z_Meta)
 
@@ -97,16 +99,16 @@ plot(props.adj, main = "Transformed to residuals of linear model of
 # Check PCA of transformed matrix
 library(pca3d)
 scores.adj <- prcomp(adjmat, scale. = F)
-pca2d(scores.adj, group = scores$WEEKS)
+pca2d(scores.adj, group = scores$MENOPAUSE)
 
 # Final data matrix is adjmat, n = 1572
 
 #--------------------------------------------------------------------------------------------------
 
 # Multivariate analysis. Subsets to be made:
-# 1. All samples; 2. Pre-menopausal only; 3. Post-menopausal only; 4. Diagnosed < 5 years only; 5. Diagnosed > 5 years only
-
-adjmat <- load("adjusted_NMR_features.rds")
+# 1. All samples; 2. Pre-menopausal only; 3. Post-menopausal only; 4. Diagnosed < 5 years only; 
+# 5. Diagnosed > 5 years only; 6. Pre-menopausal or no HT; 7. Post-menopausal and HT.
+#adjmat <- load("adjusted_NMR_features.rds")
 
 # First give each control the time to diagnosis time of the corresponding case
 meta <- meta %>% group_by(MATCH) %>% mutate(tdiag = max(as.numeric(DIAGSAMPLINGCat1), na.rm = T))
@@ -117,6 +119,8 @@ pre   <- meta$MENOPAUSE == 0
 post  <- meta$MENOPAUSE == 1 
 early <- meta$tdiag == 1
 late  <- meta$tdiag == 2
+noHT  <- meta$DURTHSBMBCat == 0
+HT    <- meta$DURTHSBMBCat == 1
 
 library(caret)
 library(pROC)
@@ -156,12 +160,17 @@ p1 <- bc.roc(all[post, ], k = 10)
 p2 <- bc.roc(all[pre, ], k = 5, times = 5)
 p3 <- bc.roc(all[early, ], k = 10)
 p4 <- bc.roc(all[late, ], k = 10)
+p5 <- bc.roc(all[noHT, ], k = 10)
+p6 <- bc.roc(all[HT, ], k = 10)
 
 plot.roc(p0, ci = T, grid = T, print.auc = T)
 plot.roc(p1, grid = T, print.auc = T)
 plot.roc(p2, grid = T, print.auc = T)
 plot.roc(p3, grid = T, print.auc = T)
 plot.roc(p4, grid = T, print.auc = T)
+plot.roc(p5, grid = T, print.auc = T)
+plot.roc(p6, grid = T, print.auc = T)
+
 
 library(ggROC)
 ggroc(p4, colour = "darkblue", size = 1) + theme_bw() +

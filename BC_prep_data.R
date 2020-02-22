@@ -8,7 +8,8 @@ library(survival)
 # First get metadata. Subset variables needed
 meta <- read_csv("Lifepath_meta.csv", na = "9999") %>%
   select(CT, BMI, SMK, DIABETE, RTH, DURTHSBMB, CENTTIME, STOCKTIME, MATCH, ALCOHOL, MENOPAUSE) %>%
-  mutate_at(vars(SMK, DIABETE), as.factor)
+  mutate_at(vars(SMK, DIABETE), as.factor) %>%
+  mutate(DURTHSBMBCat = ifelse(DURTHSBMB > 0, 1, 0))
 
 # For subsetting
 pre <- meta$MENOPAUSE == 0
