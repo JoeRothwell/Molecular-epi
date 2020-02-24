@@ -53,15 +53,15 @@ library(ggplot2)
 library(ggrepel)
 library(scales)
 # For slides, dimension 415 x 377
-ggplot(t1, aes(exp(estimate), -log10(p.value))) + geom_point() + theme_bw() +
-  xlim(c(0.8, 1.2)) +
-  #scale_y_log10(breaks = log_breaks(5)) +
-  xlab("Odds ratio per SD increase concentration") + ylab("-log10(P-value)") +
+ggplot(t1, aes(exp(estimate), log10(p.value))) + geom_point() + theme_bw() +
+  xlim(0.8, 1.2) + #ylim(0, -3) +
+  scale_y_reverse(breaks = c(-2, -1, 0), labels = function(x) 10^x) +
+  xlab("Odds ratio per SD increase concentration") + ylab("P-value") +
   geom_text_repel(aes(label = display_name), size = 3, #hjust = -0.1, vjust = 0, size = 3,
             data = t1[t1$p.value < 0.3, ]) +
-  geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
+  geom_hline(yintercept = log10(0.05), linetype = "dashed") +
   geom_vline(xintercept = 1, linetype = "dashed") +
-  ggtitle("All subjects")
+  ggtitle("a) All subjects")
 
 
 # Pre-menopausal -------------------
@@ -109,14 +109,15 @@ text(hh[2], max(rowvec) + 2, "OR [95% CI]", pos = 2, cex = 0.8)
 
 library(ggplot2)
 library(ggrepel)
-ggplot(t1, aes(exp(estimate), -log10(p.value))) + geom_point() + theme_bw() +
+ggplot(t1, aes(exp(estimate), log10(p.value))) + geom_point() + theme_bw() +
   xlim(c(0, 2)) + 
+  scale_y_reverse(breaks = c(-3, -2, -1, 0), labels = function(x) 10^x) +
   xlab("Odds ratio per SD increase concentration") + ylab("-log10(P-value)") +
   geom_text_repel(aes(label = display_name), size = 3, #hjust = -0.1, vjust = 0, size = 3,
                   data = t1[t1$p.value < 0.04, ] ) +
-  geom_hline(yintercept = c(-log10(0.05), -log10(0.014)), linetype = "dashed") +
+  geom_hline(yintercept = c(log10(0.05), log10(0.014)), linetype = "dashed") +
   geom_vline(xintercept = 1, linetype = "dashed") +
-  ggtitle("B")
+  ggtitle("b) Pre-menopausal")
 
 # Post-menopausal --------------------
 
@@ -161,14 +162,15 @@ text(hh[2], max(rowvec) + 2, "OR [95% CI]", pos = 2, cex = 0.8)
 
 library(ggplot2)
 library(ggrepel)
-ggplot(t1, aes(exp(estimate), -log10(p.value))) + geom_point() + theme_bw() +
-  xlim(c(0.85, 1.15)) + 
+ggplot(t1, aes(exp(estimate), log10(p.value))) + geom_point() + theme_bw() +
+  xlim(c(0.85, 1.15)) +  
+  scale_y_reverse(breaks = c(-2, -1, 0), labels = function(x) 10^x) +
   xlab("Odds ratio per SD increase concentration") + ylab("-log10(P-value)") +
   geom_text_repel(aes(label = display_name), size = 3, #hjust = -0.1, vjust = 0, size = 3,
             data = t1[t1$p.value < 0.15, ]) +
-  geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
+  geom_hline(yintercept = log10(0.05), linetype = "dashed") +
   geom_vline(xintercept = 1, linetype = "dashed") +
-  ggtitle("C")
+  ggtitle("c) Post-menopausal")
 
 
 # Funnel plots for metabolites
