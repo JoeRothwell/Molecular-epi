@@ -54,14 +54,14 @@ library(ggrepel)
 library(scales)
 # For slides, dimension 415 x 377
 ggplot(t1, aes(exp(estimate), log10(p.value))) + geom_point() + theme_bw() +
-  xlim(0.8, 1.2) + #ylim(0, -3) +
+  xlim(0.8, 1.2) +
   scale_y_reverse(breaks = c(-2, -1, 0), labels = function(x) 10^x) +
   xlab("Odds ratio per SD increase concentration") + ylab("P-value") +
-  geom_text_repel(aes(label = display_name), size = 3, #hjust = -0.1, vjust = 0, size = 3,
+  geom_text_repel(aes(label = display_name), size = 3,
             data = t1[t1$p.value < 0.3, ]) +
   geom_hline(yintercept = log10(0.05), linetype = "dashed") +
   geom_vline(xintercept = 1, linetype = "dashed") +
-  ggtitle("a) All subjects")
+  ggtitle("All subjects")
 
 
 # Pre-menopausal -------------------
@@ -112,12 +112,12 @@ library(ggrepel)
 ggplot(t1, aes(exp(estimate), log10(p.value))) + geom_point() + theme_bw() +
   xlim(c(0, 2)) + 
   scale_y_reverse(breaks = c(-3, -2, -1, 0), labels = function(x) 10^x) +
-  xlab("Odds ratio per SD increase concentration") + ylab("-log10(P-value)") +
-  geom_text_repel(aes(label = display_name), size = 3, #hjust = -0.1, vjust = 0, size = 3,
+  xlab("Odds ratio per SD increase concentration") + ylab("P-value") +
+  geom_text_repel(aes(label = display_name), size = 3,
                   data = t1[t1$p.value < 0.04, ] ) +
   geom_hline(yintercept = c(log10(0.05), log10(0.014)), linetype = "dashed") +
   geom_vline(xintercept = 1, linetype = "dashed") +
-  ggtitle("b) Pre-menopausal")
+  ggtitle("Pre-menopausal")
 
 # Post-menopausal --------------------
 
@@ -165,8 +165,8 @@ library(ggrepel)
 ggplot(t1, aes(exp(estimate), log10(p.value))) + geom_point() + theme_bw() +
   xlim(c(0.85, 1.15)) +  
   scale_y_reverse(breaks = c(-2, -1, 0), labels = function(x) 10^x) +
-  xlab("Odds ratio per SD increase concentration") + ylab("-log10(P-value)") +
-  geom_text_repel(aes(label = display_name), size = 3, #hjust = -0.1, vjust = 0, size = 3,
+  xlab("Odds ratio per SD increase concentration") + ylab("P-value") +
+  geom_text_repel(aes(label = display_name), size = 3,
             data = t1[t1$p.value < 0.15, ]) +
   geom_hline(yintercept = log10(0.05), linetype = "dashed") +
   geom_vline(xintercept = 1, linetype = "dashed") +
