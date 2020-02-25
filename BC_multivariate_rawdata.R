@@ -1,8 +1,5 @@
-# Breast cancer study multivariate models from unbinned NMR data (raw features)
-
-# Data from Elodie Jobard 27-6-2019
+# Breast cancer study multivariate models from unbinned NMR raw data, data from Elodie Jobard 27-6-2019
 # Read in data with outliers and QCs (n=1739) or with QCs only
-# Read in NMR data and metadata. Dataset containing samples and QCs only 
 
 library(tidyverse)
 library(readxl)
@@ -14,10 +11,9 @@ meta <- read_xlsx("1510_MatriceY_CohorteE3N_Appar.xlsx", sheet = 4, na = ".")
 
 # Subset samples only and plot PCA with pareto scaling
 prep.data <- function(incl.qc = F, pc.scores = T) {
-
-  samp <- meta$TYPE_ECH == 1 & !is.na(meta$CENTTIME)
     
   # Subset samples only (removing 112 QCs) from data and metadata
+  samp <- !is.na(meta$THAW_DATE)
   mat  <- if(incl.qc == F) dat[samp, ] %>% as.matrix else as.matrix(dat)
   meta <- if(incl.qc == F) meta[samp, ]
 
@@ -45,7 +41,6 @@ prep.data <- function(incl.qc = F, pc.scores = T) {
 }
 
 scores <- prep.data()
-#scores1 <- prep.data(incl.qc = T)
 
 # Scores plot for manuscript
 library(ggplot2)
@@ -64,15 +59,13 @@ box(which = "plot", lty = "solid")
 # ----------------------------------------------------------------------------------------------------------
 
 # Output Pareto-scaled data and perform PCPR2
-
 dat <- prep.data(pc.scores = F)
-#dat <- prep.data(data.only = T, exclude.tbc = T)
 
 concs <- dat[[1]]
 meta <- dat[[2]] %>%
   select(CT, MATCH, WEEKS, PLACE, AGE, BMI, MENOPAUSE, FASTING, SMK, DIABETE, CENTTIMECat1, CENTTIME, SAMPYEAR, 
          DIAGSAMPLINGCat1, STOCKTIME, DURTHSBMB) %>%
-  mutate_at(vars(-AGE, -BMI, -CENTTIME, -DURTHSBMB), as.factor) %>%
+  mutate_at(vars(-AGE, -BMI, -CENTTIME, -DIAGSAMPLINGCat1, -DURTHSBMB), as.factor) %>%
   mutate(DURTHSBMBCat = ifelse(DURTHSBMB > 0, 1, 0))
 
 Z_Meta <- meta %>% select(-MATCH, -CT, -CENTTIME, -DIAGSAMPLINGCat1)
@@ -83,18 +76,17 @@ plot(props.raw)
 
 # Greatest sources of variability are BMI > DIABETE > PLACE
 # Adjust for fixed effects only. Random effects model with lme4 did not work, boundary fit or didn't converge
-# Note: removed AGE, BMI and SAMPYEAR
-adj <- function(x) residuals(lm(x ~ PLACE + WEEKS + DIABETE + FASTING + CENTTIMECat1 + STOCKTIME, data = meta))
+# Note: NAs in CENTTIME, so adjusted matrix gets subset
+adj <- function(x) residuals(lm(x ~ PLACE + WEEKS + DIABETE + FASTING + #CENTTIMECat1 + 
+                                  STOCKTIME, data = meta))
 adjmat <- apply(concs, 2, adj)
-#saveRDS(adjmat, "adjusted_NMR_features.rds")
-#saveRDS(adjmat, "adjusted_NMR_features_no_age.rds")
+saveRDS(adjmat, "adjusted_NMR_features.rds")
 
 props.adj <- runPCPR2(adjmat, Z_Meta)
 
 par(mfrow = c(1, 2))
 plot(props.raw, main = "Raw feature intensities", font.main = 1)
-plot(props.adj, main = "Transformed to residuals of linear model of 
-  intensity on confounders*", font.main = 1)
+plot(props.adj, main = "Transformed to residuals of linear model of intensity on confounders*", font.main = 1)
 
 # Check PCA of transformed matrix
 library(pca3d)
@@ -108,10 +100,11 @@ pca2d(scores.adj, group = scores$MENOPAUSE)
 # Multivariate analysis. Subsets to be made:
 # 1. All samples; 2. Pre-menopausal only; 3. Post-menopausal only; 4. Diagnosed < 5 years only; 
 # 5. Diagnosed > 5 years only; 6. Pre-menopausal or no HT; 7. Post-menopausal and HT.
-#adjmat <- load("adjusted_NMR_features.rds")
+adjmat <- load("adjusted_NMR_features.rds")
 
 # First give each control the time to diagnosis time of the corresponding case
 meta <- meta %>% group_by(MATCH) %>% mutate(tdiag = max(as.numeric(DIAGSAMPLINGCat1), na.rm = T))
+
 all <- data.frame(class = as.factor(meta$CT), adjmat)
 
 # Logical vectors (need to group for diagnosed > and < 5 years)
@@ -171,6 +164,7 @@ plot.roc(p4, grid = T, print.auc = T)
 plot.roc(p5, grid = T, print.auc = T)
 plot.roc(p6, grid = T, print.auc = T)
 
+#save.image("ROC_workspace.RData")
 
 library(ggROC)
 ggroc(p4, colour = "darkblue", size = 1) + theme_bw() +
@@ -178,8 +172,8 @@ ggroc(p4, colour = "darkblue", size = 1) + theme_bw() +
   ggsave("roc_late.png")
 
 # Compare models
-models <- resamples(list("All" = mod0, "Post-menopausal" = mod1,
-                         "Early diagnosis" = mod3, "Late diagnosis" = mod4))
+models <- resamples(list("All" = p0, "Post-menopausal" = p1,
+                         "Early diagnosis" = p3, "Late diagnosis" = p4))
 bwplot(models, metric = "Accuracy")
 
 # Description of files
