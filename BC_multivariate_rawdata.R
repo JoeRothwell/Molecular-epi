@@ -182,6 +182,23 @@ models <- resamples(list("All" = mod0, "Post-menopausal" = mod1,
                          "Early diagnosis" = mod3, "Late diagnosis" = mod4))
 bwplot(models, metric = "Accuracy")
 
+# Make data frame out of AUCS[CI]
+aucs <- t(matrix(c(p0$ci, p1$ci, p2$ci, p3$ci, p4$ci, p5$ci, p6$ci), nrow = 3))
+library(dplyr)
+df <- data.frame(aucs[, c(2,1,3)])
+library(metafor)
+
+par(mar=c(5,4,1,2))
+forest(x = df$X1, ci.lb = df$X2, ci.ub = df$X3, slab = c(
+  "All study subjects", "Post-menopausal", "Pre-menopausal", "Diagnosis < 5 y",
+  "Diagnosis > 5 y", "Pre + Post HT users", "Post non-HT users"),
+  refline = 0.5, xlab = "ROC AUC", cex = 1, pch = 22
+)
+hh <- par("usr")
+text()
+text(hh[1], 9, "Study group", pos = 4, cex = 1)
+text(hh[2], 9, "AUC [95% CI]", pos = 2, cex = 1)
+
 # Description of files
 
 # 1694 obs. of 8501 NMR variables (outliers removed, one NA variable in 8501st col)
