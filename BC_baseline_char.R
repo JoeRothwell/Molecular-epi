@@ -44,6 +44,11 @@ summ <-
     
        "Age at blood collection (years)" = list("Mean"     =  ~ mean_sd(AGE)),
        
+     "Menopausal status at blood collection" =
+         
+         list("Pre-menopausal"   =  ~ n_perc0(MENOPAUSE == 0, digits = 1),
+              "Post-menopausal"  =  ~ n_perc0(MENOPAUSE == 1, digits = 1)),
+       
      "BMI" =    
        
         list("Underweight or normal"   =  ~ n_perc0(BMICat1 == 1, na_rm = T, digits = 1),
@@ -56,11 +61,6 @@ summ <-
         list("< 0.8" = ~ n_perc0(RTHCat1 == 0, na_rm = T, digits = 1),
              "> 0.8" = ~ n_perc0(RTHCat1 == 1, na_rm = T, digits = 1),
              "Unknown" = ~ n_perc0(is.na(RTHCat1), digits = 1)),
-       
-     "Menopausal status at blood collection" =
-       
-        list("Pre-menopausal"   =  ~ n_perc0(MENOPAUSE == 0, digits = 1),
-             "Post-menopausal"  =  ~ n_perc0(MENOPAUSE == 1, digits = 1)),
        
      "Smoking status" = 
        
@@ -102,12 +102,6 @@ summ <-
      "Duration of use of menopause hormonal treatment at baseline" =
        
         list("Mean (SD)" =  ~ mean_sd(DURTHSBMB)),
-       
-     #"Time before centrifugation" =
-     #  list("< 12h"   =  ~ n_perc0(CENTTIMECat1 == 1, na_rm = T),
-     #      "> 12-24h" =  ~ n_perc0(CENTTIMECat1 == 2, na_rm = T),
-     #      "> 24h"    =  ~ n_perc0(CENTTIMECat1 == 3, na_rm = T),
-     #      "Unknown"  =  ~ n_perc0(is.na(CENTTIMECat1)),
        
      "Fasting status" =
        

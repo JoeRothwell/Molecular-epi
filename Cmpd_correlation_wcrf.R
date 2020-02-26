@@ -57,10 +57,9 @@ colnames(t2) <- c("displayname2", "displayname", "value")
 
 # Heatmap Biocrates vs fatty acids only
 mat <- acast(t1, Var2 ~ Var1, value.var = "value")
-rownames(mat) <- NULL
 
 library(pheatmap)
-pheatmap(mat, fontsize = 8, color = colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))(100),)
+#pheatmap(mat, fontsize = 8, color = colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))(100),)
 
 # Make data for annotations
 cmpd_meta <- read_csv("Biocrates_cmpd_metadata.csv")
@@ -70,8 +69,6 @@ annotation_df <- inner_join(df, cmpd_meta, by = "displayname")
 t3 <- inner_join(t2, annotation_df, by = "displayname")
 corr.cmpds <- unique(t3$displayname)
 cmpd.pos <- which(annotation_df$displayname %in% corr.cmpds)
-
-row_ha <- rowAnnotation(Class = annotation_df$class)
 
 # With Complex Heatmap
 # https://jokergoo.github.io/ComplexHeatmap-reference/book/a-single-heatmap.html
@@ -83,9 +80,11 @@ row_ha <- rowAnnotation(Class = annotation_df$class)
 ha <- rowAnnotation(foo = anno_mark(at = cmpd.pos, labels = corr.cmpds, 
                                     labels_gp = gpar(fontsize = 9)))
 
+# Colour ramp palette is taken from pheatmap
+rownames(mat) <- NULL
 Heatmap(mat, col = colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))(100),
         #column_title = "Fatty acids", row_title = "Endogenous metabolites", 
-        cluster_rows = F,
+        cluster_rows = T,
         #column_km = 3, row_km = 3, 
         #row_split = annotation_df$class,
         row_title = NULL,
@@ -94,6 +93,7 @@ Heatmap(mat, col = colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))(100)
         column_names_gp = gpar(fontsize = 10),
         left_annotation = row_ha,
         right_annotation = ha,
+        heatmap_legend_param = list(title = "Correlation"),
         #row_gap = unit(0, "mm"),
         border = F)
 

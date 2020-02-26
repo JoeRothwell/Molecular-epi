@@ -213,6 +213,7 @@ tab <- bind_rows("All" = all, "Pre" = pre, "Post" = post, .id = "Analysis") %>%
   group_by(Compound) %>% filter(min(P.value) < 0.05) %>% 
   select(Compound, description, everything()) %>%
   arrange(description, Compound) %>% as.data.frame
+# Copy and paste this into manuscript via Excel
 
 library(stargazer)
 stargazer(tab, summary = F, type = "html", out = "metabolite_table_selected_new.html")
