@@ -5,6 +5,7 @@ library(tidyverse)
 library(haven)
 
 # Small case-control subset----------
+# Update 3/3/2020: remove Greece
 
 # have to subset subjects with Biocrates data
 crc <- read_sas("clrt_caco_metabo.sas7bdat")
@@ -26,14 +27,16 @@ biocrates <- apply(concs, 1, function(x) sum(!is.na(x)) > 0)
 crc1 <- crc[biocrates, ]
 
 var.list <- c("Country", "Center", "Sex", "Match_Caseset", "Smoke_Stat", "L_School")
-crc1 <- crc1 %>% inner_join(meta, by = "Idepic") %>% mutate_at(vars(var.list), as.factor) #%>% 
+crc1 <- crc1 %>% inner_join(meta, by = "Idepic") %>% mutate_at(vars(var.list), as.factor) %>%
+  filter(Country != 6)
   #group_by(Match_Caseset) %>% filter(n() == 2)
 
 
 # Large case-control subset (from Jelena)------------
 
 crc2 <- read_csv("biocrates_p150.csv") %>% mutate_at(vars(var.list), as.factor) %>%
-  inner_join(wcrf, by = "Idepic")
+  inner_join(wcrf, by = "Idepic") %>%
+  filter(Country != 6)
 
 # EPIC controls. First dataset, 3771 obs; updated November 2018 7191 obs
 # Rename factor levels
@@ -44,9 +47,12 @@ ctrl <- read_dta("obes_metabo.dta") %>% mutate(Study =
 # Remove 1694 CRC controls
   separate(Batch_MetBio, into = c("batch", "rest")) %>%
   mutate(batch_no = as.numeric(flatten(str_extract_all(batch, "[0-9]+")))) %>% 
-  filter(!(Study %in% c("Colonrectum_L", "Colonrectum_S")), Fasting_C == 2)
+  filter(!(Study %in% c("Colonrectum_L", "Colonrectum_S")), Fasting_C == 2) %>%
+  filter(Country != 6)
+
 print(paste(nrow(ctrl), "fasted controls read"))
 # 1799 fasted subjects left
+# 1741 after removal of Greece
 
 # Get common compounds between CC and controls and order
 select.ctrl.cmpds <- function(crc, no.subset = F, cor.data = F){
@@ -108,11 +114,13 @@ ctrls0 <- select(ctrls, one_of(common.all))
 var.list <- c("L_School", "Smoke_Stat")
 CRCfa1 <- read_dta("Database_Fatty acids.dta") %>% 
   left_join(wcrf, by = "Idepic") %>% 
-  mutate_at(vars(var.list), as.factor)
+  mutate_at(vars(var.list), as.factor) %>%
+  filter(Country != 6)
 
 # Get dataset for PLS modelling (all EPIC controls). Exclude compounds with many missings
 # Note: new version from Carine received 18/11/2018 with technical covariates
-fa.ctrl <- readRDS("FA_WCRF_scores1.rds") %>% filter(STUDY != "Colorectum")
+fa.ctrl <- readRDS("FA_WCRF_scores1.rds") %>% filter(STUDY != "Colorectum") %>%
+  filter(Country != 6)
 fa.ctrl$N_Serie <- as.numeric(fa.ctrl$N_Serie)
 
 # categorical variables to factors

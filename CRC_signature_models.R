@@ -11,8 +11,8 @@ predict.scores <- function(crc, dat, mod, scorecomp.only = F){
   print(paste("Subjects in case-control: ", nrow(crc)))
   # Variables were converted to factors in CRC_data_prep.R
   
-  # Put CRC CC compounds in same order as in controls dataset
-  if(nrow(crc) == 923) { 
+  # Put CRC CC compounds in same order as in controls dataset (fatty acids, biocrates)
+  if(nrow(crc) == 877) { 
     cols <- common.cols
     var.list <- c("L_School", "Smoke_Stat")
     } else { 
@@ -66,11 +66,11 @@ library(survival)
 base <- Cncr_Caco_Clrt ~ Qe_Energy + L_School + Smoke_Stat + strata(Match_Caseset)
 
 # Biocrates small
-fit5 <- clogit(update(base, ~. + score.2.comps), data = small)
+fit5 <- clogit(update(base, ~. + score.1.comps), data = small)
 fit6 <- clogit(update(base, ~. + Wcrf_C_Cal), data = small)
 
 # Biocrates large
-fit3 <- clogit(update(base, ~. + score.2.comps), data = large)
+fit3 <- clogit(update(base, ~. + score.1.comps), data = large)
 fit4 <- clogit(update(base, ~. + Wcrf_C_Cal), data = large)
 
 # Fatty acids
