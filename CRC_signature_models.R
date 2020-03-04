@@ -45,59 +45,51 @@ predict.scores <- function(crc, dat, mod, scorecomp.only = F){
 # Biocrates compounds overlap individual CC/control only
 small <- predict.scores(crc1, ctrlA, mod1a)
 large <- predict.scores(crc2, ctrlB, mod1b)
+FAs <- predict.scores(CRCfa1, concs, mod2)
 
 # Join small and large together for pooled questionnaire model
-common.vars <- c("Cncr_Caco_Clrt", "Qe_Energy", "L_School", "Smoke_Stat", "Match_Caseset", "Wcrf_C_Cal")
+common.vars <- c("Cncr_Caco_Clrt", "Qe_Energy", "L_School", "Smoke_Stat", "Match_Caseset", 
+                 "Wcrf_C_Cal", "Height_C")
 small0 <- select(small, common.vars)
 large0 <- select(large, common.vars)
 all <- bind_rows(small0, large0)
 
-# Biocrates compounds overlap all datasets
-#small <- predict.scores(crc1, ctrls0, mod0)
-#large <- get.scores.bioc(crc2, ctrls0, mod0)
-
-FAs <- predict.scores(CRCfa1, concs, mod2)
-
-#large.F <- df.bioc(study = "large", fasting = T)
-
+# Biocrates compounds overlap all datasets no longer used
 # Model CC status from calculated or signature-predicted score for four datasets
 
 library(survival)
-base <- Cncr_Caco_Clrt ~ Qe_Energy + L_School + Smoke_Stat + strata(Match_Caseset)
+base <- Cncr_Caco_Clrt ~ Qe_Energy + L_School + Smoke_Stat + Height_C + strata(Match_Caseset)
 
-# Biocrates small
-fit5 <- clogit(update(base, ~. + score.1.comps), data = small)
-fit6 <- clogit(update(base, ~. + Wcrf_C_Cal), data = small)
-
-# Biocrates large
+# Biocrates small, large, fatty acids (large fasted subset did not improve OR)
+fit1 <- clogit(update(base, ~. + score.1.comps), data = small)
+fit2 <- clogit(update(base, ~. + Wcrf_C_Cal), data = small)
 fit3 <- clogit(update(base, ~. + score.1.comps), data = large)
 fit4 <- clogit(update(base, ~. + Wcrf_C_Cal), data = large)
-
-# Fatty acids
-fit7 <- clogit(update(base, ~. + score.2.comps), data = FAs)
-fit8 <- clogit(update(base, ~. + Wcrf_C_Cal), data = FAs)
-
-# Biocrates large fasted (not used, excluding non-fasted doesn't improve OR)
-#fit1 <- clogit(update(base, ~. + score.2.comps), data = large.F)
-#fit2 <- clogit(update(base, ~. + Wcrf_C_Cal), data = large.F)
-
+fit5 <- clogit(update(base, ~. + score.2.comps), data = FAs)
+fit6 <- clogit(update(base, ~. + Wcrf_C_Cal), data = FAs)
 # Pooled questionnaire
-fit9 <- clogit(update(base, ~. + Wcrf_C_Cal), data = all)
+fit0 <- clogit(update(base, ~. + Wcrf_C_Cal), data = all)
 
+# Table for manuscript
+library(broom)
+t1 <- map_df(list(fit1, fit2, fit3, fit4, fit5, fit6, fit0), tidy) %>% 
+  filter(str_detect(term, "score.|Wcrf")) %>% select(-(std.error : p.value)) %>%
+  mutate_at(.vars = c("estimate", "conf.low", "conf.high"), exp)
 
+score <- t1 %>% filter(term == "Wcrf_C_Cal")
+sig   <- t1 %>% filter(term != "Wcrf_C_Cal")
+  
 
 # Forest plots ----
-
 # Signature only for Biocrates small and large (all subjects in study) and fatty acids small
 library(broom)
 library(tidyverse)
 
-ll2 <- list(fit3, fit5, fit7)
+ll2 <- list(fit3, fit1, fit5)
 t2 <- map_df(ll2, tidy) %>% filter(str_detect(term, "score."))
 
 studies <- data.frame(CC = c("B", rep("A", 2)), nvec = #map_int(ll2, 10),
-                      c(2330, 978, 922),
-  metabolites = c(rep("Endogenous", 2), "Fatty acids"))
+            c(2330, 978, 922), metabolites = c(rep("Endogenous", 2), "Fatty acids"))
 
 par(mar=c(5,4,1,2))
 library(metafor)
@@ -114,6 +106,8 @@ text(1.8, 8, "OR [95% CI]", pos = 2)
 
 # Perform meta-analysis of Biocrates and add to line 3
 ma1 <- rma(estimate, sei = std.error, data=t2, method="FE", subset = 1:2)
+ma1$QEp # p-value for heterogeneity
+ma1$I2 # I2
 
 addpoly(ma1, row = 3.5, transf = exp, mlab = "", efac = 2)
 text(-1.2, 3.5, "Fixed effects meta-analysis of A and B", pos = 4, cex = 0.9)
