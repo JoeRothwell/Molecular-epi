@@ -123,8 +123,12 @@ fa.ctrl <- readRDS("FA_WCRF_scores1.rds") %>% filter(STUDY != "Colorectum") %>%
   filter(Country != 6)
 fa.ctrl$N_Serie <- as.numeric(fa.ctrl$N_Serie)
 
+# Get sex of participants
+subject_sex <- read.csv("full_epic_sex.csv")
+fa.ctrl <- left_join(fa.ctrl, subject_sex, by = "Idepic")
+
 # categorical variables to factors
-var.list <- c("Country", "Center", "STUDY", "LABO")
+var.list <- c("Country", "Center", "STUDY", "LABO", "Sex")
 fa.ctrl <- fa.ctrl %>% mutate_at(vars(var.list), as.factor)
 
 # Subset concentrations for CRC and controls
@@ -134,5 +138,11 @@ common.cols <- intersect(colnames(concs), colnames(CRCfa))
   
 # return(list(fa.ctrl, common.cols))
 
+# Remove unneeded data from workspace
+rm(concs)
+rm(wcrf)
+rm(meta)
+rm(crc)
+rm(subject_sex)
 
 
