@@ -135,14 +135,17 @@ fa.ctrl <- fa.ctrl %>% mutate_at(vars(var.list), as.factor)
 CRCfa <- CRCfa1  %>% select(P14_0 : PCLA_9t_11c) 
 concs <- fa.ctrl %>% select(P14_0 : PCLA_9t_11c, -P24_0, -P20_0)
 common.cols <- intersect(colnames(concs), colnames(CRCfa))
-  
-# return(list(fa.ctrl, common.cols))
 
 # Remove unneeded data from workspace
-rm(concs)
 rm(wcrf)
 rm(meta)
 rm(crc)
 rm(subject_sex)
 
+# Number of control profiles for biocrates and fatty acids
+nrow(ctrl)
+nrow(fa.ctrl)
+
+# Number of control subjects , biocrates and fatty acids combined
+length(intersect(ctrl$Idepic, fa.ctrl$Idepic))
 
