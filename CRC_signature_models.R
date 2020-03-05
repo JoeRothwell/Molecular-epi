@@ -47,6 +47,8 @@ small <- predict.scores(crc1, ctrlA, mod1a)
 large <- predict.scores(crc2, ctrlB, mod1b)
 FAs <- predict.scores(CRCfa1, concs, mod2)
 
+nrow(small); nrow(large); nrow(FAs)
+
 # Join small and large together for pooled questionnaire model
 common.vars <- c("Cncr_Caco_Clrt", "Qe_Energy", "L_School", "Smoke_Stat", "Match_Caseset", 
                  "Wcrf_C_Cal", "Height_C")
