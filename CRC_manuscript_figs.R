@@ -6,39 +6,44 @@ library(ggplot2)
 library(ggrepel)
 
 # To change legend order, reorder factor levels
-pltdata1 <- pltdata %>% mutate(compound1 = ifelse(abs(Coefficient) > 0.022, compound, NA))
+corr <- cor(Bioc0[, -1], Bioc0[, 1])
+pltdata1 <- pltdata %>% mutate(compound1 = ifelse(abs(Coefficient) > 0.022, compound, NA), corr)
 
 p1 <- 
-  ggplot(pltdata1, aes(x = compound, y = Coefficient, shape = str_wrap(class, 20))) + 
+  ggplot(pltdata1, aes(x = Coefficient, y = corr, shape = str_wrap(class, 20))) + 
   geom_point() + theme_bw() +
-  theme(panel.grid.major = element_blank(),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_line(),
-        legend.title = element_blank()) +
+  theme(panel.grid.major = element_blank(), legend.title = element_blank(),
+        legend.position = c(0.85, 0.25)) +
   scale_shape_manual(values = c(15, 1, 19, 25, 22, 14, 3, 4)) +
-  xlab("Endogenous metabolite") + ylab("Coefficient from PLS model") +
+  xlab("Coefficient 1st PLSR latent variable") + 
+  ylab("Correlation WCRF score - metabolite") +
   geom_hline(yintercept = 0, linetype = "dashed") +
-  #geom_text(aes(label = compound1), hjust = -0.1, vjust = 0, size = 3) +
-  geom_text_repel(aes(label = compound1), size = 3) +
-  ggtitle("A")
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  geom_text_repel(aes(label = compound1), size = 3) #+
+  #ggtitle("A")
 
-faplot1 <- faplot %>% mutate(compound1 = ifelse(abs(Coefficient) > 0.045, compound, NA))
+corr1 <- cor(FAdata[, -1], FAdata[, 1])
+faplot1 <- faplot %>% mutate(compound1 = ifelse(abs(Coefficient) > 0.045, compound, NA), corr1)
 
-p2 <- ggplot(faplot1, aes(x = 1:nrow(faplot), y = Coefficient, shape = class)) + geom_point() + 
-  theme_bw() +
-  theme(panel.grid.major = element_blank(),
-        axis.text.x = element_blank(),
-        legend.title = element_blank(),
-        axis.ticks.x = element_blank()) +
+p2 <- ggplot(faplot1, aes(x = Coefficient, y = corr1, shape = class)) + geom_point() + 
+  theme_bw() + xlim(-0.19, 0.19) + ylim(-0.22, 0.22) +
+  theme(panel.grid.major = element_blank(), legend.title = element_blank(),
+        legend.position = c(0.85, 0.2)) +
   scale_shape_manual(values = c(6, 16, 1, 4, 3)) +
-  xlab("Fatty acid") + ylab("Coefficient from PLS model") +
+  xlab("Coefficient 1st PLSR latent variable") + 
+  ylab("Correlation WCRF score - metabolite") +
   geom_hline(yintercept = 0, linetype = "dashed") +
-  #geom_text(aes(label = compound1), hjust = -0.1, vjust = 0, size = 3) +
-  geom_text_repel(aes(label = compound1), size = 3) +
-  ggtitle("B")
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  geom_text_repel(aes(label = compound1), size = 3) #+
+  #ggtitle("B")
 
 # Generate aligned plots
 library(cowplot)
+plot_grid(p1, p2, nrow = 2, labels = c("A", "B"), label_size = 12) %>%
+  save_plot("s_plots.png")
+
+
+
 both <- align_plots(p1, p2, align = "hv", axis = "tblr")
 ggdraw(both[[1]])
 ggsave("endogenous.png", height = 100, width = 180, units = "mm")
