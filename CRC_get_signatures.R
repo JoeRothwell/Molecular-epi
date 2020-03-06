@@ -56,64 +56,51 @@ Bioc2  <- get.plsdata(ctrlB) # Overlap control/B
 FAdata <- get.plsdata(CRCfa1) # Fatty acids
 #Bioc3  <- get.plsdata(ctrls0) # Overlap control/A/B (not needed)
 
-# Get metabolic signatures by PLSR for case-control risk models
+# Function to get optimal dimensions for each model (pls or caret)
+
 library(pls)
 get.signature <- function(plsdata, which.mod = "plsmod"){
-  
-  # Biocrates (endogenous metabolites) for metabolic signature of WCRF score on controls dataset
-  # This function gives the choice of fitting the model either with the pls package or Caret
-  # pls was eventually used for the analysis.
-  
-  if(which.mod == "plsmod"){
-    
-    set.seed(111)
+
+    if(which.mod == "plsmod"){
+
     # Start with a sensible number of components eg 10
+    set.seed(111)
     mod <- plsr(score ~ ., ncomp = 10, data = plsdata, validation = "CV")
     # Find the number of dimensions with lowest cross validation error
     cv <- RMSEP(mod)
     plot(RMSEP(mod), legendpos = "topright")
     
-    # Calculate optimal number of dimensions and rerun model (see PLS vignette p12)
-    
     # Get components with lowest RMSEP, "one SE" and "permutation" methods
-    best.dims <- which.min(cv$val[estimate = "adjCV", , ]) - 1
-    onesigma <- selectNcomp(mod, method = "onesigma", plot = F)
-    permut <- selectNcomp(mod, method = "randomization", plot = T)
+    best.dims  <- which.min(cv$val[estimate = "adjCV", , ]) - 1
+    onesigma   <- selectNcomp(mod, method = "onesigma", plot = F)
+    permut     <- selectNcomp(mod, method = "randomization", plot = T)
     
     print(paste("Lowest RMSEP from", best.dims, "comp(s);", 
                 "one SE method suggests", onesigma, "comp(s);",
                 "permutation method suggests", permut, "comp(s)"))
-    
-    #mod <- plsr(score ~ ., data = plsdata, ncomp = 3)
-    
-    # explained variances
-    # explvar(mod)
-    # Prediction, scores, loadings plots
-    # plot(mod)
-    # plot(mod, plottype = "scores")
-    # plot(mod, "loadings", legendpos = "topleft")
     
   } else if(which.mod == "caretmod") {  
     
     library(caret)
     set.seed(111)
     mod <- train(score ~ ., data = plsdata, method = "pls", metric = "RMSE", tuneLength = 20) 
-    #mod.new
-    # 2 LVs were used for the final model
-    #plot(mod.new)
-    #plot(varImp(mod.new))
   }
   
 }
 
 lapply(list(Bioc1, Bioc2, FAdata, Bioc0), get.signature)
 
-# Fit final PLS models to get signatures
+# Fit final PLS models with optimal dimensions to get signatures (see PLS vignette p12)
 set.seed(111)
 mod1a <- plsr(score ~ ., data = Bioc1, ncomp = 1)
 mod1b <- plsr(score ~ ., data = Bioc2, ncomp = 1)
 mod2  <- plsr(score ~ ., data = FAdata, ncomp = 2)
 mod0  <- plsr(score ~ ., data = Bioc0, ncomp = 1)
+
+# explained variances, prediction, scores, loadings plots
+# explvar(mod)
+# plot(mod, plottype = "scores")
+
 
 # Produce tables of important compounds, using compound metadata to get proper names
 plot.signature <- function(mod, biocrates = T, percentile = 5, all = T){
