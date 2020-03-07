@@ -2,12 +2,29 @@
 source("CRC_prep_data.R")
 source("CRC_get_signatures.R")
 
-# Get compounds and idepics from CRC1 and join together by Idepic
+# Whole case-control 1
+# Get compounds and idepics from CRC1 and join together by Idepic (controls only)
 FAs.ID <- CRCfa1 %>% select(Idepic, one_of(common.cols))
 Bioc.ID <- select.ctrl.cmpds(crc1, cor.data = T) %>% distinct() # remove dupes
-
 dat <- inner_join(FAs.ID, Bioc.ID, by = "Idepic") %>% select(-Idepic) 
-# 877 FA subjects, 937 Biocrates, 876 in overlap
+
+# Or
+
+# Controls from CC1 and controls dataset
+# Get compounds and idepics from CRC1 and join together by Idepic (controls only)
+FAs.ID <- CRCfa.ctrl %>% select(Idepic, one_of(common.cols))
+Bioc.ID <- select.ctrl.cmpds(crc1, cor.data = T) %>% distinct() # remove dupes
+dat <- inner_join(FAs.ID, Bioc.ID, by = "Idepic") %>% select(-Idepic) 
+
+# Get compounds and idepics from controls datasets and join by Idepic
+FAs.ID2 <- fa.ctrl %>% select(Idepic, one_of(common.cols))
+Bioc.ID2 <-  ctrl %>% select(Idepic, one_of(sort(colnames(ctrlA))))
+dat2 <- inner_join(FAs.ID2, Bioc.ID2, by = "Idepic") %>% select(-Idepic)
+
+allcordat <- rbind(dat, dat2)
+dim(allcor)
+# Total of 438 + 241 observations for correlation
+# (Did not give very results, perhaps from combining different labs)
 
 # Get compound metadata for short names
 meta.bioc <- read_csv("Biocrates_cmpd_metadata.csv") %>% select(Compound, displayname)
