@@ -47,7 +47,12 @@ small <- predict.scores(crc1, ctrlA, mod1a)
 large <- predict.scores(crc2, ctrlB, mod1b)
 FAs <- predict.scores(CRCfa1, concs, mod2)
 
-nrow(small); nrow(large); nrow(FAs)
+# Predict for colon (proximal and distal) cancer only
+small.colon <- predict.scores(colon1, ctrlA, mod1a)
+large.colon <- predict.scores(colon2, ctrlB, mod1b)
+large.rectal <- predict.scores(rectal2, ctrlB, mod1b)
+
+nrow(small); nrow(large); nrow(FAs); nrow(small.colon); nrow(large.colon)
 
 # Join small and large together for pooled questionnaire model
 common.vars <- c("Cncr_Caco_Clrt", "Qe_Energy", "L_School", "Smoke_Stat", "Match_Caseset", 
@@ -55,6 +60,11 @@ common.vars <- c("Cncr_Caco_Clrt", "Qe_Energy", "L_School", "Smoke_Stat", "Match
 small0 <- select(small, common.vars)
 large0 <- select(large, common.vars)
 all <- bind_rows(small0, large0)
+
+small.col <- select(small.colon, common.vars)
+large.col <- select(large.colon, common.vars)
+all.colon <- bind_rows(small.col, large.col)
+large.rec <- select(large.rectal, common.vars)
 
 # Biocrates compounds overlap all datasets no longer used
 # Model CC status from calculated or signature-predicted score for four datasets
@@ -69,15 +79,32 @@ fit3 <- clogit(update(base, ~. + score.1.comps), data = large)
 fit4 <- clogit(update(base, ~. + Wcrf_C_Cal), data = large)
 fit5 <- clogit(update(base, ~. + score.2.comps), data = FAs)
 fit6 <- clogit(update(base, ~. + Wcrf_C_Cal), data = FAs)
-# Pooled questionnaire
+
+# Biocrates colon only
+fit7 <- clogit(update(base, ~. + score.1.comps), data = small.colon)
+fit8 <- clogit(update(base, ~. + Wcrf_C_Cal), data = small.colon)
+fit9 <- clogit(update(base, ~. + score.1.comps), data = large.colon)
+fit10 <- clogit(update(base, ~. + Wcrf_C_Cal), data = large.colon)
+
+# Rectal only
+fit11 <- clogit(update(base, ~. + score.1.comps), data = large.rectal)
+fit12 <- clogit(update(base, ~. + Wcrf_C_Cal), data = large.rectal)
+
+# Pooled questionnaire (all and colon only)
 fit0 <- clogit(update(base, ~. + Wcrf_C_Cal), data = all)
+fit0col <- clogit(update(base, ~. + Wcrf_C_Cal), data = all.colon)
 
 # Table for manuscript
 library(broom)
-t1 <- map_df(list(fit1, fit2, fit3, fit4, fit5, fit6, fit0), tidy) %>% 
+t1 <- map_df(list(fit1, fit2, fit3, fit4, fit5, fit6, fit7, fit8, fit9, fit10, fit11, fit12, fit0, fit0col), tidy) %>% 
   filter(str_detect(term, "score.|Wcrf")) %>% select(-(std.error : p.value)) %>%
   mutate_at(.vars = c("estimate", "conf.low", "conf.high"), exp)
 
+t1$model <- c("Bioc small sig", "Bioc small score", "Bioc large sig", "Bioc large score", "FA sig", "FA score",
+              "Colon small sig", "Colon small score", "Colon large sig", "Colon large score", "Rectal sig",
+              "Rectal score", "Bioc all CRC score", "Bioc all colon score")
+
+# Tables of ORs for scores and signatures
 score <- t1 %>% filter(term == "Wcrf_C_Cal")
 sig   <- t1 %>% filter(term != "Wcrf_C_Cal")
   
