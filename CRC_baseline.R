@@ -1,36 +1,17 @@
 # Baseline characteristics for the 2 CRC metabolomics studies
 # 8 unpaired samples have been removed for CRC1
-
 source("CRC_prep_data.R")
 
 # Generate time to diagnosis and tumour site variables for both studies
 crc1a <- crc1 %>% group_by(Match_Caseset) %>% filter(n() == 2) %>%
-  mutate(Tfollowup.days = D_Dgclrt - D_Bld_Coll, Tfollowup = Tfollowup.days/365.25, location = case_when(
-           Case_Mal_Colon_Prox == 1 ~ 1,
-           Case_Mal_Colon_Dist == 1 ~ 2,
-           Case_Mal_Colon_Nos  == 1 ~ 4,
-           Case_Mal_Rectum     == 1 ~ 3)) %>%
   select(Sex, location, Age_Blood, Tfollowup, Height_C, Weight_C, Bmi_C, Qe_Energy, 
          Country, Pa_Mets, Smoke_Stat, Qe_Alc, Wcrf_C_Cal, Cncr_Caco_Clrt) %>% 
   mutate(Study = "CRC1")
-crc1a$location <- as.factor(crc1a$location)
-
-# Convert character columns to dates
-library(lubridate)
-crc2$D_Bld_Coll <- dmy(crc2$D_Bld_Coll)
-crc2$D_Dgclrt <- dmy(crc2$D_Dgclrt)
 
 crc2a <- crc2 %>%
-  mutate(Tfollowup.days = D_Dgclrt - D_Bld_Coll, Tfollowup = Tfollowup.days/365.25, location = case_when(
-           Case_Mal_Colon_Prox == 1 ~ 1,
-           Case_Mal_Colon_Dist == 1 ~ 2,
-           Case_Mal_Colon_Nos  == 1 ~ 4,
-           Case_Mal_Rectum     == 1 ~ 3)) %>%
   select(Match_Caseset, Sex, location, Age_Blood, Tfollowup, Height_C, Weight_C, Bmi_C, Qe_Energy, 
          Country, Pa_Mets, Smoke_Stat, Qe_Alc, Wcrf_C_Cal, Cncr_Caco_Clrt) %>% 
   mutate(Study = "CRC2")
-
-crcmetab <- bind_rows(crc1a, crc2a)
 
 library(qwraps2)
 options(qwraps2_markup = "markdown")
