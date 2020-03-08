@@ -44,10 +44,11 @@ colon1 <- crc1 %>% group_by(Match_Caseset) %>%
 # Large case-control subset (from Jelena)------------
 
 library(lubridate)
+crc2 <- read_csv("biocrates_p150.csv")
 crc2$D_Bld_Coll <- dmy(crc2$D_Bld_Coll)
 crc2$D_Dgclrt <- dmy(crc2$D_Dgclrt)
 
-crc2 <- read_csv("biocrates_p150.csv") %>% mutate_at(vars(var.list), as.factor) %>%
+crc2 <- crc2 %>% mutate_at(vars(var.list), as.factor) %>%
   mutate_at(vars(starts_with("D_")), dmy) %>%
   mutate(Tfollowup.days = D_Dgclrt - D_Bld_Coll, Tfollowup = Tfollowup.days/365.25, location = case_when(
     Case_Mal_Colon_Prox == 1 ~ 1,
@@ -57,7 +58,7 @@ crc2 <- read_csv("biocrates_p150.csv") %>% mutate_at(vars(var.list), as.factor) 
   inner_join(wcrf, by = "Idepic") %>%
   filter(Country != 6)
 
-# Get colon cancer only
+# Get colon cancer or rectal cancer only
 colon2 <- crc2 %>% group_by(Match_Caseset) %>% 
   filter(max(location, na.rm = T) == 1 | max(location, na.rm = T) == 2) %>% ungroup(Match_Caseset)
 
@@ -65,12 +66,11 @@ rectal2 <- crc2 %>% group_by(Match_Caseset) %>%
   filter(max(location, na.rm = T) == 3) %>% ungroup(Match_Caseset)
 
 # EPIC controls. First dataset, 3771 obs; updated November 2018 7191 obs
-# Rename factor levels
+# Rename factor levels, split Batch_MetBio into 2 cols, extract numeric variable,
+# Remove 1694 CRC controls
+
 ctrl <- read_dta("obes_metabo.dta") %>% mutate(Study = 
   fct_recode(Study, Colonrectum_S = "Colonrectum", Colonrectum_L = "Colonrectum (bbmri)")) %>%
-
-# Split Batch_MetBio into two columns, then extract numeric variable
-# Remove 1694 CRC controls
   separate(Batch_MetBio, into = c("batch", "rest")) %>%
   mutate(batch_no = as.numeric(flatten(str_extract_all(batch, "[0-9]+")))) %>% 
   filter(!(Study %in% c("Colonrectum_L", "Colonrectum_S")), Fasting_C == 2) %>%
@@ -80,58 +80,41 @@ print(paste(nrow(ctrl), "fasted controls read"))
 # 1799 fasted subjects left
 # 1741 after removal of Greece
 
-# Get common compounds between CC and controls and order
-select.ctrl.cmpds <- function(crc, no.subset = F, cor.data = F){
-  
-  library(tidyverse)
-  # Gets common Biocrates metabolites between CC studies and EPIC controls. Puts them in the same order.
-  # Subset biocrates compounds
-  controls <- ctrl %>% 
-    select(matches("Acylcarn_|Aminoacid_|Biogenic_|Glyceroph_|Sphingo_|Sugars_"), -starts_with("Outdq"))
-  
-  zerocols <- apply(controls, 2, function(x) sum(x, na.rm = T)) != 0
-  controls <- controls[, zerocols]
-  colnames(controls) %>% length # 159 variables
-  
-  if(no.subset == T) return(controls)
-  
-  # ----
-  
-  print(paste("Subjects in case-control:", nrow(crc)))
-  
-  cmpds <- crc %>% 
-    select(matches("Acylcarn_|Aminoacid_|Biogenic_|Glyceroph_|Sphingo_|Sugars_"), -starts_with("Outdq"))
-  
-  print(paste("No. of compounds:", ncol(cmpds)))
-  
-  # Convert variables to factors
-  var.list <- c("Country", "Center", "Sex")
-  crc <- crc %>% mutate_at(vars(var.list), as.factor)
+# Get common compounds between CC and controls and get subset of compounds for each signature
+select.ctrl.cmpds <- function(datalist, cor.data = F){
 
-  zerocols <- apply(cmpds, 2, function(x) sum(x, na.rm = T)) != 0
-  cmpds <- cmpds[, zerocols]
-  colnames(cmpds) %>% length # 147 variables
+  # Sub-function to subset compounds only and remove zero columns
+  get.cmpds <- function(dat) { 
+    cmpds <- dat %>% 
+      select(matches("Acylcarn_|Aminoacid_|Biogenic_|Glyceroph_|Sphingo_|Sugars_"), -starts_with("Outdq"))
+    zerocols <- apply(cmpds, 2, function(x) sum(x, na.rm = T)) != 0
+    cmpds <- cmpds[, zerocols]
+  }
+  cmpdlist <- lapply(datalist, get.cmpds)
+
+  if(length(datalist) == 1) { 
+    return(cmpdlist[[1]])
+  } else {
+    # Get common compounds between controls and CRC CC and select compounds
+    common.cols <- intersect(colnames(cmpdlist[[1]]), colnames(cmpdlist[[2]]))
+  }
   
-  # Get common compounds between controls and CRC CC and select compounds
-  common.cols <- intersect(colnames(controls), colnames(cmpds)) # 146 cpds
-  controls <- controls %>% select(one_of(common.cols))
+  # Get data subset by common cols
+  output <- cmpdlist[[1]] %>% select(one_of(common.cols))
+  if(cor.data == F) return(output)
   
   # Make dataset for correlation with FAs
   common.cols1 <- sort(common.cols)
-  dat.sorted.cols <- crc %>% select(Idepic, one_of(common.cols1))
-  
-  if(cor.data == T) return(dat.sorted.cols)
-  return(controls)
+  dat.sorted.cols <- datalist[[2]] %>% select(Idepic, one_of(common.cols1))
 }
-ctrlA <- select.ctrl.cmpds(crc1)
-ctrlB <- select.ctrl.cmpds(crc2)
-ctrls <- select.ctrl.cmpds(no.subset = T)
+
+ctrlA <- select.ctrl.cmpds(list(ctrl, crc1))
+ctrlB <- select.ctrl.cmpds(list(ctrl, crc2))
+ctrls <- select.ctrl.cmpds(list(ctrl))
 
 # Get compounds common to all 3 sets for comparison and subset df
 common.all <- intersect(colnames(ctrlA), colnames(ctrlB))
 ctrls0 <- select(ctrls, one_of(common.all))
-
-
 
 # Fatty acids-------------
 
@@ -170,7 +153,6 @@ CRCfa.ctrl <- CRCfa1 %>% filter(Cncr_Caco_Clrt == 0) %>% select(Idepic, P14_0 : 
 rm(wcrf)
 rm(meta)
 rm(crc)
-#rm(subject_sex)
 
 # Number of control profiles for biocrates and fatty acids
 nrow(ctrl)
