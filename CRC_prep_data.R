@@ -138,7 +138,7 @@ fa.ctrl$N_Serie <- as.numeric(fa.ctrl$N_Serie)
 #fa.ctrl <- left_join(fa.ctrl, subject_sex, by = "Idepic")
 
 # categorical variables to factors
-var.list <- c("Country", "Center", "STUDY", "LABO", "Sex")
+var.list <- c("Country", "Center", "STUDY", "LABO")
 fa.ctrl <- fa.ctrl %>% mutate_at(vars(var.list), as.factor)
 
 # Subset concentrations for CRC and controls

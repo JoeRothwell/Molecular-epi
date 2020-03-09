@@ -52,7 +52,7 @@ small.colon <- predict.scores(colon1, ctrlA, mod1a)
 large.colon <- predict.scores(colon2, ctrlB, mod1b)
 large.rectal <- predict.scores(rectal2, ctrlB, mod1b)
 
-nrow(small); nrow(large); nrow(FAs); nrow(small.colon); nrow(large.colon)
+nrow(small); nrow(large); nrow(FAs); nrow(small.colon); nrow(large.colon); nrow(large.rectal)
 
 # Join small and large together for pooled questionnaire model
 common.vars <- c("Cncr_Caco_Clrt", "Qe_Energy", "L_School", "Smoke_Stat", "Match_Caseset", 
@@ -137,6 +137,11 @@ text(1.8, 8, "OR [95% CI]", pos = 2)
 ma1 <- rma(estimate, sei = std.error, data=t2, method="FE", subset = 1:2)
 ma1$QEp # p-value for heterogeneity
 ma1$I2 # I2
+
+# Meta-analysis for colon cancer
+#ma1 <- rma(estimate, sei = std.error, data=t2, method="FE", subset = 1:2)
+#ma1$QEp # p-value for heterogeneity
+#ma1$I2 # I2
 
 addpoly(ma1, row = 3.5, transf = exp, mlab = "", efac = 2)
 text(-1.2, 3.5, "Fixed effects meta-analysis of A and B", pos = 4, cex = 0.9)

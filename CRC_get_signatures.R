@@ -1,45 +1,31 @@
 # Compute Biocrates and fatty acid signatures of WCRF score by PLS
 source("CRC_prep_data.R")
 
+library(tidyverse)
+library(lme4)
+library(zoo)
+
 # Get compound matrix and questionnaire scores
-get.plsdata <- function(dat, cor.data = F){
- # changes
-  # Adjusts and scales the controls metabolite matrices for confounders and binds scores for model
-  library(tidyverse)
-  library(lme4)
-  library(zoo)
-  # Set zeros to NA and impute with half miminum conc, log transform
-  # Bind WCRF scores to adjusted metabolite matrix
-  
+# Adjusts and scales the controls metabolite matrices for confounders and binds scores for model
+# Set zeros to NA and impute with half miminum conc, log transform
+# Bind WCRF scores to adjusted metabolite matrix for PLS
+
+get.plsdata <- function(dat, ctrldat){
+
   if(nrow(dat) == 877) {
-  
-  # select common FAs in the same order. FAs is for correlation with Biocrates compounds
-  FAs  <- dat %>% select(Idepic, one_of(common.cols))
-  if(cor.data == T) return(FAs)
-  
-  CRCfa <- FAs %>% select(-Idepic)
-  concs <- fa.ctrl %>% select(one_of(common.cols))
-  
-  # Fatty acids: adjust matrix for study, centre, sex, batch
-  adj <- function(x) residuals(lmer(x ~ LABO + STUDY + (1|Center), data = fa.ctrl))
-  # Subset calibrated scores
-  score <- data_frame(score = fa.ctrl$Wcrf_C_Cal)
-  
+    # Adjust matrix for study, centre, batch, sex for Biocrates, subset calibrated scores   
+    concs <- ctrldat %>% select(one_of(common.cols))
+    adj   <- function(x) residuals(lmer(x ~ LABO + STUDY + (1|Center), data = ctrldat))
   } else {
-    
-  concs <- as.matrix(dat)
-  # Biocrates: adjust matrix for study, centre, sex, batch
-  adj <- function(x) residuals(lmer(x ~ Center + batch_no + Sex + (1|Study), data = ctrl))
-  # Subset calibrated scores
-  score <- data_frame(score = ctrl$Wcrf_C_Cal)
-  
+    concs <- as.matrix(dat)
+    adj   <- function(x) residuals(lmer(x ~ Center + batch_no + Sex + (1|Study), data = ctrldat))
   }
-  
+
+  score <- data_frame(score = ctrldat$Wcrf_C_Cal)  
   # Prepare controls matrix. Replace zero, impute with half mins, scale
   concs[concs == 0] <- NA
   concs1 <- na.aggregate(concs, FUN = function(x) min(x)/2)
   logconcs <- log2(concs1) %>% scale
-  
   adjmat <- apply(logconcs, 2, adj)
   
   # Data setup. Must be a df with Bind scores to log matrix
@@ -48,12 +34,12 @@ get.plsdata <- function(dat, cor.data = F){
 }
 
 # Get PLS data for whole controls dataset (manuscript table, more compounds)
-Bioc0  <- get.plsdata(ctrls) # All control compounds
+Bioc0  <- get.plsdata(ctrls, ctrl) # All control compounds
 
 # Get PLS data for case-control risk models
-Bioc1  <- get.plsdata(ctrlA) # Overlap control/A
-Bioc2  <- get.plsdata(ctrlB) # Overlap control/B
-FAdata <- get.plsdata(CRCfa1) # Fatty acids
+Bioc1  <- get.plsdata(ctrlA, ctrl) # Overlap control/A
+Bioc2  <- get.plsdata(ctrlB, ctrl) # Overlap control/B
+FAdata <- get.plsdata(CRCfa1, fa.ctrl) # Fatty acids
 #Bioc3  <- get.plsdata(ctrls0) # Overlap control/A/B (not needed)
 
 # Function to get optimal dimensions for each model (pls or caret)
