@@ -100,50 +100,52 @@ t1 <- map_df(list(fit1, fit2, fit3, fit4, fit5, fit6, fit7, fit8, fit9, fit10, f
   filter(str_detect(term, "score.|Wcrf")) %>% select(-(std.error : p.value)) %>%
   mutate_at(.vars = c("estimate", "conf.low", "conf.high"), exp)
 
-t1$model <- c("Bioc small sig", "Bioc small score", "Bioc large sig", "Bioc large score", "FA sig", "FA score",
+t1$model <- c("Bioc CRC small sig", "Bioc CRC small score", "Bioc CRC large sig", "Bioc CRC large score", "CRC FA sig", "CRC FA score",
               "Colon small sig", "Colon small score", "Colon large sig", "Colon large score", "Rectal sig",
               "Rectal score", "Bioc all CRC score", "Bioc all colon score")
 
 # Tables of ORs for scores and signatures
 score <- t1 %>% filter(term == "Wcrf_C_Cal")
 sig   <- t1 %>% filter(term != "Wcrf_C_Cal")
-  
 
 # Forest plots ----
 # Signature only for Biocrates small and large (all subjects in study) and fatty acids small
 library(broom)
 library(tidyverse)
 
-ll2 <- list(fit3, fit1, fit5)
+ll2 <- list(fit1, fit3, fit7, fit9)
 t2 <- map_df(ll2, tidy) %>% filter(str_detect(term, "score."))
 
-studies <- data.frame(CC = c("B", rep("A", 2)), nvec = #map_int(ll2, 10),
-            c(2330, 978, 922), metabolites = c(rep("Endogenous", 2), "Fatty acids"))
+studies <- data.frame(CC = c("CRC small", "CRC large", "Colon small", "Colon large"),
+            c(934, 2282, 850, 1670), metabolites = rep("Endogenous", 4))
 
 par(mar=c(5,4,1,2))
 library(metafor)
 forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1, 
-       rows = c(5,6,1),
+       rows = c(2,3,6,7),
        xlab = "Odds ratio (per category increase in score)", pch = 18, 
-       transf = exp, psize = 1.5, slab = studies$CC, ilab = studies[, 2:3], 
-       ylim = c(0, 9), xlim = c(-1.2, 1.8),
-       ilab.pos = 4, ilab.xpos = c(-0.7, -0.3))
+       transf = exp, psize = 1.5, 
+       slab = studies$CC, ilab = studies[, 2], 
+       ylim = c(0, 10),
+       #xlim = c(-1.2, 1.8),
+       ilab.pos = 4, ilab.xpos = c(0.1))
 par("usr")
 
-text(c(-1.2, -0.7, -0.3), 8, c("Case-control", "n", "Metabolite signature"), pos = 4)
-text(1.8, 8, "OR [95% CI]", pos = 2)
+#text(c(-1.2, -0.7, -0.3), 8, c("Case-control", "n", "Metabolite signature"), pos = 4)
+#text(1.8, 8, "OR [95% CI]", pos = 2)
 
-# Perform meta-analysis of Biocrates and add to line 3
+# Perform meta-analysis for Biocrates, CRC and colon
 ma1 <- rma(estimate, sei = std.error, data=t2, method="FE", subset = 1:2)
 ma1$QEp # p-value for heterogeneity
 ma1$I2 # I2
 
-# Meta-analysis for colon cancer
-#ma1 <- rma(estimate, sei = std.error, data=t2, method="FE", subset = 1:2)
-#ma1$QEp # p-value for heterogeneity
-#ma1$I2 # I2
+ma2 <- rma(estimate, sei = std.error, data=t2, method="FE", subset = 3:4)
+ma2$QEp
+ma2$I2
 
-addpoly(ma1, row = 3.5, transf = exp, mlab = "", efac = 2)
+addpoly(ma1, row = 1, transf = exp, mlab = "", efac = 2)
+addpoly(ma2, row = 5, transf = exp, mlab = "", efac = 2)
+
 text(-1.2, 3.5, "Fixed effects meta-analysis of A and B", pos = 4, cex = 0.9)
 text(-1.2, 2.5, bquote(paste(I^2," = 0, ",italic(p),"-heterogeneity = 0.32")), pos = 4, cex = 0.9)
 
