@@ -126,36 +126,57 @@ all <- bind_rows(list("Raw" = raw, "Cal" = cal), .id = "id") %>% filter(rest != 
 # saveRDS(all, "Wcrf_biocrates1")
 
 # Manhattan ----
+# For supplemental data
 
-# Vertical, by subclass, in order of p-value (cal or raw)
-ggplot(cal, aes(y = reorder(displayname, p.value), x = log10(p.value), shape = direction, colour = direction)) + 
-  theme_minimal(base_size = 10) +
-  geom_point() + geom_vline(xintercept = -3, linetype = "dashed") +
-  xlab("-log10(p-value)") +
-  facet_grid(subclass1 ~ ., scales = "free_y", space = "free_y", switch= "x") +
-  theme(axis.title.y = element_blank(),
-        axis.text.y = element_text(size=6),
-        legend.position = c(0.25, 0.4),
-        legend.box.background = element_rect(colour="grey")) +
-  #ggtitle("Metabolite associations with WCRF score (cal)")
 
 # Horizontal, by subclass, in order of p-value (cal or raw)
 ggplot(cal, aes(x = reorder(displayname, p.value), y = -log10(p.value), shape = direction, colour = direction)) + 
   theme_minimal(base_size = 10) +
   geom_point(show.legend = F) + 
   geom_hline(yintercept = 3, linetype = "dashed") +
-  ylab("-log10(p-value)") +
+  ylab("log10(p-value)") +
   facet_grid(. ~ subclass1, scales = "free_x", space = "free_x", switch= "y") +
   theme(axis.title.x = element_blank(), strip.text.x = element_blank(),
-        axis.text.x = element_text(angle = 90, size=7, hjust = 0.95, vjust = 0.5)) +
+        axis.text.x = element_text(angle = 90, size=7, hjust = 0.95, vjust = 0.5)) #+
   #ggtitle("Metabolite associations with WCRF score (cal)") +
   #ggsave("WCRF score associations for slide.svg")
+
+
+# Horizontal
+library(ggplot2)
+ggplot(alldf, aes(x = reorder(displayname, -p.adj), y = -log10(p.adj), shape = associated, colour = associated)) + 
+  theme_minimal(base_size = 10) +
+  geom_point(show.legend = F) + 
+  geom_hline(yintercept = 3, linetype = "dashed") +
+  ylab("log10(FDR-adjusted p-value)") + xlab("") +
+  facet_grid(. ~ sumgroup, scales = "free_x", space = "free_x", switch= "y") +
+  theme(strip.text.x = element_blank(), 
+        axis.text.x = element_text(angle = 90, size= 8, hjust = 0.95, vjust = 0.5)) #+
+#ggsave("WCRF score associations FAs.svg")
+
+
+# Old ---------------------
+
+
+# Vertical, by subclass, in order of p-value (cal or raw)
+ggplot(cal, aes(y = reorder(displayname, p.value), x = log10(p.value), shape = direction, colour = direction)) + 
+  theme_minimal(base_size = 10) +
+  geom_point() + geom_vline(xintercept = -3, linetype = "dashed") +
+  xlab("log10(p-value)") +
+  facet_grid(subclass1 ~ ., scales = "free_y", space = "free_y", switch= "x") +
+  theme(axis.title.y = element_blank(),
+        axis.text.y = element_text(size=6),
+        legend.position = c(0.25, 0.4),
+        legend.box.background = element_rect(colour="grey")) +
+  #ggtitle("Metabolite associations with WCRF score (cal)")
+  
+
   
 # Horizontal, significant associations coloured
 library(ggplot2) 
 
 ggplot(raw, aes(x = reorder(Compound, subclass), y = -log10(p.value), colour = Association)) + 
-theme_bw() +
+#theme_bw() +
 geom_point() + geom_hline(yintercept = 3, linetype = "dashed") +
 scale_color_manual(values = c("blue", "red", "grey")) +
 ylab("-log10(p-value) for association with WCRF score") + xlab("Compound") +

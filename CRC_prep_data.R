@@ -134,8 +134,8 @@ fa.ctrl <- readRDS("FA_WCRF_scores1.rds") %>% filter(STUDY != "Colorectum") %>%
 fa.ctrl$N_Serie <- as.numeric(fa.ctrl$N_Serie)
 
 # Get sex of participants
-#subject_sex <- read.csv("full_epic_sex.csv")
-#fa.ctrl <- left_join(fa.ctrl, subject_sex, by = "Idepic")
+#epic.vars <- read.csv("full_epic_vars.csv")
+#fa.ctrl <- left_join(fa.ctrl, epic.vars, by = "Idepic")
 
 # categorical variables to factors
 var.list <- c("Country", "Center", "STUDY", "LABO")
