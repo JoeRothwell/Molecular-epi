@@ -68,11 +68,17 @@ ggplot(t1, aes(exp(estimate), log10(p.value))) + geom_point() + theme_bw() +
 
 quartiles <- ints0[pre, ] %>% mutate_all(funs(cut_number(., n = 4, labels = 1:4))) 
 meta1 <- meta[pre, ]
+eth <- ints[pre, 14]
+meta.eth <- cbind(meta1, ETH = eth)
 
 # Note: need to remove hormone treatment therapy variable
 fits1 <- apply(ints[pre, ], 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
          #DURTHSBMB + 
            CENTTIME + STOCKTIME + strata(MATCH) + x, data = meta[pre, ]))
+
+# Adjusting additionally for ethanol
+fits1e <- apply(ints[pre, -14], 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + ETH +
+           CENTTIME + STOCKTIME + strata(MATCH) + x, data = meta.eth))
 
 fits1a <- apply(quartiles, 2, function(x) {
   Q1Q4 <- x == 1 | x == 4
@@ -82,6 +88,7 @@ fits1a <- apply(quartiles, 2, function(x) {
 
 library(broom)
 t1 <- map_df(fits1, tidy) %>% filter(str_detect(term, "x")) %>% bind_cols(cmpd.meta) %>% arrange(description)
+t1 <- map_df(fits1e, tidy) %>% filter(str_detect(term, "x")) %>% bind_cols(cmpd.meta[-14, ]) %>% arrange(description)
 
 par(mfrow = c(1,2))
 par(mar=c(5,4,1,2))
@@ -118,6 +125,18 @@ ggplot(t1, aes(exp(estimate), log10(p.value))) + geom_point() + theme_bw() +
   geom_hline(yintercept = c(log10(0.05), log10(0.014)), linetype = "dashed") +
   geom_vline(xintercept = 1, linetype = "dashed") +
   ggtitle("Pre-menopausal")
+
+# Adjusted ethanol
+
+ggplot(t1, aes(exp(estimate), log10(p.value))) + geom_point() + theme_bw() +
+  xlim(c(0.4, 1.6)) + 
+  scale_y_reverse(breaks = c(-3, -2, -1, 0), labels = function(x) 10^x) +
+  xlab("Odds ratio per SD increase concentration") + ylab("P-value") +
+  geom_text_repel(aes(label = display_name), size = 3,
+                  data = t1[t1$p.value < 0.04, ] ) +
+  geom_hline(yintercept = c(log10(0.05), log10(0.014)), linetype = "dashed") +
+  geom_vline(xintercept = 1, linetype = "dashed") +
+  ggtitle("Pre-menopausal, adjusted for ethanol")
 
 # Post-menopausal --------------------
 
