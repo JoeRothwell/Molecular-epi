@@ -47,22 +47,6 @@ hh <- par("usr")
 text(hh[1], max(rowvec) + 2, "Metabolite", pos = 4, cex = 0.8)
 text(hh[2], max(rowvec) + 2, "OR [95% CI]", pos = 2, cex = 0.8)
 
-# Smile plot
-#plot(t1$statistic, -log10(t1$p.value))
-library(ggplot2)
-library(ggrepel)
-library(scales)
-# For slides, dimension 415 x 377
-ggplot(t1, aes(exp(estimate), log10(p.value))) + geom_point() + theme_bw() +
-  xlim(0.8, 1.2) +
-  scale_y_reverse(breaks = c(-2, -1, 0), labels = function(x) 10^x) +
-  xlab("Odds ratio per SD increase concentration") + ylab("P-value") +
-  geom_text_repel(aes(label = display_name), size = 3,
-            data = t1[t1$p.value < 0.3, ]) +
-  geom_hline(yintercept = log10(0.05), linetype = "dashed") +
-  geom_vline(xintercept = 1, linetype = "dashed") +
-  ggtitle("All subjects")
-
 
 # Pre-menopausal -------------------
 
@@ -114,29 +98,7 @@ hh <- par("usr")
 text(hh[1], max(rowvec) + 2, "Metabolite", pos = 4, cex = 0.8)
 text(hh[2], max(rowvec) + 2, "OR [95% CI]", pos = 2, cex = 0.8)
 
-library(ggplot2)
-library(ggrepel)
-ggplot(t1, aes(exp(estimate), log10(p.value))) + geom_point() + theme_bw() +
-  xlim(c(0, 2)) + 
-  scale_y_reverse(breaks = c(-3, -2, -1, 0), labels = function(x) 10^x) +
-  xlab("Odds ratio per SD increase concentration") + ylab("P-value") +
-  geom_text_repel(aes(label = display_name), size = 3,
-                  data = t1[t1$p.value < 0.04, ] ) +
-  geom_hline(yintercept = c(log10(0.05), log10(0.014)), linetype = "dashed") +
-  geom_vline(xintercept = 1, linetype = "dashed") +
-  ggtitle("Pre-menopausal")
 
-# Adjusted ethanol
-
-ggplot(t1, aes(exp(estimate), log10(p.value))) + geom_point() + theme_bw() +
-  xlim(c(0.4, 1.6)) + 
-  scale_y_reverse(breaks = c(-3, -2, -1, 0), labels = function(x) 10^x) +
-  xlab("Odds ratio per SD increase concentration") + ylab("P-value") +
-  geom_text_repel(aes(label = display_name), size = 3,
-                  data = t1[t1$p.value < 0.04, ] ) +
-  geom_hline(yintercept = c(log10(0.05), log10(0.014)), linetype = "dashed") +
-  geom_vline(xintercept = 1, linetype = "dashed") +
-  ggtitle("Pre-menopausal, adjusted for ethanol")
 
 # Post-menopausal --------------------
 
@@ -179,18 +141,6 @@ hh <- par("usr")
 text(hh[1], max(rowvec) + 2, "Metabolite", pos = 4, cex = 0.8)
 text(hh[2], max(rowvec) + 2, "OR [95% CI]", pos = 2, cex = 0.8)
 
-library(ggplot2)
-library(ggrepel)
-ggplot(t1, aes(exp(estimate), log10(p.value))) + geom_point() + theme_bw() +
-  xlim(c(0.85, 1.15)) +  
-  scale_y_reverse(breaks = c(-2, -1, 0), labels = function(x) 10^x) +
-  xlab("Odds ratio per SD increase concentration") + ylab("P-value") +
-  geom_text_repel(aes(label = display_name), size = 3,
-            data = t1[t1$p.value < 0.15, ]) +
-  geom_hline(yintercept = log10(0.05), linetype = "dashed") +
-  geom_vline(xintercept = 1, linetype = "dashed") +
-  ggtitle("c) Post-menopausal")
-
 
 # Funnel plots for metabolites
 funnel(x = t2$estimate, sei = t2$std.error)
@@ -226,6 +176,7 @@ tidy.output <- function(mod) {
 all <- tidy.output(fits0)
 pre <- tidy.output(fits1)
 post <- tidy.output(fits2)
+pre.eth <- tidy.output(fits1e)
 
 # Retain only metabolite groups with at least one p-value < 0.05
 tab <- bind_rows("All" = all, "Pre" = pre, "Post" = post, .id = "Analysis") %>%
