@@ -12,8 +12,8 @@ meta <- read_csv("Lifepath_meta.csv", na = "9999") %>%
   mutate(DURTHSBMBCat = ifelse(DURTHSBMB > 0, 1, 0))
 
 # For subsetting
-pre <- meta$MENOPAUSE == 0
-post <- meta$MENOPAUSE == 1 
+#pre <- meta$MENOPAUSE == 0
+#post <- meta$MENOPAUSE == 1 
 
 # For removal of problem racks for Ethanol
 #meta1 <- meta %>% filter(!RACK %in% c(10, 29, 33, 34))
@@ -24,6 +24,10 @@ unmatch_pairs <- meta %>% group_by(MATCH) %>% summarise(sum.men = sum(MENOPAUSE)
 
 log.vec <- !(meta$MATCH %in% unmatch_pairs)
 meta <- meta[log.vec, ]
+
+# For subsetting
+pre <- meta$MENOPAUSE == 0
+post <- meta$MENOPAUSE == 1 
 
 # Compound data for forest plots
 cmpd.meta <- read.csv("NMR_cmpd_metadata_new.csv")
