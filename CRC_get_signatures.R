@@ -1,6 +1,5 @@
 # Compute Biocrates and fatty acid signatures of WCRF score by PLS
 source("CRC_prep_data.R")
-
 library(tidyverse)
 library(lme4)
 library(zoo)
@@ -10,6 +9,34 @@ library(zoo)
 # Set zeros to NA and impute with half miminum conc, log transform
 # Bind WCRF scores to adjusted metabolite matrix for PLS
 
+get.plsdata1 <- function(dat, ctrldat, bioc = T, subgroup = F){
+  
+  if(bioc == T & subgroup == F) {
+    # Adjust matrix for study, centre, batch, sex for Biocrates, subset calibrated scores 
+    concs <- as.matrix(dat)
+    adj   <- function(x) residuals(lmer(x ~ Center + batch_no + Sex + (1|Study), data = ctrldat))
+    
+  } else if(bioc == T & subgroup == T) {
+    concs <- as.matrix(dat)
+    adj   <- function(x) residuals(lmer(x ~ Center + batch_no + (1|Study), data = ctrldat))
+    
+  } else {
+    
+    concs <- ctrldat %>% select(one_of(common.cols))
+    adj   <- function(x) residuals(lmer(x ~ LABO + STUDY + (1|Center), data = ctrldat))
+  }
+  
+  score <- tibble(score = ctrldat$Wcrf_C_Cal)  
+  # Prepare controls matrix. Replace zero, impute with half mins, scale
+  concs[concs == 0] <- NA
+  concs1 <- na.aggregate(concs, FUN = function(x) min(x)/2)
+  logconcs <- log2(concs1) %>% scale
+  adjmat <- apply(logconcs, 2, adj)
+  
+  # Data setup. Must be a df with Bind scores to log matrix
+  output <- cbind(score, adjmat) %>% filter(!is.na(score))
+  
+}
 get.plsdata <- function(dat, ctrldat){
 
   if(nrow(dat) == 877) {
@@ -21,7 +48,7 @@ get.plsdata <- function(dat, ctrldat){
     adj   <- function(x) residuals(lmer(x ~ Center + batch_no + Sex + (1|Study), data = ctrldat))
   }
 
-  score <- data_frame(score = ctrldat$Wcrf_C_Cal)  
+  score <- tibble(score = ctrldat$Wcrf_C_Cal)  
   # Prepare controls matrix. Replace zero, impute with half mins, scale
   concs[concs == 0] <- NA
   concs1 <- na.aggregate(concs, FUN = function(x) min(x)/2)
@@ -34,13 +61,20 @@ get.plsdata <- function(dat, ctrldat){
 }
 
 # Get PLS data for whole controls dataset (manuscript table, more compounds)
-Bioc0  <- get.plsdata(ctrls, ctrl) # All control compounds
+Bioc0  <- get.plsdata1(ctrls, ctrl) # All control compounds
 
 # Get PLS data for case-control risk models
-Bioc1  <- get.plsdata(ctrlA, ctrl) # Overlap control/A
-Bioc2  <- get.plsdata(ctrlB, ctrl) # Overlap control/B
-FAdata <- get.plsdata(CRCfa1, fa.ctrl) # Fatty acids
+Bioc1  <- get.plsdata1(ctrlA, ctrl, bioc = T) # Overlap control/A
+Bioc2  <- get.plsdata1(ctrlB, ctrl, bioc = T) # Overlap control/B
+FAdata <- get.plsdata1(crc1fa, fa.ctrl, bioc = F) # Fatty acids
 #Bioc3  <- get.plsdata(ctrls0) # Overlap control/A/B (not needed)
+
+# PLS data for sex-specific signatures (not done for FAs because too few males)
+Bioc1m <- get.plsdata1(ctrlAm, ctrl.m, bioc = T, subgroup = T)
+Bioc1f <- get.plsdata1(ctrlAf, ctrl.f, bioc = T, subgroup = T)
+Bioc2m <- get.plsdata1(ctrlBm, ctrl.m, bioc = T, subgroup = T)
+Bioc2f <- get.plsdata1(ctrlBf, ctrl.f, bioc = T, subgroup = T)
+FAdatf <- get.plsdata1(crc1faf, fa.ctrl.f, bioc = F)
 
 # Function to get optimal dimensions for each model (pls or caret)
 
@@ -75,6 +109,7 @@ get.signature <- function(plsdata, which.mod = "plsmod"){
 }
 
 lapply(list(Bioc1, Bioc2, FAdata, Bioc0), get.signature)
+lapply(list(Bioc1m, Bioc1f, Bioc2m, Bioc2f), get.signature)
 
 # Fit final PLS models with optimal dimensions to get signatures (see PLS vignette p12)
 set.seed(111)
@@ -82,6 +117,13 @@ mod1a <- plsr(score ~ ., data = Bioc1, ncomp = 1)
 mod1b <- plsr(score ~ ., data = Bioc2, ncomp = 1)
 mod2  <- plsr(score ~ ., data = FAdata, ncomp = 2)
 mod0  <- plsr(score ~ ., data = Bioc0, ncomp = 1)
+
+# Sex-specific
+mod1m <- plsr(score ~ ., data = Bioc1m, ncomp = 1)
+mod1f <- plsr(score ~ ., data = Bioc1f, ncomp = 1)
+mod2m  <- plsr(score ~ ., data = Bioc2m, ncomp = 1)
+mod2f  <- plsr(score ~ ., data = Bioc2f, ncomp = 1)
+modFAf  <- plsr(score ~ ., data = FAdatf, ncomp = 2)
 
 # explained variances, prediction, scores, loadings plots
 # explvar(mod)

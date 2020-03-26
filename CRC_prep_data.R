@@ -41,6 +41,10 @@ crc1 <- crc1 %>% inner_join(meta, by = "Idepic") %>% mutate_at(vars(var.list), a
 colon1 <- crc1 %>% group_by(Match_Caseset) %>% 
   filter(max(location, na.rm = T) == 1 | max(location, na.rm = T) == 2) %>% ungroup(Match_Caseset)
 
+# Subset male or female
+crc1.ma <- crc1 %>% filter(Sex == 1)
+crc1.fe <- crc1 %>% filter(Sex == 2)
+
 # Large case-control subset (from Jelena)------------
 
 library(lubridate)
@@ -65,6 +69,11 @@ colon2 <- crc2 %>% group_by(Match_Caseset) %>%
 rectal2 <- crc2 %>% group_by(Match_Caseset) %>% 
   filter(max(location, na.rm = T) == 3) %>% ungroup(Match_Caseset)
 
+# Subset male or female
+crc2.ma <- crc1 %>% filter(Sex == 1)
+crc2.fe <- crc1 %>% filter(Sex == 2)
+
+
 # EPIC controls. First dataset, 3771 obs; updated November 2018 7191 obs
 # Rename factor levels, split Batch_MetBio into 2 cols, extract numeric variable,
 # Remove 1694 CRC controls
@@ -75,6 +84,10 @@ ctrl <- read_dta("obes_metabo.dta") %>% mutate(Study =
   mutate(batch_no = as.numeric(flatten(str_extract_all(batch, "[0-9]+")))) %>% 
   filter(!(Study %in% c("Colonrectum_L", "Colonrectum_S")), Fasting_C == 2) %>%
   filter(Country != 6)
+
+# Subgroup for sex-specific signature
+ctrl.m <- ctrl %>% filter(Sex == 1)
+ctrl.f <- ctrl %>% filter(Sex == 2)
 
 print(paste(nrow(ctrl), "fasted controls read"))
 # 1799 fasted subjects left
@@ -112,6 +125,12 @@ ctrlA <- select.ctrl.cmpds(list(ctrl, crc1))
 ctrlB <- select.ctrl.cmpds(list(ctrl, crc2))
 ctrls <- select.ctrl.cmpds(list(ctrl))
 
+# Data for sex-specific signatures
+ctrlAm <- select.ctrl.cmpds(list(ctrl.m, crc1.ma))
+ctrlAf <- select.ctrl.cmpds(list(ctrl.f, crc1.fe))
+ctrlBm <- select.ctrl.cmpds(list(ctrl.m, crc2.ma))
+ctrlBf <- select.ctrl.cmpds(list(ctrl.f, crc2.fe))
+
 # Get compounds common to all 3 sets for comparison and subset df
 common.all <- intersect(colnames(ctrlA), colnames(ctrlB))
 ctrls0 <- select(ctrls, one_of(common.all))
@@ -122,10 +141,12 @@ ctrls0 <- select(ctrls, one_of(common.all))
 
 # Get CRC dataset from Elom and join WCRF scores. Convert categorical co-variates to factors
 var.list <- c("L_School", "Smoke_Stat")
-CRCfa1 <- read_dta("Database_Fatty acids.dta") %>% 
+crc1fa <- read_dta("Database_Fatty acids.dta") %>% 
   left_join(wcrf, by = "Idepic") %>% 
   mutate_at(vars(var.list), as.factor) %>%
   filter(Country != 6)
+
+crc1faf <- crc1fa %>% filter(Sex == 2)
 
 # Get dataset for PLS modelling (all EPIC controls). Exclude compounds with many missings
 # Note: new version from Carine received 18/11/2018 with technical covariates
@@ -134,20 +155,24 @@ fa.ctrl <- readRDS("FA_WCRF_scores1.rds") %>% filter(STUDY != "Colorectum") %>%
 fa.ctrl$N_Serie <- as.numeric(fa.ctrl$N_Serie)
 
 # Get sex of participants
-#epic.vars <- read.csv("full_epic_vars.csv")
-#fa.ctrl <- left_join(fa.ctrl, epic.vars, by = "Idepic")
+epic.vars <- read.csv("full_epic_sex.csv")
+fa.ctrl <- left_join(fa.ctrl, epic.vars, by = "Idepic")
+fa.ctrl.f <- fa.ctrl %>% filter(Sex == 2)
+# Not used because 118 and 4121 M and F respectively
 
 # categorical variables to factors
 var.list <- c("Country", "Center", "STUDY", "LABO")
 fa.ctrl <- fa.ctrl %>% mutate_at(vars(var.list), as.factor)
 
 # Subset concentrations for CRC and controls
-CRCfa <- CRCfa1  %>% select(P14_0 : PCLA_9t_11c) 
+crcfa <- crc1fa  %>% select(P14_0 : PCLA_9t_11c) 
 concs <- fa.ctrl %>% select(P14_0 : PCLA_9t_11c, -P24_0, -P20_0)
-common.cols <- intersect(colnames(concs), colnames(CRCfa))
+common.cols <- intersect(colnames(concs), colnames(crcfa))
 
-# Subset only controls from FAs and CRCA
-CRCfa.ctrl <- CRCfa1 %>% filter(Cncr_Caco_Clrt == 0) %>% select(Idepic, P14_0 : PCLA_9t_11c) 
+concs.f <- fa.ctrl.f %>% select(P14_0 : PCLA_9t_11c, -P24_0, -P20_0)
+
+# Subset only controls from FAs and CRC A
+CRCfa.ctrl <- crc1fa %>% filter(Cncr_Caco_Clrt == 0) %>% select(Idepic, P14_0 : PCLA_9t_11c) 
 
 # Remove unneeded data from workspace
 rm(wcrf)

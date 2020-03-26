@@ -25,8 +25,8 @@ crc_sum <-
   list("Total subjects"   =
          list("N"   =   ~ n()),
        "Sex" = 
-         list("Female"   =  ~ n_perc0(Sex == 1, digits = 1),
-              "Male"     =  ~ n_perc0(Sex == 2, digits = 1)),
+         list("Male"       =  ~ n_perc0(Sex == 1, digits = 1),
+              "Female"     =  ~ n_perc0(Sex == 2, digits = 1)),
        "Tumor site" =
          list("Proximal colon"  = ~ n_perc0(location == 1, na_rm = T, digits = 1),
               "Distal colon"    = ~ n_perc0(location == 2, na_rm = T, digits = 1),

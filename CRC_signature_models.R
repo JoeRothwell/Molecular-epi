@@ -2,8 +2,8 @@
 # Requires crc1, crc2, controls and PLS models to be prepared from CRC_data_prep.R
 source("CRC_get_signatures.R")
 
-# Functions to get CC subjects with signature-derived WCRF scores
-predict.scores <- function(crc, dat, mod, scorecomp.only = F){
+# Functions to get signature-derived WCRF scores for case-controls and pooled controls
+predict.scores <- function(crc, dat, mod, bioc = T, scorecomp.only = F){
 
   library(tidyverse)
   library(zoo)
@@ -12,7 +12,7 @@ predict.scores <- function(crc, dat, mod, scorecomp.only = F){
   # Variables were converted to factors in CRC_data_prep.R
   
   # Put CRC CC compounds in same order as in controls dataset (fatty acids, biocrates)
-  if(nrow(crc) == 877) { 
+  if(bioc == F) { 
     cols <- common.cols
     var.list <- c("L_School", "Smoke_Stat")
     } else { 
@@ -42,29 +42,34 @@ predict.scores <- function(crc, dat, mod, scorecomp.only = F){
 
 }
 
-# Biocrates compounds overlap individual CC/control only
-small <- predict.scores(crc1, ctrlA, mod1a)
-large <- predict.scores(crc2, ctrlB, mod1b)
-FAs <- predict.scores(CRCfa1, concs, mod2)
+# Predict scores for different datasets
+pred.crc1 <- predict.scores(crc1, ctrlA, mod1a)
+pred.crc2 <- predict.scores(crc2, ctrlB, mod1b)
+pred.fa   <- predict.scores(crc1fa, concs, mod2, bioc = F)
+pred.colon1 <- predict.scores(colon1, ctrlA, mod1a)
+pred.colon2 <- predict.scores(colon2, ctrlB, mod1b)
+pred.rectal <- predict.scores(rectal2, ctrlB, mod1b)
 
-# Predict for colon (proximal and distal) cancer only
-small.colon <- predict.scores(colon1, ctrlA, mod1a)
-large.colon <- predict.scores(colon2, ctrlB, mod1b)
-large.rectal <- predict.scores(rectal2, ctrlB, mod1b)
+# Predict sex-specific scores
+pred.crc1.m <- predict.scores(crc1.ma, ctrlAm, mod1m)
+pred.crc1.f <- predict.scores(crc1.fe, ctrlAf, mod1f)
+pred.crc2.m <- predict.scores(crc2.ma, ctrlAm, mod1m)
+pred.crc2.f <- predict.scores(crc2.fe, ctrlAf, mod1f)
+pred.FAf <- predict.scores(crc1faf, concs.f, modFAf, bioc = F)
 
-nrow(small); nrow(large); nrow(FAs); nrow(small.colon); nrow(large.colon); nrow(large.rectal)
+nrow(pred.crc1); nrow(pred.crc2); nrow(pred.fa); nrow(pred.colon1); nrow(pred.colon2); nrow(pred.rectal)
 
 # Join small and large together for pooled questionnaire model
 common.vars <- c("Cncr_Caco_Clrt", "Qe_Energy", "L_School", "Smoke_Stat", "Match_Caseset", 
                  "Wcrf_C_Cal", "Height_C")
-small0 <- select(small, common.vars)
-large0 <- select(large, common.vars)
-all <- bind_rows(small0, large0)
+pred.crc1.vars <- select(pred.crc1, all_of(common.vars))
+pred.crc2.vars <- select(pred.crc2, all_of(common.vars))
+pred.all       <- bind_rows(pred.crc1.vars, pred.crc2.vars)
 
-small.col <- select(small.colon, common.vars)
-large.col <- select(large.colon, common.vars)
-all.colon <- bind_rows(small.col, large.col)
-large.rec <- select(large.rectal, common.vars)
+pred.colon1.vars <- select(pred.colon1, all_of(common.vars))
+pred.colon2.vars <- select(pred.colon2, all_of(common.vars))
+pred.colon.all  <- bind_rows(pred.colon1.vars, pred.colon2.vars)
+pred.rectal.vars   <- select(pred.rectal, all_of(common.vars))
 
 # Biocrates compounds overlap all datasets no longer used
 # Model CC status from calculated or signature-predicted score for four datasets
@@ -73,26 +78,58 @@ library(survival)
 base <- Cncr_Caco_Clrt ~ Qe_Energy + L_School + Smoke_Stat + Height_C + strata(Match_Caseset)
 
 # Biocrates small, large, fatty acids (large fasted subset did not improve OR)
-fit1 <- clogit(update(base, ~. + score.1.comps), data = small)
-fit2 <- clogit(update(base, ~. + Wcrf_C_Cal), data = small)
-fit3 <- clogit(update(base, ~. + score.1.comps), data = large)
-fit4 <- clogit(update(base, ~. + Wcrf_C_Cal), data = large)
-fit5 <- clogit(update(base, ~. + score.2.comps), data = FAs)
-fit6 <- clogit(update(base, ~. + Wcrf_C_Cal), data = FAs)
+# CRC A: score and signature
+fit1 <- clogit(update(base, ~. + score.1.comps), data = pred.crc1)
+fit2 <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.crc1)
+# By sex
+fit1m <- clogit(update(base, ~. + score.1.comps), data = pred.crc1, subset = Sex == 1)
+fit1f <- clogit(update(base, ~. + score.1.comps), data = pred.crc1, subset = Sex == 2)
+fit2m <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.crc1, subset = Sex == 1)
+fit2f <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.crc1, subset = Sex == 2)
+# By sex, sex-specific signatures
+fit1ms <- clogit(update(base, ~. + score.1.comps), data = pred.crc1.m)
+fit1fs <- clogit(update(base, ~. + score.1.comps), data = pred.crc1.f)
 
+
+# CRC B Score, signature and by sex
+fit3 <- clogit(update(base, ~. + score.1.comps), data = pred.crc2)
+fit4 <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.crc2)
+# By sex
+fit3m <- clogit(update(base, ~. + score.1.comps), data = pred.crc2, subset = Sex == 1)
+fit3f <- clogit(update(base, ~. + score.1.comps), data = pred.crc2, subset = Sex == 2)
+fit4m <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.crc2, subset = Sex == 1)
+fit4f <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.crc2, subset = Sex == 2)
+# By sex, sex-specific signatures
+fit3ms <- clogit(update(base, ~. + score.1.comps), data = pred.crc2.m)
+fit3fs <- clogit(update(base, ~. + score.1.comps), data = pred.crc2.f)
+
+
+# CRC A Fatty acids score, signature and by sex
+fit5 <- clogit(update(base, ~. + score.2.comps), data = pred.fa)
+fit6 <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.fa)
+# By sex
+fit5m <- clogit(update(base, ~. + score.2.comps), data = pred.fa, subset = Sex == 1)
+fit5f <- clogit(update(base, ~. + score.2.comps), data = pred.fa, subset = Sex == 2)
+fit6m <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.fa, subset = Sex == 1)
+fit6f <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.fa, subset = Sex == 2)
+# By sex, sex-specific signature (female only)
+fit5fs <- clogit(update(base, ~. + score.2.comps), data = pred.FAf)
+
+
+# By subsite
 # Biocrates colon only
-fit7 <- clogit(update(base, ~. + score.1.comps), data = small.colon)
-fit8 <- clogit(update(base, ~. + Wcrf_C_Cal), data = small.colon)
-fit9 <- clogit(update(base, ~. + score.1.comps), data = large.colon)
-fit10 <- clogit(update(base, ~. + Wcrf_C_Cal), data = large.colon)
+fit7 <- clogit(update(base, ~. + score.1.comps), data = pred.colon1)
+fit8 <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.colon1)
+fit9 <- clogit(update(base, ~. + score.1.comps), data = pred.colon2)
+fit10 <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.colon2)
 
 # Rectal only
-fit11 <- clogit(update(base, ~. + score.1.comps), data = large.rectal)
-fit12 <- clogit(update(base, ~. + Wcrf_C_Cal), data = large.rectal)
+fit11 <- clogit(update(base, ~. + score.1.comps), data = pred.rectal)
+fit12 <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.rectal)
 
 # Pooled questionnaire (all and colon only)
-fit0 <- clogit(update(base, ~. + Wcrf_C_Cal), data = all)
-fit0col <- clogit(update(base, ~. + Wcrf_C_Cal), data = all.colon)
+fit0 <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.all)
+fit0col <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.colon.all)
 
 # Table for manuscript
 library(broom)
