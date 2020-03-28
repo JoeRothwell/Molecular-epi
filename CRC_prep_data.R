@@ -7,14 +7,13 @@ library(haven)
 # Small case-control subset----------
 # Update 3/3/2020: remove Greece
 
-# have to subset subjects with Biocrates data
+# Read data and subset subjects with Biocrates measurements only by taking !is.na > 0
 crc <- read_sas("clrt_caco_metabo.sas7bdat")
+concs <- crc %>% select(matches("(carn|oacid|genic|roph|ingo|Sugars)[_]"), -contains("tdq"))
+biocrates <- apply(concs, 1, function(x) sum(!is.na(x)) > 0)
+crc1 <- crc[biocrates, ]
 
-# Metadata and WCRF scores (keep on local drive because big file)
-wcrf <- read_dta("Wcrf_Score.dta") %>% select(ends_with("_Cal"), Idepic)
-
-# Remove duplicated Idepics (with dplyr or base)
-# Also get follow up time and colorectal site
+# Remove duplicated Idepics (with dplyr or base). Also get follow up time and colorectal site
 meta <- read_dta("clrt_caco.dta") %>% 
   mutate(Tfollowup.days = D_Dgclrt - D_Bld_Coll, Tfollowup = Tfollowup.days/365.25, location = case_when(
     Case_Mal_Colon_Prox == 1 ~ 1,
@@ -24,14 +23,7 @@ meta <- read_dta("clrt_caco.dta") %>%
   select(-Match_Caseset, -Country, -Center, -Cncr_Caco_Clrt) %>%
   distinct(Idepic, .keep_all = T)
 
-# Subset biocrates variables
-concs <- crc %>% 
-  select(matches("Acylcarn_|Aminoacid_|Biogenic_|Glyceroph_|Sphingo_|Sugars_"), -starts_with("Outdq"))
-
-# Subset biocrates data by taking !is.na > 0
-biocrates <- apply(concs, 1, function(x) sum(!is.na(x)) > 0)
-crc1 <- crc[biocrates, ]
-
+# Join Biocrates data to metadata
 var.list <- c("Country", "Center", "Sex", "Match_Caseset", "Smoke_Stat", "L_School")
 crc1 <- crc1 %>% inner_join(meta, by = "Idepic") %>% mutate_at(vars(var.list), as.factor) %>%
   filter(Country != 6)
@@ -51,6 +43,9 @@ library(lubridate)
 crc2 <- read_csv("biocrates_p150.csv")
 crc2$D_Bld_Coll <- dmy(crc2$D_Bld_Coll)
 crc2$D_Dgclrt <- dmy(crc2$D_Dgclrt)
+
+# Metadata and WCRF scores (keep on local drive because big file)
+wcrf <- read_dta("Wcrf_Score.dta") %>% select(ends_with("_Cal"), Idepic)
 
 crc2 <- crc2 %>% mutate_at(vars(var.list), as.factor) %>%
   mutate_at(vars(starts_with("D_")), dmy) %>%
@@ -95,13 +90,11 @@ print(paste(nrow(ctrl), "fasted controls read"))
 
 # Get common compounds between CC and controls and get subset of compounds for each signature
 select.ctrl.cmpds <- function(datalist, cor.data = F){
-
+  
   # Sub-function to subset compounds only and remove zero columns
   get.cmpds <- function(dat) { 
-    cmpds <- dat %>% 
-      select(matches("Acylcarn_|Aminoacid_|Biogenic_|Glyceroph_|Sphingo_|Sugars_"), -starts_with("Outdq"))
-    zerocols <- apply(cmpds, 2, function(x) sum(x, na.rm = T)) != 0
-    cmpds <- cmpds[, zerocols]
+    cmpds <- dat %>% select(matches("(carn|oacid|genic|roph|ingo|Sugars)[_]"), -contains("tdq")) %>%
+      select_if(~ sum(., na.rm = T) != 0)
   }
   cmpdlist <- lapply(datalist, get.cmpds)
 
