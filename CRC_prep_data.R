@@ -8,21 +8,17 @@ library(haven)
 # Use glutamate to correctly subset biocrates data. Update 3/3/2020: remove Greece
 crc1 <- read_sas("clrt_caco_metabo.sas7bdat") %>% filter(!is.na(Aminoacid_Glu))
 
+# Read metadata for whole CRC case-control 
 # Remove duplicated Idepics (with dplyr or base). Also get follow up time and colorectal site
-var.list <- c("Country", "Center", "Sex", "Match_Caseset", "Smoke_Stat", "L_School")
+var.list <- c("Country", "Center", "Sex", "Match_Caseset", "Smoke_Stat", "L_School", "Smoke_Intensity")
 meta <- read_dta("clrt_caco.dta") %>% 
   mutate(Tfollowup.days = D_Dgclrt - D_Bld_Coll, Tfollowup = Tfollowup.days/365.25, location = case_when(
     Case_Mal_Colon_Prox == 1 ~ 1, Case_Mal_Colon_Dist == 1 ~ 2,
     Case_Mal_Colon_Nos  == 1 ~ 4, Case_Mal_Rectum     == 1 ~ 3)) %>% mutate_at(vars(var.list), as.factor) %>% 
-  #select(-Match_Caseset, -Country, -Center, -Cncr_Caco_Clrt) %>%
   distinct(Idepic, .keep_all = T)
 
-# Join Biocrates data to metadata
-#var.list <- c("Country", "Center", "Sex", "Match_Caseset", "Smoke_Stat", "L_School")
-crc1 <- crc1 %>% inner_join(meta, by = "Idepic", suffix = c("_1", "")) %>% 
-  #mutate_at(vars(var.list), as.factor) %>% 
-  filter(Country != 6)
-  #group_by(Match_Caseset) %>% filter(n() == 2)
+# Join metadata to Biocrates, remove Greece
+crc1 <- crc1 %>% inner_join(meta, by = "Idepic", suffix = c("_1", "")) %>% filter(Country != 6)
 
 # Get colon cancer only (ungroup to stop Match_Caseset from being readded later)
 colon1 <- crc1 %>% group_by(Match_Caseset) %>% 
@@ -39,22 +35,6 @@ crc2 <- read_csv("biocrates_p150.csv") %>%
   select(ends_with("Idepic"), matches("(carn|oacid|genic|roph|ingo|Sugars)[_]"), -contains("tdq")) %>%
   inner_join(meta, by = "Idepic") %>% filter(Country != 6)
 
-#crc2$D_Bld_Coll <- dmy(crc2$D_Bld_Coll)
-#crc2$D_Dgclrt <- dmy(crc2$D_Dgclrt)
-
-# Metadata and WCRF scores (keep on local drive because big file)
-#wcrf <- read_dta("Wcrf_Score.dta") %>% select(ends_with("_Cal"), Idepic)
-
-# crc2 <- crc2 %>% mutate_at(vars(var.list), as.factor) %>%
-#   mutate_at(vars(starts_with("D_")), dmy) %>%
-#   mutate(Tfollowup.days = D_Dgclrt - D_Bld_Coll, Tfollowup = Tfollowup.days/365.25, location = case_when(
-#     Case_Mal_Colon_Prox == 1 ~ 1,
-#     Case_Mal_Colon_Dist == 1 ~ 2,
-#     Case_Mal_Colon_Nos  == 1 ~ 4,
-#     Case_Mal_Rectum     == 1 ~ 3)) %>%
-#   inner_join(wcrf, by = "Idepic") %>%
-#   filter(Country != 6)
-
 # Get colon cancer or rectal cancer only
 colon2 <- crc2 %>% group_by(Match_Caseset) %>% 
   filter(max(location, na.rm = T) == 1 | max(location, na.rm = T) == 2) %>% ungroup(Match_Caseset)
@@ -67,7 +47,8 @@ crc2.ma <- crc1 %>% filter(Sex == 1)
 crc2.fe <- crc1 %>% filter(Sex == 2)
 
 
-# EPIC controls. First dataset, 3771 obs; updated November 2018 7191 obs
+# EPIC pooled controls--------
+# First dataset, 3771 obs; updated November 2018 7191 obs
 # Rename factor levels, split Batch_MetBio into 2 cols, extract numeric variable,
 # Remove 1694 CRC controls
 
@@ -83,8 +64,7 @@ ctrl.m <- ctrl %>% filter(Sex == 1)
 ctrl.f <- ctrl %>% filter(Sex == 2)
 
 print(paste(nrow(ctrl), "fasted controls read"))
-# 1799 fasted subjects left
-# 1741 after removal of Greece
+# 1799 fasted subjects left, 1741 after removal of Greece
 
 # Get common compounds between CC and controls and get subset of compounds for each signature
 select.ctrl.cmpds <- function(datalist, cor.data = F){
@@ -126,24 +106,19 @@ ctrlBf <- select.ctrl.cmpds(list(ctrl.f, crc2.fe))
 common.all <- intersect(colnames(ctrlA), colnames(ctrlB))
 ctrls0 <- select(ctrls, one_of(common.all))
 
-# Fatty acids-------------
+# Fatty acids CRC dataset (from Elom)---------------
 
 # Gets common compounds between CC and EPIC controls and puts them in the same order.
 
 # Get CRC dataset from Elom and join WCRF scores. Convert categorical co-variates to factors
-#var.list <- c("L_School", "Smoke_Stat")
 crc1fa <- read_dta("Database_Fatty acids.dta") %>% 
-  #left_join(wcrf, by = "Idepic") %>% 
-  left_join(meta, by = "Idepic", suffix = c("_1", "")) %>% 
-  #mutate_at(vars(var.list), as.factor) %>%
-  filter(Country != 6)
+  left_join(meta, by = "Idepic", suffix = c("_1", "")) %>% filter(Country != 6)
 
 crc1faf <- crc1fa %>% filter(Sex == 2)
 
 # Get dataset for PLS modelling (all EPIC controls). Exclude compounds with many missings
 # Note: new version from Carine received 18/11/2018 with technical covariates
-fa.ctrl <- readRDS("FA_WCRF_scores1.rds") %>% filter(STUDY != "Colorectum") %>%
-  filter(Country != 6)
+fa.ctrl <- readRDS("FA_WCRF_scores1.rds") %>% filter(STUDY != "Colorectum") %>% filter(Country != 6)
 fa.ctrl$N_Serie <- as.numeric(fa.ctrl$N_Serie)
 
 # Get sex of participants
@@ -152,7 +127,7 @@ fa.ctrl <- left_join(fa.ctrl, epic.vars, by = "Idepic")
 fa.ctrl.f <- fa.ctrl %>% filter(Sex == 2)
 # Not used because 118 and 4121 M and F respectively
 
-# categorical variables to factors
+# Convert variables to factors
 var.list <- c("Country", "Center", "STUDY", "LABO")
 fa.ctrl <- fa.ctrl %>% mutate_at(vars(var.list), as.factor)
 
@@ -165,11 +140,6 @@ concs.f <- fa.ctrl.f %>% select(P14_0 : PCLA_9t_11c, -P24_0, -P20_0)
 
 # Subset only controls from FAs and CRC A
 CRCfa.ctrl <- crc1fa %>% filter(Cncr_Caco_Clrt == 0) %>% select(Idepic, P14_0 : PCLA_9t_11c) 
-
-# Remove unneeded data from workspace
-#rm(wcrf)
-#rm(meta)
-#rm(crc)
 
 # Number of control profiles for biocrates and fatty acids
 nrow(ctrl)
