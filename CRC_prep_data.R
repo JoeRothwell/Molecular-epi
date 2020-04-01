@@ -4,18 +4,31 @@
 library(tidyverse)
 library(haven)
 
-# Small case-control subset----------
-# Use glutamate to correctly subset biocrates data. Update 3/3/2020: remove Greece
-crc1 <- read_sas("clrt_caco_metabo.sas7bdat") %>% filter(!is.na(Aminoacid_Glu))
+# Metadata setup ----------
 
 # Read metadata for whole CRC case-control 
 # Remove duplicated Idepics (with dplyr or base). Also get follow up time and colorectal site
-var.list <- c("Country", "Center", "Sex", "Match_Caseset", "Smoke_Stat", "L_School", "Smoke_Intensity")
+var.list <- c("Country", "Center", "Sex", "Match_Caseset", "Smoke_Stat", "L_School", 
+              "Smoke_Intensity", "Fasting_C", "Menopause", "Phase_Mnscycle")
 meta <- read_dta("clrt_caco.dta") %>% 
-  mutate(Tfollowup.days = D_Dgclrt - D_Bld_Coll, Tfollowup = Tfollowup.days/365.25, location = case_when(
+  # set D_Dgclrt of controls to that of corresponding cases
+  group_by(Match_Caseset) %>%
+  mutate(D_Dgclrt1 = max(D_Dgclrt, na.rm = T)) %>%
+  ungroup() %>%
+  # Calculate followup time and get cancer site variables
+  mutate(Tfollowup.days = D_Dgclrt1 - D_Bld_Coll, Tfollowup = Tfollowup.days/365.25, location = case_when(
     Case_Mal_Colon_Prox == 1 ~ 1, Case_Mal_Colon_Dist == 1 ~ 2,
     Case_Mal_Colon_Nos  == 1 ~ 4, Case_Mal_Rectum     == 1 ~ 3)) %>% mutate_at(vars(var.list), as.factor) %>% 
   distinct(Idepic, .keep_all = T)
+
+# Combine smoking intensity factor levels
+meta$Smoke_Int <- fct_collapse(meta$Smoke_Intensity, 
+  Other = c("8", "9", "10"))
+
+
+# Small case-control subset----------
+# Use glutamate to correctly subset biocrates data. Update 3/3/2020: remove Greece
+crc1 <- read_sas("clrt_caco_metabo.sas7bdat") %>% filter(!is.na(Aminoacid_Glu))
 
 # Join metadata to Biocrates, remove Greece
 crc1 <- crc1 %>% inner_join(meta, by = "Idepic", suffix = c("_1", "")) %>% filter(Country != 6)
@@ -27,6 +40,8 @@ colon1 <- crc1 %>% group_by(Match_Caseset) %>%
 # Subset male or female
 crc1.ma <- crc1 %>% filter(Sex == 1)
 crc1.fe <- crc1 %>% filter(Sex == 2)
+
+
 
 # Large case-control subset (from Jelena)------------
 

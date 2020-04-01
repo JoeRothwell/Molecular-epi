@@ -49,7 +49,7 @@ pred.FAf <- predict.scores(crc1faf, concs.f, modFAf, bioc = F)
 nrow(pred.crc1); nrow(pred.crc2); nrow(pred.fa); nrow(pred.colon1); nrow(pred.colon2); nrow(pred.rectal)
 
 # Join small and large together for pooled questionnaire model
-common.vars <- c("Cncr_Caco_Clrt", "Qe_Energy", "L_School", "Smoke_Intensity", "Match_Caseset", 
+common.vars <- c("Cncr_Caco_Clrt", "Qe_Energy", "L_School", "Smoke_Int", "Match_Caseset", 
                  "Wcrf_C_Cal", "Height_C")
 pred.crc1.vars <- select(pred.crc1, all_of(common.vars))
 pred.crc2.vars <- select(pred.crc2, all_of(common.vars))
@@ -67,7 +67,7 @@ load("predicted_score_tables.Rdata")
 
 library(survival)
 # Note: Smoke intensity has too many levels for the by sex analysis
-base <- Cncr_Caco_Clrt ~ Qe_Energy + L_School + Smoke_Stat + #Smoke_Intensity + 
+base <- Cncr_Caco_Clrt ~ Qe_Energy + L_School + Smoke_Int + #Smoke_Stat + #Smoke_Intensity + 
   Height_C + strata(Match_Caseset)
 
 # Biocrates small, large, fatty acids (large fasted subset did not improve OR)
@@ -124,37 +124,38 @@ fit12 <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.rectal)
 fit0 <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.all)
 fit0col <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.colon.all)
 
+ll <- list(fit1, fit2, fit3, fit4, fit5, fit6, fit7, fit8, fit9, fit10, fit11, fit12, fit0, fit0col)
+ord <- c(6,5,2,1,4,3,13,8,7,10,9,14,12,11)
+
 # Table for manuscript
 library(broom)
-t1 <- map_df(list(fit1, fit2, fit3, fit4, fit5, fit6, fit7, fit8, fit9, fit10, fit11, fit12, fit0, fit0col), tidy) %>% 
+t1 <- map_df(ll[ord], tidy) %>% 
   filter(str_detect(term, "score.|Wcrf")) %>% select(-(std.error : p.value)) %>%
   #mutate_at(.vars = c("estimate", "conf.low", "conf.high"), exp)
   mutate_at(c("estimate", "conf.low", "conf.high"), ~ round(exp(.), 2))
 
-t1$model <- c("Colorectal A bioc sig", "Colorectal A bioc score", "Colorectal B bioc sig", 
-              "Colorectal B bioc score", "Colorectal A FA sig", "Colorectal A FA score",
-              "Colon A sig", "Colon A score", "Colon B sig", "Colon B score", "Rectal sig",
-              "Rectal B score", "Colorectal all bioc score", "Colon all bioc score")
+models <- c("Colorectal A bioc,sig", "Colorectal A bioc,score", "Colorectal B bioc,sig", 
+              "Colorectal B bioc,score", "Colorectal A FA,sig", "Colorectal A FA,score",
+              "Colon A,sig", "Colon A,score", "Colon B,sig", "Colon B,score", "Rectal,sig",
+              "Rectal B,score", "Colorectal all bioc,score", "Colon all bioc,score")
+
+t1$model <- models[ord]
+
+t1 %>% separate(model, into = c("Site", "Predictor"), sep = ",")
 
 # Tables of ORs for scores and signatures
 score <- t1 %>% filter(term == "Wcrf_C_Cal")
 sig   <- t1 %>% filter(term != "Wcrf_C_Cal")
 
-# Meta analysis of Biocrates studies
-library(broom)
-library(tidyverse)
+# Meta analysis of Biocrates studies for CRC and colon
+library(metafor)
 
-ll2 <- list(fit1m, fit1f, fit3m, fit3f, fit5m, fit5f)
-t2 <- map_df(ll2, tidy) %>% filter(str_detect(term, "score."))
+t2 <- list(fit1, fit3, fit7, fit9) %>% map_df(tidy) %>% filter(str_detect(term, "score."))
+ma.crc <- rma(estimate, sei = std.error, data=t2, method="FE", subset = 1:2)
+ma.colon <- rma(estimate, sei = std.error, data=t2, method="FE", subset = 3:4)
 
-# Perform meta-analysis for Biocrates, CRC and colon
-ma1 <- rma(estimate, sei = std.error, data=t2, method="FE", subset = 1:2)
-ma1$QEp # p-value for heterogeneity
-ma1$I2 # I2
-
-ma2 <- rma(estimate, sei = std.error, data=t2, method="FE", subset = 3:4)
-ma2$QEp
-ma2$I2
+# p-value for heterogeneity and I squared (percentage)
+ma.crc$QEp; ma.crc$I2; ma.colon$QEp; ma.colon$I2
 
 # Forest plot (removed from manuscript)
 # Signature only for Biocrates small and large (all subjects in study) and fatty acids small
@@ -166,24 +167,28 @@ par(mar=c(5,4,1,2))
 library(metafor)
 forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1, 
        rows = c(2,3,6,7),
-       xlab = "Odds ratio per category increase in score", #pch = 18, 
+       xlab = "Odds ratio per category increase in score", pch = 15, 
        transf = exp, #psize = 1.5, 
-       slab = studies$CC, ilab = studies[, 2], 
+       slab = studies$CC, ilab = studies[, 2], header = T,
        ylim = c(0, 10), ilab.pos = 4, ilab.xpos = c(0.1))
-par("usr")
 
-addpoly(ma1, row = 1, transf = exp, mlab = "", efac = 2)
-addpoly(ma2, row = 5, transf = exp, mlab = "", efac = 2)
-text(-1.2, 3.5, "Fixed effects meta-analysis of A and B", pos = 4, cex = 0.9)
+addpoly(ma.crc, row = 1, transf = exp, mlab = "", efac = 3)
+addpoly(ma.colon, row = 5, transf = exp, mlab = "", efac = 3)
+text(-0.5, 1, "Fixed effects meta-analysis of A and B", pos = 4, cex = 0.9)
 text(-1.2, 2.5, bquote(paste(I^2," = 0, ",italic(p),"-heterogeneity = 0.32")), pos = 4, cex = 0.9)
 #text(c(-1.2, -0.7, -0.3), 8, c("Case-control", "n", "Metabolite signature"), pos = 4)
-#text(1.8, 8, "OR [95% CI]", pos = 2)
 #text(-1.2, 3, bquote(paste("Fixed effects meta-analysis of A and B\n(p-heterogeneity = 0.32,",I^2," = 0)")), pos = 4, cex = 0.9)
 
 
-# Test for heterogeneity by sex for signature 
-ll2 <- list(fit1, fit3, fit7, fit9)
-t2 <- map_df(ll2, tidy) %>% filter(str_detect(term, "score."))
+# Subgroup analysis by sex
+ll2 <- list(fit1m, fit1f, fit2m, fit2f, fit3m, fit3f, fit4m, fit4f, fit5m, fit5f, fit6m, fit6f)
+t2 <- map_df(ll2, tidy) %>% filter(str_detect(term, "score.|Wcrf")) %>% 
+  select(-(std.error : p.value)) %>%
+  mutate_at(c("estimate", "conf.low", "conf.high"), ~ round(exp(.), 2))
+
+t2$models2 <- c("CRC A male, sig", "CRC A female, sig", "CRC A male, score", "CRC A female, score", 
+             "CRC B male, sig", "CRC B female, sig", "CRC B male, score", "CRC B female, score", 
+             "CRC FA male, sig", "CRC FA female, sig", "CRC FA male, score", "CRC FA female, score")
 
 # All models ----
 
