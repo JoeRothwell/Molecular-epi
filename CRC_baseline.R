@@ -4,12 +4,12 @@ source("CRC_prep_data.R")
 
 # Generate time to diagnosis and tumour site variables for both studies
 crc1a <- crc1 %>% group_by(Match_Caseset) %>% filter(n() == 2) %>%
-  select(Sex, location, Age_Blood, Tfollowup, Height_C, Weight_C, Bmi_C, Qe_Energy, 
+  select(Sex, location, Age_Blood, Tfollowup, Height_C, Bmi_C, Waist_C, Qe_Energy, 
          Country, Pa_Mets, Smoke_Stat, Qe_Alc, Wcrf_C_Cal, Cncr_Caco_Clrt) %>% 
   mutate(Study = "CRC1")
 
 crc2a <- crc2 %>%
-  select(Match_Caseset, Sex, location, Age_Blood, Tfollowup, Height_C, Weight_C, Bmi_C, Qe_Energy, 
+  select(Match_Caseset, Sex, location, Age_Blood, Tfollowup, Height_C, Bmi_C, Waist_C, Qe_Energy, 
          Country, Pa_Mets, Smoke_Stat, Qe_Alc, Wcrf_C_Cal, Cncr_Caco_Clrt) %>% 
   mutate(Study = "CRC2")
 
@@ -39,10 +39,10 @@ crc_sum <-
          list("Mean"     =  ~ mean_sd(Tfollowup)),
        "Height (cm)" =
          list("Mean (SD)" = ~ mean_sd(Height_C)),
-       #"Weight (kg)" =
-       #  list("Mean (SD)" = ~ mean_sd(Weight_C)),
        "BMI (kg/m2)" =
          list("Mean (SD)" = ~ mean_sd(Bmi_C)),
+       "Waist circumference (cm)" =
+         list("Mean (SD)" = ~ mean_sd(Waist_C)),
        "Total energy intake (kCal)" =
          list("Mean (SD)" = ~ mean_sd(Qe_Energy, na_rm = T, show_n = "never")),
        "Country" = 
@@ -81,9 +81,9 @@ df1 <- crc1a %>% arrange(Cncr_Caco_Clrt, Match_Caseset)
 
 # Case/control models: CRC A
 t.test(df1$Height_C ~ df1$Cncr_Caco_Clrt, paired = T)$p.value
-#t.test(df1$Weight_C ~ df1$Cncr_Caco_Clrt, paired = T)$p.value
 t.test(df1$Age_Blood ~ df1$Cncr_Caco_Clrt, paired = T)$p.value
 t.test(df1$Bmi_C ~ df1$Cncr_Caco_Clrt, paired = T)$p.value
+t.test(df1$Waist_C ~ df1$Cncr_Caco_Clrt, paired = T)$p.value
 chisq.test(df1$Cncr_Caco_Clrt, df1$Smoke_Stat)$p.value
 
 
@@ -105,9 +105,9 @@ df2 <- crc2a %>% arrange(Cncr_Caco_Clrt, Match_Caseset)
 
 # Case/control models: CRC B
 t.test(df2$Height_C ~ df2$Cncr_Caco_Clrt, paired = T)$p.value
-#t.test(df2$Weight_C ~ df2$Cncr_Caco_Clrt, paired = T)$p.value
 t.test(df2$Age_Blood ~ df2$Cncr_Caco_Clrt, paired = T)$p.value
 t.test(df2$Bmi_C ~ df2$Cncr_Caco_Clrt, paired = T)$p.value
+t.test(df2$Waist_C ~ df2$Cncr_Caco_Clrt, paired = T)$p.value
 chisq.test(df2$Cncr_Caco_Clrt, df2$Smoke_Stat)$p.value
 
 # Contain NAs
