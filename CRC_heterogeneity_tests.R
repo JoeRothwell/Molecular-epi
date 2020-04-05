@@ -1,7 +1,7 @@
 # Remove unneeded variables from workspace
 rm(list = ls()[!str_detect(ls(), "pred.")])
 rm(list = ls()[str_detect(ls(), "vars")])
-save.image("predicted_score_tables.Rdata")
+#save.image("predicted_score_tables.Rdata")
 
 # Run CRC_signature_models
 
@@ -26,7 +26,7 @@ library(lmtest)
 s2 <- map_df(list(fit1h, fit1i), ~ tidy(., conf.int = T)) %>% filter(str_detect(term, "score."))
 forest(s2$estimate, ci.lb = s2$conf.low, ci.ub = s2$conf.high, refline = 1, transf = exp) 
 lrtest(fit1h, fit1i)
-# pHET = 0.02
+# pHET = 0.19
 
 fit2h <- glm(update(base, ~. + Wcrf_C_Cal + Sex), data = pred.crc1, family = "binomial")
 fit2i <- glm(update(base, ~. + Wcrf_C_Cal * Sex), data = pred.crc1, family = "binomial")
@@ -34,7 +34,7 @@ fit2i <- glm(update(base, ~. + Wcrf_C_Cal * Sex), data = pred.crc1, family = "bi
 s2 <- map_df(list(fit2h, fit2i), ~ tidy(., conf.int = T)) %>% filter(str_detect(term, "Wcrf_"))
 forest(s2$estimate, ci.lb = s2$conf.low, ci.ub = s2$conf.high, refline = 1, transf = exp) 
 lrtest(fit2h, fit2i)
-# p = 0.60
+# p = 0.68
 
 
 
@@ -45,7 +45,7 @@ fit3i <- glm(update(base, ~. + score.1.comps * Sex), data = pred.crc2, family = 
 s2 <- map_df(list(fit3h, fit3i), ~ tidy(., conf.int = T)) %>% filter(str_detect(term, "score."))
 forest(s2$estimate, ci.lb = s2$conf.low, ci.ub = s2$conf.high, refline = 1, transf = exp) 
 lrtest(fit3h, fit3i)
-# p = 0.01
+# p = 0.17
 
 fit4h <- glm(update(base, ~. + Wcrf_C_Cal + Sex), data = pred.crc2, family = "binomial")
 fit4i <- glm(update(base, ~. + Wcrf_C_Cal * Sex), data = pred.crc2, family = "binomial")
@@ -53,7 +53,7 @@ fit4i <- glm(update(base, ~. + Wcrf_C_Cal * Sex), data = pred.crc2, family = "bi
 s2 <- map_df(list(fit4h, fit4i), ~ tidy(., conf.int = T)) %>% filter(str_detect(term, "Wcrf_"))
 forest(s2$estimate, ci.lb = s2$conf.low, ci.ub = s2$conf.high, refline = 1, transf = exp) 
 lrtest(fit4h, fit4i)
-# p = 0.005
+# p = 0.008
 
 
 # CRC A fatty acids: score and signature
@@ -63,7 +63,7 @@ fit5i <- glm(update(base, ~. + score.1.comps * Sex), data = pred.fa, family = "b
 s2 <- map_df(list(fit5h, fit5i), ~ tidy(., conf.int = T)) %>% filter(str_detect(term, "score."))
 forest(s2$estimate, ci.lb = s2$conf.low, ci.ub = s2$conf.high, refline = 1, transf = exp) 
 lrtest(fit5h, fit5i)
-# pHET = 0.26
+# pHET = 0.25
 
 fit6h <- glm(update(base, ~. + Wcrf_C_Cal + Sex), data = pred.fa, family = "binomial")
 fit6i <- glm(update(base, ~. + Wcrf_C_Cal * Sex), data = pred.fa, family = "binomial")
@@ -71,5 +71,5 @@ fit6i <- glm(update(base, ~. + Wcrf_C_Cal * Sex), data = pred.fa, family = "bino
 s2 <- map_df(list(fit6h, fit6i), ~ tidy(., conf.int = T)) %>% filter(str_detect(term, "Wcrf_"))
 forest(s2$estimate, ci.lb = s2$conf.low, ci.ub = s2$conf.high, refline = 1, transf = exp) 
 lrtest(fit6h, fit6i)
-# p = 0.52
+# p = 0.38
 
