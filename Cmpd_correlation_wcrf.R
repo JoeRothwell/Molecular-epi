@@ -4,7 +4,7 @@ source("CRC_get_signatures.R")
 
 # Whole case-control 1
 # Get compounds and idepics from CRC1 and join together by Idepic (controls only)
-FAs.ID <- CRCfa1 %>% select(Idepic, one_of(common.cols))
+FAs.ID <- crc1fa %>% select(Idepic, one_of(common.cols))
 Bioc.ID <- select.ctrl.cmpds(list(ctrl, crc1), cor.data = T) %>% distinct() # remove dupes
 dat <- inner_join(FAs.ID, Bioc.ID, by = "Idepic") %>% select(-Idepic) 
 
@@ -90,7 +90,7 @@ Heatmap(mat, col = colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))(100)
         #cluster_columns = T,
         #row_split = annotation_df$class,
         row_title = NULL,
-        #row_names_side = "right", show_row_names = T,
+        row_names_side = "right", show_row_names = T,
         row_names_gp = gpar(fontsize = 10),
         column_names_gp = gpar(fontsize = 10),
         left_annotation = row_ha,
