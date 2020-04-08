@@ -102,7 +102,7 @@ Heatmap(mat, col = colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))(100)
 
 # Correlation matrix (large) (supplemental data)
 library(corrplot)
-corrplot(cormat, tl.col = "black", tl.cex = 0.5, order = "hclust", method = "square")
+corrplot(cormat, tl.col = "black", tl.cex = 0.3, order = "hclust", method = "color")
 
 # Not in manuscript
 
