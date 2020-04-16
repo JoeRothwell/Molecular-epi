@@ -187,57 +187,34 @@ print(st, cnames = c("Controls (N=786)", "Cases (N=786)"))
 # ---------------------------------------------------------------
 
 # Models for p-values for table
-# Replace t-test and chi-sq with McNemar and Wilcoxon signed rank?
+# Chi-sq and wilcox test
+chisq.test(meta$CT, meta$RTHCat1)$p.value
+chisq.test(meta$CT, meta$BMICat1)$p.value
+chisq.test(meta$CT, meta$SMK)$p.value
+chisq.test(meta$CT, meta$DIABETE)$p.value
+chisq.test(meta$CT, meta$BP)$p.value
+chisq.test(meta$CT, meta$Life_Alcohol_Pattern_1)$p.value
+chisq.test(meta$CT, meta$Trait_Horm)$p.value
+wilcox.test(meta$ALCOHOL ~ meta$CT, paired = T)$p.value
+wilcox.test(meta$DURTHSBMB ~ meta$CT, paired = T)$p.value
+wilcox.test(meta$STOCKTIME ~ meta$CT, paired = T)$p.value
 
-# Case/control models
-ll <- list(
-  chisq.test(meta$CT, meta$RTHCat1),
-  chisq.test(meta$CT, meta$BMICat1),
-  chisq.test(meta$CT, meta$SMK),
-  chisq.test(meta$CT, meta$DIABETE),
-  chisq.test(meta$CT, meta$BP),
-  chisq.test(meta$CT, meta$Life_Alcohol_Pattern_1),
-  chisq.test(meta$CT, meta$Trait_Horm)
-)
-
-ll <- list(
-  mcnemar.test(meta$CT, meta$RTHCat1),
-  mcnemar.test(meta$CT, meta$BMICat1),
-  mcnemar.test(meta$CT, meta$SMK),
-  mcnemar.test(meta$CT, meta$DIABETE),
-  mcnemar.test(meta$CT, meta$BP),
-  mcnemar.test(meta$CT, meta$Life_Alcohol_Pattern_1),
-  mcnemar.test(meta$CT, meta$Trait_Horm)
-)
-
-
-
-
-#t.test(meta$DURTHSDIAG ~ meta$CT)$p.value
-test1 <- wilcox.test(meta$DURTHSDIAG ~ meta$CT)
+# McNemar test for binaries?
+mcnemar.test(meta$CT, meta$SMK)
+mcnemar.test(meta$CT, meta$DIABETE)
+mcnemar.test(meta$CT, meta$Trait_Horm)
 
 
 # Pre/post menopausal models
-l  <- list(
-  chisq.test(meta$MENOPAUSE, meta$DIAGSAMPLINGCat1),
-  chisq.test(meta$MENOPAUSE, meta$BEHAVIOUR),
-  fisher.test(meta$MENOPAUSE, meta$SUBTYPE),
-  chisq.test(meta$MENOPAUSE, meta$ER),
-  chisq.test(meta$MENOPAUSE, meta$PR),
-  chisq.test(meta$MENOPAUSE, meta$GRADE),
-  fisher.test(meta$MENOPAUSE, meta$STADE)
-)
+chisq.test(meta$MENOPAUSE, meta$DIAGSAMPLINGCat1)$p.value
+chisq.test(meta$MENOPAUSE, meta$BEHAVIOUR)$p.value
+fisher.test(meta$MENOPAUSE, meta$SUBTYPE)$p.value
+chisq.test(meta$MENOPAUSE, meta$ER)$p.value
+chisq.test(meta$MENOPAUSE, meta$PR)$p.value
+chisq.test(meta$MENOPAUSE, meta$GRADE)$p.value
+fisher.test(meta$MENOPAUSE, meta$STADE)$p.value
 
 
-t.test(meta$DURTHSDIAG ~ meta$CT)$names
-
-# Extract data from models
-library(purrr)
-library(broom)
-map_df(ll, tidy)
-map_df(l, tidy)
-
-# Alcohol intake
 
 
 
