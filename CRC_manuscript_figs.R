@@ -13,7 +13,8 @@ p1 <-
   ggplot(pltdata1, aes(x = Coefficient, y = corr, shape = str_wrap(class, 20))) + 
   geom_point() + theme_bw() +
   theme(panel.grid.major = element_blank(), legend.title = element_blank(),
-        legend.position = c(0.85, 0.25)) +
+        legend.position = c(0.85, 0.25),
+        legend.key.size = unit(0, "lines")) +
   scale_shape_manual(values = c(15, 1, 19, 25, 22, 14, 3, 4)) +
   xlab("Coefficient 1st PLSR latent variable") + 
   ylab("Correlation WCRF score - metabolite") +
@@ -28,7 +29,8 @@ faplot1 <- faplot %>% mutate(compound1 = ifelse(abs(Coefficient) > 0.045, compou
 p2 <- ggplot(faplot1, aes(x = Coefficient, y = corr1, shape = class)) + geom_point() + 
   theme_bw() + xlim(-0.19, 0.19) + ylim(-0.22, 0.22) +
   theme(panel.grid.major = element_blank(), legend.title = element_blank(),
-        legend.position = c(0.85, 0.2)) +
+        legend.position = c(0.85, 0.2),
+        legend.key.size = unit(0, "lines")) +
   scale_shape_manual(values = c(6, 16, 1, 4, 3)) +
   xlab("Coefficient 1st PLSR latent variable") + 
   ylab("Correlation WCRF score - metabolite") +
@@ -40,7 +42,7 @@ p2 <- ggplot(faplot1, aes(x = Coefficient, y = corr1, shape = class)) + geom_poi
 # Generate aligned plots
 library(cowplot)
 plot_grid(p1, p2, nrow = 2, labels = c("A", "B"), label_size = 12) %>%
-  save_plot("s_plots.png")
+  save_plot("s_plots.pdf")
 
 
 

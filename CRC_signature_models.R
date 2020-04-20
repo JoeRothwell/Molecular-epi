@@ -49,7 +49,10 @@ pred.FAf <- predict.scores(crc1faf, concs.f, modFAf, bioc = F)
 nrow(pred.crc1); nrow(pred.crc2); nrow(pred.fa); nrow(pred.colon1); nrow(pred.colon2); nrow(pred.rectal)
 
 # Join small and large together for pooled questionnaire model
-common.vars <- c("Cncr_Caco_Clrt", "Qe_Energy", "L_School", "Smoke_Int", "Match_Caseset", 
+common.vars <- c("Cncr_Caco_Clrt", "Qe_Energy", 
+                 "L_School", 
+                 "Smoke_Int", 
+                 "Match_Caseset", 
                  "Wcrf_C_Cal", "Height_C")
 pred.crc1.vars <- select(pred.crc1, all_of(common.vars))
 pred.crc2.vars <- select(pred.crc2, all_of(common.vars))
@@ -63,7 +66,8 @@ pred.rectal.vars   <- select(pred.rectal, all_of(common.vars))
 # Model CC status from calculated or signature-predicted score for four datasets
 
 # Load predicted score tables for CRC
-load("predicted_score_tables.Rdata")
+#load("predicted_score_tables.Rdata")
+load("predicted_score_tables1.Rdata")
 
 library(survival)
 # Note: Smoke intensity has too many levels for the by sex analysis
@@ -75,38 +79,38 @@ base <- Cncr_Caco_Clrt ~ Qe_Energy + L_School + Smoke_Int + #Smoke_Stat + #Smoke
 fit1 <- clogit(update(base, ~. + score.1.comps), data = pred.crc1)
 fit2 <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.crc1)
 # By sex
-fit1m <- clogit(update(base, ~. + score.1.comps), data = pred.crc1, subset = Sex == 1)
-fit1f <- clogit(update(base, ~. + score.1.comps), data = pred.crc1, subset = Sex == 2)
-fit2m <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.crc1, subset = Sex == 1)
-fit2f <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.crc1, subset = Sex == 2)
+fit1f <- clogit(update(base, ~. + score.1.comps), data = pred.crc1, subset = Sex == 1)
+fit1m <- clogit(update(base, ~. + score.1.comps), data = pred.crc1, subset = Sex == 2)
+fit2f <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.crc1, subset = Sex == 1)
+fit2m <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.crc1, subset = Sex == 2)
 # By sex, sex-specific signatures
-fit1ms <- clogit(update(base, ~. + score.1.comps), data = pred.crc1.m)
-fit1fs <- clogit(update(base, ~. + score.1.comps), data = pred.crc1.f)
+#fit1ms <- clogit(update(base, ~. + score.1.comps), data = pred.crc1.m)
+#fit1fs <- clogit(update(base, ~. + score.1.comps), data = pred.crc1.f)
 
 
 # CRC B Score, signature and by sex
 fit3 <- clogit(update(base, ~. + score.1.comps), data = pred.crc2)
 fit4 <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.crc2)
 # By sex
-fit3m <- clogit(update(base, ~. + score.1.comps), data = pred.crc2, subset = Sex == 1)
-fit3f <- clogit(update(base, ~. + score.1.comps), data = pred.crc2, subset = Sex == 2)
-fit4m <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.crc2, subset = Sex == 1)
-fit4f <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.crc2, subset = Sex == 2)
+fit3f <- clogit(update(base, ~. + score.1.comps), data = pred.crc2, subset = Sex == 1)
+fit3m <- clogit(update(base, ~. + score.1.comps), data = pred.crc2, subset = Sex == 2)
+fit4f <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.crc2, subset = Sex == 1)
+fit4m <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.crc2, subset = Sex == 2)
 # By sex, sex-specific signatures
-fit3ms <- clogit(update(base, ~. + score.1.comps), data = pred.crc2.m)
-fit3fs <- clogit(update(base, ~. + score.1.comps), data = pred.crc2.f)
+#fit3ms <- clogit(update(base, ~. + score.1.comps), data = pred.crc2.m)
+#fit3fs <- clogit(update(base, ~. + score.1.comps), data = pred.crc2.f)
 
 
 # CRC A Fatty acids score, signature and by sex
 fit5 <- clogit(update(base, ~. + score.2.comps), data = pred.fa)
 fit6 <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.fa)
 # By sex
-fit5m <- clogit(update(base, ~. + score.2.comps), data = pred.fa, subset = Sex == 1)
-fit5f <- clogit(update(base, ~. + score.2.comps), data = pred.fa, subset = Sex == 2)
-fit6m <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.fa, subset = Sex == 1)
-fit6f <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.fa, subset = Sex == 2)
+fit5f <- clogit(update(base, ~. + score.2.comps), data = pred.fa, subset = Sex == 1)
+fit5m <- clogit(update(base, ~. + score.2.comps), data = pred.fa, subset = Sex == 2)
+fit6f <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.fa, subset = Sex == 1)
+fit6m <- clogit(update(base, ~. + Wcrf_C_Cal), data = pred.fa, subset = Sex == 2)
 # By sex, sex-specific signature (female only)
-fit5fs <- clogit(update(base, ~. + score.2.comps), data = pred.FAf)
+#fit5fs <- clogit(update(base, ~. + score.2.comps), data = pred.FAf)
 
 
 # By subsite

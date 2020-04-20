@@ -7,8 +7,11 @@ library(haven)
 # Metadata setup ----------
 
 # Read metadata for whole CRC case-control 
+# WARNING: do not use case-control status from this dataset. Use metabolomics datasets only.
 # Remove duplicated Idepics (with dplyr or base). Also get follow up time and colorectal site
-var.list <- c("Country", "Center", "Sex", "Match_Caseset", "Smoke_Stat", "L_School", 
+
+var.list <- c("Country", "Center", "Sex", "Match_Caseset", #"Smoke_Int", 
+              "L_School", "Smoke_Stat",
               "Smoke_Intensity", "Fasting_C", "Menopause", "Phase_Mnscycle")
 meta <- read_dta("clrt_caco.dta") %>% 
   # set D_Dgclrt of controls to that of corresponding cases
@@ -18,20 +21,22 @@ meta <- read_dta("clrt_caco.dta") %>%
   # Calculate followup time and get cancer site variables
   mutate(Tfollowup.days = D_Dgclrt1 - D_Bld_Coll, Tfollowup = Tfollowup.days/365.25, location = case_when(
     Case_Mal_Colon_Prox == 1 ~ 1, Case_Mal_Colon_Dist == 1 ~ 2,
-    Case_Mal_Colon_Nos  == 1 ~ 4, Case_Mal_Rectum     == 1 ~ 3)) %>% mutate_at(vars(var.list), as.factor) %>% 
+    Case_Mal_Colon_Nos  == 1 ~ 4, Case_Mal_Rectum     == 1 ~ 3)) %>% #mutate_at(vars(var.list), as.factor) %>%
+  select(-Match_Caseset, -Cncr_Caco_Clrt) %>%
   distinct(Idepic, .keep_all = T)
 
 # Combine smoking intensity factor levels
-meta$Smoke_Int <- fct_collapse(meta$Smoke_Intensity, 
-  Other = c("8", "9", "10"))
+#meta$Smoke_Int <- fct_collapse(meta$Smoke_Intensity, Other = c("8", "9", "10"))
 
 
 # Small case-control subset----------
-# Use glutamate to correctly subset biocrates data. Update 3/3/2020: remove Greece
-crc1 <- read_sas("clrt_caco_metabo.sas7bdat") %>% filter(!is.na(Aminoacid_Glu))
+# Use glutamate to correctly subset biocrates data, join metadata. Update 3/3/2020: remove Greece
 
-# Join metadata to Biocrates, remove Greece
-crc1 <- crc1 %>% inner_join(meta, by = "Idepic", suffix = c("_1", "")) %>% filter(Country != 6)
+crc1 <- read_sas("clrt_caco_metabo.sas7bdat") %>% filter(!is.na(Aminoacid_Glu)) %>%
+        left_join(meta, by = "Idepic", suffix = c("_1", "")) %>%
+        mutate_at(vars(var.list), as.factor) %>% 
+        mutate(Smoke_Int = fct_collapse(Smoke_Intensity, Other = c("8", "9", "10"))) %>% 
+        filter(Country != 6)
 
 # Get colon cancer only (ungroup to stop Match_Caseset from being readded later)
 colon1 <- crc1 %>% group_by(Match_Caseset) %>% 
@@ -47,8 +52,11 @@ crc1.fe <- crc1 %>% filter(Sex == 2)
 
 library(lubridate)
 crc2 <- read_csv("biocrates_p150.csv") %>% 
-  select(ends_with("Idepic"), matches("(carn|oacid|genic|roph|ingo|Sugars)[_]"), -contains("tdq")) %>%
-  inner_join(meta, by = "Idepic") %>% filter(Country != 6)
+  select(Match_Caseset, Cncr_Caco_Clrt, ends_with("Idepic"), matches("(carn|oacid|genic|roph|ingo|Sugars)[_]"), -contains("tdq")) %>%
+  inner_join(meta, by = "Idepic") %>% mutate_at(vars(var.list), as.factor) %>% 
+  mutate(Smoke_Int = fct_collapse(Smoke_Intensity, Other = c("8", "9", "10"))) %>%
+  filter(Country != 6)
+
 
 # Get colon cancer or rectal cancer only
 colon2 <- crc2 %>% group_by(Match_Caseset) %>% 
@@ -127,7 +135,10 @@ ctrls0 <- select(ctrls, one_of(common.all))
 
 # Get CRC dataset from Elom and join WCRF scores. Convert categorical co-variates to factors
 crc1fa <- read_dta("Database_Fatty acids.dta") %>% 
-  left_join(meta, by = "Idepic", suffix = c("_1", "")) %>% filter(Country != 6)
+  left_join(meta, by = "Idepic", suffix = c("", "_1")) %>%
+  mutate_at(vars(var.list), as.factor) %>%
+  mutate(Smoke_Int = fct_collapse(Smoke_Intensity, Other = c("8", "9", "10"))) %>%
+  filter(Country != 6)
 
 crc1faf <- crc1fa %>% filter(Sex == 2)
 

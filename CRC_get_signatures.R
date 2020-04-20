@@ -48,11 +48,11 @@ FAdata <- get.plsdata(crc1fa, fa.ctrl, bioc = F) # Fatty acids
 #Bioc3  <- get.plsdata(ctrls0) # Overlap control/A/B (not needed)
 
 # PLS data for sex-specific signatures (not done for FAs because too few males)
-Bioc1m <- get.plsdata(ctrlAm, ctrl.m, bioc = T, subgroup = T)
-Bioc1f <- get.plsdata(ctrlAf, ctrl.f, bioc = T, subgroup = T)
-Bioc2m <- get.plsdata(ctrlBm, ctrl.m, bioc = T, subgroup = T)
-Bioc2f <- get.plsdata(ctrlBf, ctrl.f, bioc = T, subgroup = T)
-FAdatf <- get.plsdata(crc1faf, fa.ctrl.f, bioc = F)
+#Bioc1m <- get.plsdata(ctrlAm, ctrl.m, bioc = T, subgroup = T)
+#Bioc1f <- get.plsdata(ctrlAf, ctrl.f, bioc = T, subgroup = T)
+#Bioc2m <- get.plsdata(ctrlBm, ctrl.m, bioc = T, subgroup = T)
+#Bioc2f <- get.plsdata(ctrlBf, ctrl.f, bioc = T, subgroup = T)
+#FAdatf <- get.plsdata(crc1faf, fa.ctrl.f, bioc = F)
 
 # Function to get optimal dimensions for each model (pls or caret)
 
@@ -86,8 +86,8 @@ get.signature <- function(plsdata, which.mod = "plsmod"){
   
 }
 
-lapply(list(Bioc1, Bioc2, FAdata, Bioc0), get.signature)
-lapply(list(Bioc1m, Bioc1f, Bioc2m, Bioc2f), get.signature)
+#lapply(list(Bioc1, Bioc2, FAdata, Bioc0), get.signature)
+#lapply(list(Bioc1m, Bioc1f, Bioc2m, Bioc2f), get.signature)
 
 # Fit final PLS models with optimal dimensions to get signatures (see PLS vignette p12)
 set.seed(111)
