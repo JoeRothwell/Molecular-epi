@@ -5,9 +5,11 @@ library(tidyverse)
 library(readxl)
 library(survival)
 
-# First get metadata. Subset variables needed
+# First get metadata. Add follow up time and subset variables needed
 meta <- read_csv("Lifepath_meta.csv", na = "9999") %>%
-  select(CT, BMI, SMK, DIABETE, RTH, DURTHSBMB, CENTTIME, STOCKTIME, MATCH, ALCOHOL, MENOPAUSE) %>%
+  group_by(MATCH) %>% mutate(Tfollowup = max(DIAGSAMPLING, na.rm = T)) %>% ungroup %>%
+  select(CT, BMI, SMK, DIABETE, RTH, DURTHSBMB, CENTTIME, STOCKTIME, MATCH, ALCOHOL, MENOPAUSE,
+         DIAGSAMPLING, Tfollowup) %>%
   mutate_at(vars(SMK, DIABETE), as.factor) %>%
   mutate(DURTHSBMBCat = ifelse(DURTHSBMB > 0, 1, 0))
 
@@ -28,6 +30,7 @@ meta <- meta[log.vec, ]
 # For subsetting
 pre <- meta$MENOPAUSE == 0
 post <- meta$MENOPAUSE == 1 
+pre0 <- meta$MENOPAUSE == 0 & meta$Tfollowup > 2
 
 # Compound data for forest plots
 cmpd.meta <- read.csv("NMR_cmpd_metadata_new.csv")
@@ -59,6 +62,16 @@ ints <- scale(ints0)
 #ints0 <- apply(ints0, 2, rm.neg.values)
 # Check
 #which(apply(as.matrix(ints0), 2, min) < 0)
+
+# Get a subset of the most discriminating compounds
+# Histidine, NAC, glycerol, ornithine, ethanol, pyruvate, albumin, glutamate, glutamine, 3 fatty acids
+ss <- ints[, c(5,14,15,16,17,19,20,27,28,33,41,42)]
+
+# Follow up time
+boxplot2(meta$DIAGSAMPLING ~ meta$MENOPAUSE, varwidth = T, col = "dodgerblue")
+
+
+
 
 
 

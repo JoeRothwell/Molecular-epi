@@ -84,12 +84,11 @@ plot_grid(p1, p3, p2, p4, labels = c('A', 'B', 'C', 'D'), label_size = 12)
 
 
 
-# Pre-menopausal
-meta1e <- meta.e[pre, ]
+# Pre-menopausal, exclude first 2 years of follow up
+meta3 <- meta[pre0, ]
 # Note: need to remove hormone treatment therapy variable DURTHSBMB
-fits1 <- apply(ints[pre, ], 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL +
-                                                    ethanol +
-  CENTTIME + STOCKTIME + strata(MATCH) + x, data = meta1e[pre, ]))
+fits1 <- apply(ints[pre0, ], 2, function(x) clogit(CT ~ BMI + SMK + DIABETE + RTH + ALCOHOL + 
+    CENTTIME + STOCKTIME + strata(MATCH) + x, data = meta3))
 
 t1 <- map_df(fits1, tidy) %>% filter(str_detect(term, "x")) %>% bind_cols(cmpd.meta) %>% 
   arrange(description)
@@ -100,6 +99,6 @@ p2 <- ggplot(t1, aes(exp(estimate), log10(p.value))) + geom_point() + theme_bw()
   xlab("Odds ratio per SD increase concentration") + ylab("P-value") +
   geom_text_repel(aes(label = display_name), size = 3,
                   data = t1[t1$p.value < 0.04, ] ) +
-  geom_hline(yintercept = c(log10(0.05), log10(0.014)), linetype = "dashed") +
+  geom_hline(yintercept = c(log10(0.05), log10(0.014)), linetype = c("dashed", "dotted")) +
   geom_vline(xintercept = 1, linetype = "dashed") +
-  ggtitle("Pre-menopausal")
+  ggtitle("Pre-menopausal, follow-up < 2 y excluded")
