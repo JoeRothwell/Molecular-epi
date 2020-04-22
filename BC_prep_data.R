@@ -9,13 +9,9 @@ library(survival)
 meta <- read_csv("Lifepath_meta.csv", na = "9999") %>%
   group_by(MATCH) %>% mutate(Tfollowup = max(DIAGSAMPLING, na.rm = T)) %>% ungroup %>%
   select(CT, BMI, SMK, DIABETE, RTH, DURTHSBMB, CENTTIME, STOCKTIME, MATCH, ALCOHOL, MENOPAUSE,
-         DIAGSAMPLING, Tfollowup) %>%
+         DIAGSAMPLING, Tfollowup, AGE) %>%
   mutate_at(vars(SMK, DIABETE), as.factor) %>%
-  mutate(DURTHSBMBCat = ifelse(DURTHSBMB > 0, 1, 0))
-
-# For subsetting
-#pre <- meta$MENOPAUSE == 0
-#post <- meta$MENOPAUSE == 1 
+  mutate(DURTHSBMBCat = ifelse(DURTHSBMB > 0, 1, 0), Age1 = ifelse(AGE > 55, 1, 0))
 
 # For removal of problem racks for Ethanol
 #meta1 <- meta %>% filter(!RACK %in% c(10, 29, 33, 34))
@@ -31,6 +27,8 @@ meta <- meta[log.vec, ]
 pre <- meta$MENOPAUSE == 0
 post <- meta$MENOPAUSE == 1 
 pre0 <- meta$MENOPAUSE == 0 & meta$Tfollowup > 2
+agehi <- meta$Age1 == 1
+agelo <- meta$Age1 == 0
 
 # Compound data for forest plots
 cmpd.meta <- read.csv("NMR_cmpd_metadata_new.csv")
@@ -68,7 +66,7 @@ ints <- scale(ints0)
 ss <- ints[, c(5,14,15,16,17,19,20,27,28,33,41,42)]
 
 # Follow up time
-boxplot2(meta$DIAGSAMPLING ~ meta$MENOPAUSE, varwidth = T, col = "dodgerblue")
+#boxplot2(meta$DIAGSAMPLING ~ meta$MENOPAUSE, varwidth = T, col = "dodgerblue")
 
 
 
