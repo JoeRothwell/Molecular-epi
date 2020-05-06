@@ -26,13 +26,15 @@ dim(allcor)
 # Total of 438 + 241 observations for correlation
 # (Did not give very results, perhaps from combining different labs)
 
+
+#----
+
 # Get compound metadata for short names
 meta.bioc <- read_csv("Biocrates_cmpd_metadata.csv") %>% select(Compound, displayname)
 meta.fa   <- read_csv("FA_compound_data.csv") %>% select(Compound, displayname)
 meta <- bind_rows(meta.bioc, meta.fa)
 
 mm <- data.frame(Compound = colnames(dat))
-
 all <- left_join(mm, meta, by = "Compound")
 
 # Calculate correlations
@@ -42,40 +44,44 @@ colnames(cormat) <- all$displayname
 
 # Get table of correlations in descending order
 library(reshape2)
-all.correlations <- melt(cormat) %>% filter(value != 1) %>% arrange(desc(value))
-all.correlations %>% filter(Var1 == "P17_0")
-t1 <- all.correlations %>% filter(Var1 %in% meta.fa$displayname & Var2 %in% meta.bioc$displayname)
+cordf <- melt(cormat) %>% filter(value != 1) %>% arrange(desc(value))
 
-# Get correlations > 0.5 in correct order
-t2 <- melt(cormat) %>% 
-  filter(value > 0.55, Var1 %in% meta.fa$displayname & Var2 %in% meta.bioc$displayname)
+# Keep Biocrates - fatty acids correlations only
+t1 <- cordf %>% filter(Var1 %in% meta.fa$displayname & Var2 %in% meta.bioc$displayname)
+# or
+# Keep Biocrates compounds with max correlation < 0.25 only (remove some low correlations from heatmap)
+t1 <- t1 %>% group_by(Var2) %>% filter(abs(max(value)) > 0.3)
+
+#----
+
+# Get correlations > 0.5 in correct order (for supplemental table)
+t2 <- t1 %>% filter(value > 0.55)
 colnames(t2) <- c("displayname2", "displayname", "value")
 
 # Heatmap Biocrates vs fatty acids only
 mat <- acast(t1, Var2 ~ Var1, value.var = "value")
 
-library(pheatmap)
-#pheatmap(mat, fontsize = 8, color = colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))(100),)
+# Annotated heatmap of correlations
+# https://jokergoo.github.io/ComplexHeatmap-reference/book/a-single-heatmap.html
 
 # Make data for annotations
 cmpd_meta <- read_csv("Biocrates_cmpd_metadata.csv")
 df <- data_frame(displayname = rownames(mat))
-annotation_df <- inner_join(df, cmpd_meta, by = "displayname")
+anno_df <- inner_join(df, cmpd_meta, by = "displayname")
 
-t3 <- inner_join(t2, annotation_df, by = "displayname")
+t3 <- inner_join(t2, anno_df, by = "displayname")
 corr.cmpds <- unique(t3$displayname)
-cmpd.pos <- which(annotation_df$displayname %in% corr.cmpds)
+cmpd.pos <- which(anno_df$displayname %in% corr.cmpds)
 
-# With Complex Heatmap
-# https://jokergoo.github.io/ComplexHeatmap-reference/book/a-single-heatmap.html
 library(ComplexHeatmap)
 library(circlize)
 library(RColorBrewer)
 
-# Make object and legend for class annotations
-row_ha <- rowAnnotation(Class = annotation_df$class, annotation_legend_param = list(
-                        labels = c("Acylcarnitines", "Amino acids", "Biogenic amines", 
-                                   "LysoPC", "Monosacchaaride", "PC (acyl-acyl)", 
+# Make object and legend for class annotations (remove Biogenic amines and monosaccharides if filtering)
+row_ha <- rowAnnotation(Class = anno_df$class, annotation_legend_param = list(
+                        labels = c("Acylcarnitines", #"Amino acids", "Biogenic amines", 
+                                   "LysoPC", #"Monosacchaaride", 
+                                   "PC (acyl-acyl)", 
                                    "PC (acyl-alkyl)", "Sphingolipids")))
 
 # Make object for annotated compounds on right
@@ -86,9 +92,9 @@ ha <- rowAnnotation(foo = anno_mark(at = cmpd.pos, labels = corr.cmpds,
 rownames(mat) <- NULL
 Heatmap(mat, col = colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))(100),
         #column_title = "Fatty acids", row_title = "Endogenous metabolites", 
-        cluster_rows = T,
+        #cluster_rows = T,
         #cluster_columns = T,
-        #row_split = annotation_df$class,
+        #row_split = anno_df$class,
         row_title = NULL,
         row_names_side = "right", show_row_names = T,
         row_names_gp = gpar(fontsize = 10),
@@ -104,7 +110,12 @@ Heatmap(mat, col = colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))(100)
 library(corrplot)
 corrplot(cormat, tl.col = "black", tl.cex = 0.3, order = "hclust", method = "color")
 
+
+
 # Not in manuscript
+
+#library(pheatmap)
+#pheatmap(mat, fontsize = 8, color = colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))(100),)
 
 # Dendrogram. First get order of clustered compounds
 dend <- cormat %>% dist %>% hclust %>% as.dendrogram

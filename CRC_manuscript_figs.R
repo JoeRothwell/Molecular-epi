@@ -6,7 +6,7 @@ library(ggplot2)
 library(ggrepel)
 
 # To change legend order, reorder factor levels
-corr <- cor(Bioc0[, -1], Bioc0[, 1])
+corr <- cor(Bioc0[, -1], Bioc0[, 1], method = "spearman")
 pltdata1 <- pltdata %>% mutate(compound1 = ifelse(abs(Coefficient) > 0.022, compound, NA), corr)
 
 p1 <- 
@@ -16,14 +16,14 @@ p1 <-
         legend.position = c(0.85, 0.25),
         legend.key.size = unit(0, "lines")) +
   scale_shape_manual(values = c(15, 1, 19, 25, 22, 14, 3, 4)) +
-  xlab("Coefficient 1st PLSR latent variable") + 
-  ylab("Correlation WCRF score - metabolite") +
+  xlab("Coefficient on first PLSR latent variable (p1)") + 
+  ylab("Spearman correlation WCRF score - metabolite") +
   geom_hline(yintercept = 0, linetype = "dashed") +
   geom_vline(xintercept = 0, linetype = "dashed") +
   geom_text_repel(aes(label = compound1), size = 3) #+
   #ggtitle("A")
 
-corr1 <- cor(FAdata[, -1], FAdata[, 1])
+corr1 <- cor(FAdata[, -1], FAdata[, 1], method = "spearman")
 faplot1 <- faplot %>% mutate(compound1 = ifelse(abs(Coefficient) > 0.045, compound, NA), corr1)
 
 p2 <- ggplot(faplot1, aes(x = Coefficient, y = corr1, shape = class)) + geom_point() + 
@@ -32,8 +32,8 @@ p2 <- ggplot(faplot1, aes(x = Coefficient, y = corr1, shape = class)) + geom_poi
         legend.position = c(0.85, 0.2),
         legend.key.size = unit(0, "lines")) +
   scale_shape_manual(values = c(6, 16, 1, 4, 3)) +
-  xlab("Coefficient 1st PLSR latent variable") + 
-  ylab("Correlation WCRF score - metabolite") +
+  xlab("Coefficient on 1st PLSR latent variable (p1)") + 
+  ylab("Spearman correlation WCRF score - metabolite") +
   geom_hline(yintercept = 0, linetype = "dashed") +
   geom_vline(xintercept = 0, linetype = "dashed") +
   geom_text_repel(aes(label = compound1), size = 3) #+
