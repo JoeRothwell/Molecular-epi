@@ -6,56 +6,32 @@ library(zoo)
 
 # Get compound matrix and questionnaire scores
 # Adjusts and scales the controls metabolite matrices for confounders and binds scores for model
-# Set zeros to NA and impute with half miminum conc, log transform
-# Bind WCRF scores to adjusted metabolite matrix for PLS
+# Define linear models for removal of confounders from matrix
+adj   <- function(x) residuals(lmer(x ~ Center + batch_no + Sex + (1|Study), data = ctrl))
+adjFA <- function(x) residuals(lmer(x ~ LABO + STUDY + (1|Center), data = fa.ctrl))
 
-get.plsdata <- function(dat, ctrldat, bioc = T, subgroup = F){
-  
-  if(bioc == T & subgroup == F) {
-    # Adjust matrix for study, centre, batch, sex for Biocrates, subset calibrated scores 
-    concs <- as.matrix(dat)
-    adj   <- function(x) residuals(lmer(x ~ Center + batch_no + Sex + (1|Study), data = ctrldat))
-    
-  } else if(bioc == T & subgroup == T) {
-    concs <- as.matrix(dat)
-    adj   <- function(x) residuals(lmer(x ~ Center + batch_no + (1|Study), data = ctrldat))
-    
-  } else {
-    
-    concs <- ctrldat %>% select(one_of(common.cols))
-    adj   <- function(x) residuals(lmer(x ~ LABO + STUDY + (1|Center), data = ctrldat))
-  }
-  
-  score <- tibble(score = ctrldat$Wcrf_C_Cal)  
-  # Prepare controls matrix. Replace zero, impute with half mins, scale
-  concs[concs == 0] <- NA
-  concs1 <- na.aggregate(concs, FUN = function(x) min(x)/2)
-  logconcs <- log2(concs1) %>% scale
-  adjmat <- apply(logconcs, 2, adj)
-  
-  # Data setup. Must be a df with Bind scores to log matrix
-  output <- cbind(score, adjmat) %>% filter(!is.na(score))
-  
-}
+# Replace zero, impute with half mins, scale, transform to residuals of models above
+logmat0 <- ctrls %>% na_if(0) %>% na.aggregate(FUN = function(x) min(x)/2) %>% log2 %>% scale
+adjmat0 <- apply(logmat0, 2, adj) %>% data.frame # All control compounds
 
-# Get PLS data for whole controls dataset (manuscript table, more compounds)
-Bioc0  <- get.plsdata(ctrls, ctrl) # All control compounds
+logmat1 <- ctrlA %>% na_if(0) %>% na.aggregate(FUN = function(x) min(x)/2) %>% log2 %>% scale
+adjmat1 <- apply(logmat1, 2, adj) %>% data.frame # Overlap control/A
 
-# Get PLS data for case-control risk models
-Bioc1  <- get.plsdata(ctrlA, ctrl, bioc = T) # Overlap control/A
-Bioc2  <- get.plsdata(ctrlB, ctrl, bioc = T) # Overlap control/B
-FAdata <- get.plsdata(crc1fa, fa.ctrl, bioc = F) # Fatty acids
-#Bioc3  <- get.plsdata(ctrls0) # Overlap control/A/B (not needed)
+logmat2 <- ctrlB %>% na_if(0) %>% na.aggregate(FUN = function(x) min(x)/2) %>% log2 %>% scale
+adjmat2 <- apply(logmat2, 2, adj) %>% data.frame # Overlap control/B
 
-# PLS data for sex-specific signatures (not done for FAs because too few males)
-#Bioc1m <- get.plsdata(ctrlAm, ctrl.m, bioc = T, subgroup = T)
-#Bioc1f <- get.plsdata(ctrlAf, ctrl.f, bioc = T, subgroup = T)
-#Bioc2m <- get.plsdata(ctrlBm, ctrl.m, bioc = T, subgroup = T)
-#Bioc2f <- get.plsdata(ctrlBf, ctrl.f, bioc = T, subgroup = T)
-#FAdatf <- get.plsdata(crc1faf, fa.ctrl.f, bioc = F)
+logmat3 <- fa.ctrl[, common.cols] %>% na_if(0) %>% na.aggregate(FUN = function(x) min(x)/2) %>% 
+  log2 %>% scale
+adjmat3 <- apply(logmat3, 2, adjFA) %>% data.frame # Fatty acids
+
+# Bind WCRF scores to adjusted metabolite matrix for PLS modelling
+Bioc0 <- cbind(score = ctrl$Wcrf_C_Cal, adjmat0) %>% filter(!is.na(score))
+Bioc1 <- cbind(score = ctrl$Wcrf_C_Cal, adjmat1) %>% filter(!is.na(score))
+Bioc2 <- cbind(score = ctrl$Wcrf_C_Cal, adjmat2) %>% filter(!is.na(score))
+FAdata <- cbind(score = fa.ctrl$Wcrf_C_Cal, adjmat3) %>% filter(!is.na(score))
+# Overlap control/A/B (not needed)
 
 # Function to get optimal dimensions for each model (pls or caret)
-
 library(pls)
 get.signature <- function(plsdata, which.mod = "plsmod"){
 
@@ -92,20 +68,11 @@ mod1a <- plsr(score ~ ., data = Bioc1, ncomp = 1)
 mod1b <- plsr(score ~ ., data = Bioc2, ncomp = 1)
 mod2  <- plsr(score ~ ., data = FAdata, ncomp = 2)
 mod0  <- plsr(score ~ ., data = Bioc0, ncomp = 1)
-
-# Sex-specific
-mod1m <- plsr(score ~ ., data = Bioc1m, ncomp = 1)
-mod1f <- plsr(score ~ ., data = Bioc1f, ncomp = 1)
-mod2m  <- plsr(score ~ ., data = Bioc2m, ncomp = 1)
-mod2f  <- plsr(score ~ ., data = Bioc2f, ncomp = 1)
-modFAf <- plsr(score ~ ., data = FAdatf, ncomp = 2)
-
 # explained variances, prediction, scores, loadings plots
 # explvar(mod)
 # plot(mod, plottype = "scores")
 
-
-# Produce tables of important compounds, using compound metadata to get proper names
+# Make tables of important compounds, using compound metadata to get proper names
 plot.signature <- function(mod, biocrates = T, percentile = 5, all = T){
   
   library(tidyverse)
@@ -152,10 +119,8 @@ faplot  <- plot.signature(mod2, biocrates = F, percentile = 10, all = T)
 # Save workspace (for .Rmd file)
 #save.image(file="metabolic_signatures.Rdata")
 
-# Finally, predict WCRF scores from Biocrates or fatty acids data for two datasets
-# (three predictions)
-
-# Small case-control
+# Finally, predict WCRF scores from Biocrates or fatty acids data for two datasets (x3)
+# Small case-control (no zero intensities)
 df <- crc1[, colnames(ctrlA)] %>% log2 %>% scale %>% as_tibble
 crc1.ph <- cbind(crc1, comp1 = predict(mod1a, df)[,,1])
 
@@ -168,3 +133,20 @@ crc2.ph <- cbind(crc2, comp1 = predict(mod1b, df1)[,,1])
 df2 <- crc1fa[, common.cols] %>% na_if(0) %>% na.aggregate(FUN = function(x) min(x)/2) %>%
   log2 %>% scale %>% as_tibble
 crc3.ph <- cbind(crc1fa, comp2 = predict(mod2, df2)[,,1])
+
+
+# Old: sex specific signatures (not used)
+
+# PLS data for sex-specific signatures (not done for FAs because too few males)
+#Bioc1m <- get.plsdata(ctrlAm, ctrl.m, bioc = T, subgroup = T)
+#Bioc1f <- get.plsdata(ctrlAf, ctrl.f, bioc = T, subgroup = T)
+#Bioc2m <- get.plsdata(ctrlBm, ctrl.m, bioc = T, subgroup = T)
+#Bioc2f <- get.plsdata(ctrlBf, ctrl.f, bioc = T, subgroup = T)
+#FAdatf <- get.plsdata(crc1faf, fa.ctrl.f, bioc = F)
+
+# Sex-specific
+#mod1m <- plsr(score ~ ., data = Bioc1m, ncomp = 1)
+#mod1f <- plsr(score ~ ., data = Bioc1f, ncomp = 1)
+#mod2m  <- plsr(score ~ ., data = Bioc2m, ncomp = 1)
+#mod2f  <- plsr(score ~ ., data = Bioc2f, ncomp = 1)
+#modFAf <- plsr(score ~ ., data = FAdatf, ncomp = 2)
