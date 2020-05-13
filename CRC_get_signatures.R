@@ -86,9 +86,6 @@ get.signature <- function(plsdata, which.mod = "plsmod"){
   
 }
 
-#lapply(list(Bioc1, Bioc2, FAdata, Bioc0), get.signature)
-#lapply(list(Bioc1m, Bioc1f, Bioc2m, Bioc2f), get.signature)
-
 # Fit final PLS models with optimal dimensions to get signatures (see PLS vignette p12)
 set.seed(111)
 mod1a <- plsr(score ~ ., data = Bioc1, ncomp = 1)
@@ -154,3 +151,20 @@ faplot  <- plot.signature(mod2, biocrates = F, percentile = 10, all = T)
 
 # Save workspace (for .Rmd file)
 #save.image(file="metabolic_signatures.Rdata")
+
+# Finally, predict WCRF scores from Biocrates or fatty acids data for two datasets
+# (three predictions)
+
+# Small case-control
+df <- crc1[, colnames(ctrlA)] %>% log2 %>% scale %>% as_tibble
+crc1.ph <- cbind(crc1, comp1 = predict(mod1a, df)[,,1])
+
+# Large case-control
+df1 <- crc2[, colnames(ctrlB)] %>% na_if(0) %>% na.aggregate(FUN = function(x) min(x)/2) %>%
+  log2 %>% scale %>% as_tibble
+crc2.ph <- cbind(crc2, comp1 = predict(mod1b, df1)[,,1])
+
+# Small case-control fatty acids
+df2 <- crc1fa[, common.cols] %>% na_if(0) %>% na.aggregate(FUN = function(x) min(x)/2) %>%
+  log2 %>% scale %>% as_tibble
+crc3.ph <- cbind(crc1fa, comp2 = predict(mod2, df2)[,,1])

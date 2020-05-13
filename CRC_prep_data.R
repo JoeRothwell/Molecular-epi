@@ -42,6 +42,10 @@ crc1 <- read_sas("clrt_caco_metabo.sas7bdat") %>% filter(!is.na(Aminoacid_Glu)) 
 colon1 <- crc1 %>% group_by(Match_Caseset) %>% 
   filter(max(location, na.rm = T) == 1 | max(location, na.rm = T) == 2) %>% ungroup(Match_Caseset)
 
+# get subset vector for colon only
+colons <- crc1$Idepic %in% colon1$Idepic
+
+
 # Subset male or female
 crc1.ma <- crc1 %>% filter(Sex == 1)
 crc1.fe <- crc1 %>% filter(Sex == 2)
@@ -64,6 +68,10 @@ colon2 <- crc2 %>% group_by(Match_Caseset) %>%
 
 rectal2 <- crc2 %>% group_by(Match_Caseset) %>% 
   filter(max(location, na.rm = T) == 3) %>% ungroup(Match_Caseset)
+
+# get subset vector for colon only
+colons2 <- crc2$Idepic %in% colon2$Idepic
+rectals <- crc2$Idepic %in% rectal2$Idepic
 
 # Subset male or female
 crc2.ma <- crc1 %>% filter(Sex == 1)
