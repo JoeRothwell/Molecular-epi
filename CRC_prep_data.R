@@ -9,19 +9,17 @@ library(haven)
 # Read metadata for whole CRC case-control 
 # WARNING: do not use case-control status from this dataset. Use metabolomics datasets only.
 # Remove duplicated Idepics (with dplyr or base). Also get follow up time and colorectal site
+var.list <- c("Country", "Center", "Sex", "Match_Caseset", "L_School", #"Smoke_Int", 
+              "Smoke_Stat", "Smoke_Intensity", "Fasting_C", "Menopause", "Phase_Mnscycle")
 
-var.list <- c("Country", "Center", "Sex", "Match_Caseset", #"Smoke_Int", 
-              "L_School", "Smoke_Stat",
-              "Smoke_Intensity", "Fasting_C", "Menopause", "Phase_Mnscycle")
 meta <- read_dta("clrt_caco.dta") %>% 
-  # set D_Dgclrt of controls to that of corresponding cases
-  group_by(Match_Caseset) %>%
-  mutate(D_Dgclrt1 = max(D_Dgclrt, na.rm = T)) %>%
-  ungroup() %>%
-  # Calculate followup time and get cancer site variables
-  mutate(Tfollowup.days = D_Dgclrt1 - D_Bld_Coll, Tfollowup = Tfollowup.days/365.25, location = case_when(
+  # set D_Dgclrt of controls to that of corresponding cases, calculate followup time and 
+  # and get cancer site variables
+  mutate(Tfollowup.days = D_Dgclrt - D_Bld_Coll, Tfollowup = Tfollowup.days/365.25, 
+         location = case_when(
     Case_Mal_Colon_Prox == 1 ~ 1, Case_Mal_Colon_Dist == 1 ~ 2,
-    Case_Mal_Colon_Nos  == 1 ~ 4, Case_Mal_Rectum     == 1 ~ 3)) %>% #mutate_at(vars(var.list), as.factor) %>%
+    Case_Mal_Colon_Nos  == 1 ~ 4, Case_Mal_Rectum     == 1 ~ 3)) %>%
+  group_by(Match_Caseset) %>% fill(c(D_Dgclrt, location), .direction = "downup") %>% ungroup() %>%
   select(-Match_Caseset, -Cncr_Caco_Clrt) %>%
   distinct(Idepic, .keep_all = T)
 
@@ -42,14 +40,9 @@ crc1 <- read_sas("clrt_caco_metabo.sas7bdat") %>% filter(!is.na(Aminoacid_Glu)) 
 colon1 <- crc1 %>% group_by(Match_Caseset) %>% 
   filter(max(location, na.rm = T) == 1 | max(location, na.rm = T) == 2) %>% ungroup(Match_Caseset)
 
-# get subset vector for colon only
-colons <- crc1$Idepic %in% colon1$Idepic
-
-
 # Subset male or female
 crc1.ma <- crc1 %>% filter(Sex == 1)
 crc1.fe <- crc1 %>% filter(Sex == 2)
-
 
 
 # Large case-control subset (from Jelena)------------
@@ -61,17 +54,12 @@ crc2 <- read_csv("biocrates_p150.csv") %>%
   mutate(Smoke_Int = fct_collapse(Smoke_Intensity, Other = c("8", "9", "10"))) %>%
   filter(Country != 6)
 
-
-# Get colon cancer or rectal cancer only
+# Get colon cancer or rectal cancer subsets
 colon2 <- crc2 %>% group_by(Match_Caseset) %>% 
   filter(max(location, na.rm = T) == 1 | max(location, na.rm = T) == 2) %>% ungroup(Match_Caseset)
 
 rectal2 <- crc2 %>% group_by(Match_Caseset) %>% 
   filter(max(location, na.rm = T) == 3) %>% ungroup(Match_Caseset)
-
-# get subset vector for colon only
-colons2 <- crc2$Idepic %in% colon2$Idepic
-rectals <- crc2$Idepic %in% rectal2$Idepic
 
 # Subset male or female
 crc2.ma <- crc1 %>% filter(Sex == 1)
@@ -90,11 +78,7 @@ ctrl <- read_dta("obes_metabo.dta") %>% mutate(Study =
   filter(!(Study %in% c("Colonrectum_L", "Colonrectum_S")), Fasting_C == 2) %>%
   filter(Country != 6)
 
-# Subgroup for sex-specific signature
-ctrl.m <- ctrl %>% filter(Sex == 1)
-ctrl.f <- ctrl %>% filter(Sex == 2)
-
-print(paste(nrow(ctrl), "fasted controls read"))
+#print(paste(nrow(ctrl), "fasted controls read"))
 # 1799 fasted subjects left, 1741 after removal of Greece
 
 # Get common compounds between CC and controls and get subset of compounds for each signature
@@ -127,15 +111,10 @@ ctrlA <- select.ctrl.cmpds(list(ctrl, crc1))
 ctrlB <- select.ctrl.cmpds(list(ctrl, crc2))
 ctrls <- select.ctrl.cmpds(list(ctrl))
 
-# Data for sex-specific signatures
-ctrlAm <- select.ctrl.cmpds(list(ctrl.m, crc1.ma))
-ctrlAf <- select.ctrl.cmpds(list(ctrl.f, crc1.fe))
-ctrlBm <- select.ctrl.cmpds(list(ctrl.m, crc2.ma))
-ctrlBf <- select.ctrl.cmpds(list(ctrl.f, crc2.fe))
-
 # Get compounds common to all 3 sets for comparison and subset df
 common.all <- intersect(colnames(ctrlA), colnames(ctrlB))
 ctrls0 <- select(ctrls, one_of(common.all))
+
 
 # Fatty acids CRC dataset (from Elom)---------------
 
@@ -158,7 +137,7 @@ fa.ctrl$N_Serie <- as.numeric(fa.ctrl$N_Serie)
 # Get sex of participants
 epic.vars <- read.csv("full_epic_sex.csv")
 fa.ctrl <- left_join(fa.ctrl, epic.vars, by = "Idepic")
-fa.ctrl.f <- fa.ctrl %>% filter(Sex == 2)
+#fa.ctrl.f <- fa.ctrl %>% filter(Sex == 2)
 # Not used because 118 and 4121 M and F respectively
 
 # Convert variables to factors
@@ -170,7 +149,7 @@ crcfa <- crc1fa  %>% select(P14_0 : PCLA_9t_11c)
 concs <- fa.ctrl %>% select(P14_0 : PCLA_9t_11c, -P24_0, -P20_0)
 common.cols <- intersect(colnames(concs), colnames(crcfa))
 
-concs.f <- fa.ctrl.f %>% select(P14_0 : PCLA_9t_11c, -P24_0, -P20_0)
+#concs.f <- fa.ctrl.f %>% select(P14_0 : PCLA_9t_11c, -P24_0, -P20_0)
 
 # Subset only controls from FAs and CRC A
 CRCfa.ctrl <- crc1fa %>% filter(Cncr_Caco_Clrt == 0) %>% select(Idepic, P14_0 : PCLA_9t_11c) 
@@ -181,4 +160,15 @@ nrow(fa.ctrl)
 
 # Number of control subjects , biocrates and fatty acids combined
 length(intersect(ctrl$Idepic, fa.ctrl$Idepic))
-intersect(ctrl$Idepic, fa.ctrl$Idepic)
+#intersect(ctrl$Idepic, fa.ctrl$Idepic)
+
+# Old subset for sex-specific signature
+#ctrl.m <- ctrl %>% filter(Sex == 1)
+#ctrl.f <- ctrl %>% filter(Sex == 2)
+
+
+# Data for sex-specific signatures
+#ctrlAm <- select.ctrl.cmpds(list(ctrl.m, crc1.ma))
+#ctrlAf <- select.ctrl.cmpds(list(ctrl.f, crc1.fe))
+#ctrlBm <- select.ctrl.cmpds(list(ctrl.m, crc2.ma))
+#ctrlBf <- select.ctrl.cmpds(list(ctrl.f, crc2.fe))
