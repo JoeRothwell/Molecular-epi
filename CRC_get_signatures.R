@@ -120,19 +120,43 @@ faplot  <- plot.signature(mod2, biocrates = F, percentile = 10, all = T)
 #save.image(file="metabolic_signatures.Rdata")
 
 # Finally, predict WCRF scores from Biocrates or fatty acids data for two datasets (x3)
-# Small case-control (no zero intensities)
-df <- crc1[, colnames(ctrlA)] %>% log2 %>% scale %>% as_tibble
-crc1.ph <- cbind(crc1, comp1 = predict(mod1a, df)[,,1])
+# Small case-control (no zero intensities) (Predictions from 1 comp)
+df0 <- crc1[, colnames(ctrlA)] %>% log2 %>% scale %>% as_tibble
+df1 <- colon1[, colnames(ctrlA)] %>% log2 %>% scale %>% as_tibble
 
-# Large case-control
-df1 <- crc2[, colnames(ctrlB)] %>% na_if(0) %>% na.aggregate(FUN = function(x) min(x)/2) %>%
-  log2 %>% scale %>% as_tibble
-crc2.ph <- cbind(crc2, comp1 = predict(mod1b, df1)[,,1])
+crc1.ph <- cbind(crc1, comp1 = predict(mod1a, df)[,,1]) %>% group_by(Match_Caseset) %>% 
+  filter(n() == 2)
+col1.ph <- cbind(colon1, comp1 = predict(mod1a, df1)[,,1]) %>% group_by(Match_Caseset) %>% 
+  filter(n() == 2)
 
-# Small case-control fatty acids
-df2 <- crc1fa[, common.cols] %>% na_if(0) %>% na.aggregate(FUN = function(x) min(x)/2) %>%
+#col1.ph <- crc1.ph %>% filter(location == 1 | location == 2) %>% group_by(Match_Caseset) %>%
+#  filter(n() == 2)
+
+# Large case-control (Use predictions from 1 comp)
+df2 <- crc2[, colnames(ctrlB)] %>% na_if(0) %>% na.aggregate(FUN = function(x) min(x)/2) %>%
   log2 %>% scale %>% as_tibble
-crc3.ph <- cbind(crc1fa, comp2 = predict(mod2, df2)[,,1])
+df3 <- colon2[, colnames(ctrlB)] %>% na_if(0) %>% na.aggregate(FUN = function(x) min(x)/2) %>%
+  log2 %>% scale %>% as_tibble
+df4 <- rectal2[, colnames(ctrlB)] %>% na_if(0) %>% na.aggregate(FUN = function(x) min(x)/2) %>%
+  log2 %>% scale %>% as_tibble
+crc2.ph <- cbind(crc2, comp1 = predict(mod1b, df2)[,,1]) %>% 
+  group_by(Match_Caseset) %>% filter(n() == 2)
+col2.ph <- cbind(colon2, comp1 = predict(mod1b, df3)[,,1]) %>% 
+  group_by(Match_Caseset) %>% filter(n() == 2)
+rec2.ph <- cbind(rectal2, comp1 = predict(mod1b, df4)[,,1]) %>% 
+  group_by(Match_Caseset) %>% filter(n() == 2)
+
+# Small case-control fatty acids (Use predictions from 2 comps)
+df5 <- crc1fa[, common.cols] %>% na_if(0) %>% na.aggregate(FUN = function(x) min(x)/2) %>%
+  log2 %>% scale %>% as_tibble
+crc3.ph <- cbind(crc1fa, comp2 = predict(mod2, df5)[,,2]) %>%
+  group_by(Match_Caseset) %>% filter(n() == 2)
+
+# Study A and B CRC and colon combined for questionnaires
+vars <- c("Idepic", "Cncr_Caco_Clrt", "Qe_Energy", "L_School", "Smoke_Int", "Match_Caseset", 
+          "Wcrf_C_Cal", "Height_C", "Smoke_Stat")
+crc.both <- rbind(crc1.ph[, vars], crc2.ph[, vars]) 
+col.both <- rbind(col1.ph[, vars], col2.ph[, vars]) 
 
 
 # Old: sex specific signatures (not used)
