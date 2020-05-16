@@ -41,8 +41,8 @@ colon1 <- crc1 %>% group_by(Match_Caseset) %>%
   filter(max(location, na.rm = T) == 1 | max(location, na.rm = T) == 2) %>% ungroup(Match_Caseset)
 
 # Subset male or female
-crc1.ma <- crc1 %>% filter(Sex == 1)
-crc1.fe <- crc1 %>% filter(Sex == 2)
+#crc1.ma <- crc1 %>% filter(Sex == 1)
+#crc1.fe <- crc1 %>% filter(Sex == 2)
 
 
 # Large case-control subset (from Jelena)------------
@@ -62,8 +62,8 @@ rectal2 <- crc2 %>% group_by(Match_Caseset) %>%
   filter(max(location, na.rm = T) == 3) %>% ungroup(Match_Caseset)
 
 # Subset male or female
-crc2.ma <- crc1 %>% filter(Sex == 1)
-crc2.fe <- crc1 %>% filter(Sex == 2)
+#crc2.ma <- crc1 %>% filter(Sex == 1)
+#crc2.fe <- crc1 %>% filter(Sex == 2)
 
 
 # EPIC pooled controls--------
@@ -127,7 +127,7 @@ crc1fa <- read_dta("Database_Fatty acids.dta") %>%
   mutate(Smoke_Int = fct_collapse(Smoke_Intensity, Other = c("8", "9", "10"))) %>%
   filter(Country != 6)
 
-crc1faf <- crc1fa %>% filter(Sex == 2)
+#crc1faf <- crc1fa %>% filter(Sex == 2)
 
 # Get dataset for PLS modelling (all EPIC controls). Exclude compounds with many missings
 # Note: new version from Carine received 18/11/2018 with technical covariates
