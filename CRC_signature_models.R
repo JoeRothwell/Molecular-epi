@@ -82,10 +82,10 @@ library(metafor)
 
 t2 <- list(fit1, fit3, fit7, fit9) %>% map_df(tidy) %>% filter(str_detect(term, "score."))
 ma.crc <- rma(estimate, sei = std.error, data=t2, method="FE", subset = 1:2)
-ma.colon <- rma(estimate, sei = std.error, data=t2, method="FE", subset = 3:4)
+ma.col <- rma(estimate, sei = std.error, data=t2, method="FE", subset = 3:4)
 
 # p-value for heterogeneity and I squared (percentage)
-ma.crc$QEp; ma.crc$I2; ma.colon$QEp; ma.colon$I2
+ma.crc$QEp; ma.crc$I2; ma.col$QEp; ma.col$I2
 
 # Forest plot (removed from manuscript)
 # Signature only for Biocrates small and large (all subjects in study) and fatty acids small
@@ -103,7 +103,7 @@ forest(t2$estimate, ci.lb = t2$conf.low, ci.ub = t2$conf.high, refline = 1,
        ylim = c(0, 10), ilab.pos = 4, ilab.xpos = c(0.1))
 
 addpoly(ma.crc, row = 1, transf = exp, mlab = "", efac = 3)
-addpoly(ma.colon, row = 5, transf = exp, mlab = "", efac = 3)
+addpoly(ma.col, row = 5, transf = exp, mlab = "", efac = 3)
 text(-0.5, 1, "Fixed effects meta-analysis of A and B", pos = 4, cex = 0.9)
 text(-1.2, 2.5, bquote(paste(I^2," = 0, ",italic(p),"-heterogeneity = 0.32")), pos = 4, cex = 0.9)
 #text(c(-1.2, -0.7, -0.3), 8, c("Case-control", "n", "Metabolite signature"), pos = 4)
