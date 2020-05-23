@@ -1,27 +1,25 @@
 library(readxl)
 library(janitor)
 library(tidyverse)
+library(Amelia)
+library(zoo)
+
 dat <- read_xlsx("CRC Metabolomics MasterFile only Biocrates.xlsx", skip = 1, na = c(".", "<LOD")) %>% 
-  clean_names() %>% remove_empty("rows")
+  clean_names() %>% remove_empty("rows") %>% mutate(pathsum = pathology_summary)
 
 table(dat$pathology_summary)
 
 # Make pathology groups
-dat <- dat %>% mutate(path.group = case_when(
-               pathology_summary == 1 ~ "crc",
-               pathology_summary %in% 2:3 ~ "adenoma",
-               pathology_summary == 4 ~ "polyp",
-               pathology_summary %in% 5:6 ~ "normal"
+dat <- dat %>% rename(sex = sex_f_female_m_male) %>%
+  mutate(path.group = case_when(
+         pathsum == 1 ~ "crc", pathsum %in% 2:3 ~ "adenoma",
+         pathsum == 4 ~ "polyp", pathsum %in% 5:6 ~ "normal"
                ))
 
 table(dat$path.group)
 
 # Binary variable for adenoma
-dat <- dat %>% mutate(ct = case_when(
-               pathology_summary %in% 2:3 ~ 1,
-               pathology_summary %in% 5:6 ~ 0
-               ))
-                      
+dat <- dat %>% mutate(ct = case_when(pathsum %in% 2:3 ~ 1, pathsum %in% 5:6 ~ 0))
 table(dat$ct)
 
 # Metabolite selection (From Magda sheet) (377 subjects)
@@ -29,8 +27,26 @@ table(dat$ct)
 # Remove those with more than 21% missings
 # Recode 998 and 999 with missing, remove missing > 40%
 
-# PCPR2
-mat <- dat %>% select(path.group, lyso_pc_a_c16_0:c9) #%>% remove_constant(na.rm = T)
-class(mat)
-library(Amelia)
+# Get Biocrates data only (use glutamate)
+#mat <- dat %>% select(path.group, lyso_pc_a_c16_0:c9) %>% filter(!is.na(glu))
+mat <- dat %>% select(path.group, country:age, lyso_pc_a_c16_0:c9) %>% filter(!is.na(glu))
 missmap(mat, rank.order = F, x.cex = 1)
+
+# Convert character columns to numeric
+mat <- mat %>% mutate_at(.vars = vars(lyso_pc_a_c16_0:c9), .funs = as.numeric)
+mat1 <- mat %>% select_if(~ sum(is.na(.)) < 80)
+missmap(mat1, rank.order = F, x.cex = 1)
+
+# Impute half min value
+mat2 <- na.aggregate(as.matrix(mat1[, -c(1:4)]), function(x) min(x)/2)
+library(pca3d)
+pca <- prcomp(mat2, scale. = T)
+pca2d(pca, group = mat1$path.group, legend = "bottomright")
+box(which = "plot", lty = "solid")
+
+# mat1 is the unimputed matrix with metadata, mat2 is the imputed matrix without metadata
+# PC-PR2
+library(pcpr2)
+props <- runPCPR2(mat2, mat1[, 1:4])
+plot(props, col = "red")
+
