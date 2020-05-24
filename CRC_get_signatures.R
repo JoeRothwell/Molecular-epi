@@ -20,15 +20,14 @@ adjmat1 <- apply(logmat1, 2, adj) %>% data.frame # Overlap control/A
 logmat2 <- ctrlB %>% na_if(0) %>% na.aggregate(FUN = function(x) min(x)/2) %>% log2 %>% scale
 adjmat2 <- apply(logmat2, 2, adj) %>% data.frame # Overlap control/B
 
-logmat3 <- fa.ctrl[, common.cols] %>% na_if(0) %>% na.aggregate(FUN = function(x) min(x)/2) %>% 
-  log2 %>% scale
+logmat3 <- ctrlC %>% na_if(0) %>% na.aggregate(FUN = function(x) min(x)/2) %>% log2 %>% scale
 adjmat3 <- apply(logmat3, 2, adjFA) %>% data.frame # Fatty acids
 
 # Bind WCRF scores to adjusted metabolite matrix for PLS modelling
 Bioc0 <- cbind(score = ctrl$Wcrf_C_Cal, adjmat0) %>% filter(!is.na(score))
 Bioc1 <- cbind(score = ctrl$Wcrf_C_Cal, adjmat1) %>% filter(!is.na(score))
 Bioc2 <- cbind(score = ctrl$Wcrf_C_Cal, adjmat2) %>% filter(!is.na(score))
-FAdata <- cbind(score = fa.ctrl$Wcrf_C_Cal, adjmat3) %>% filter(!is.na(score))
+Facid <- cbind(score = fa.ctrl$Wcrf_C_Cal, adjmat3) %>% filter(!is.na(score))
 # Overlap control/A/B (not needed)
 
 # Function to get optimal dimensions for each model (pls or caret)
@@ -66,7 +65,7 @@ get.signature <- function(plsdata, which.mod = "plsmod"){
 set.seed(111)
 mod1a <- plsr(score ~ ., data = Bioc1, ncomp = 1)
 mod1b <- plsr(score ~ ., data = Bioc2, ncomp = 1)
-mod2  <- plsr(score ~ ., data = FAdata, ncomp = 2)
+mod2  <- plsr(score ~ ., data = Facid, ncomp = 2)
 mod0  <- plsr(score ~ ., data = Bioc0, ncomp = 1)
 # explained variances, prediction, scores, loadings plots
 # explvar(mod)
@@ -139,7 +138,8 @@ col2.ph <- cbind(colon2, comp1 = predict(mod1b, df3)[,,1]) %>% group_by(Match_Ca
 rec2.ph <- cbind(rectal2, comp1 = predict(mod1b, df4)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
 
 # Small case-control fatty acids (Use predictions from 2 comps)
-df5 <- crc1fa[, common.cols] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
+#df5 <- crc1fa[, common.cols] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
+df5 <- crc1fa[, colnames(ctrlC)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
 crc3.ph <- cbind(crc1fa, comp2 = predict(mod2, df5)[,,2]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
 
 # Study A and B CRC and colon combined for questionnaires

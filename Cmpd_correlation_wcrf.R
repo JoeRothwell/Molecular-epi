@@ -4,16 +4,20 @@ source("CRC_get_signatures.R")
 
 # Whole case-control 1
 # Get compounds and idepics from CRC1 and join together by Idepic (controls only)
-FAs.ID <- crc1fa %>% select(Idepic, one_of(common.cols))
-Bioc.ID <- select.ctrl.cmpds(list(ctrl, crc1), cor.data = T) %>% distinct() # remove dupes
+FAs.ID <- crc1fa[, c("Idepic", intersect(colnames(concs), colnames(crcfa)))]
+Bioc.ID <- crc1[, c("Idepic", intersect(colnames(crc1p), colnames(ctrls)))] %>% distinct()
 dat <- inner_join(FAs.ID, Bioc.ID, by = "Idepic") %>% select(-Idepic) 
 
 # Or
 
 # Controls from CC1 and controls dataset
 # Get compounds and idepics from CRC1 and join together by Idepic (controls only)
-FAs.ID <- CRCfa.ctrl %>% select(Idepic, one_of(common.cols))
-Bioc.ID <- select.ctrl.cmpds(list(ctrl, crc1), cor.data = T) %>% distinct() # remove dupes
+#FAs.ID <- CRCfa.ctrl %>% select(Idepic, one_of(common.cols))
+#FAs.IDa <- CRCfa.ctrl[, c("Idepic", intersect(colnames(concs), colnames(crcfa)))]
+FAs.IDb <- crc1fa[crc1fa$Cncr_Caco_Clrt == 0, c("Idepic", intersect(colnames(concs), colnames(crcfa)))]
+
+#Bioc.ID <- select.ctrl.cmpds(list(ctrl, crc1), cor.data = T) %>% distinct() # remove dupes
+Bioc.ID <- crc1[crc1$Cncr_Caco_Clrt == 0, c("Idepic", intersect(colnames(crc1p), colnames(ctrls)))]
 dat <- inner_join(FAs.ID, Bioc.ID, by = "Idepic") %>% select(-Idepic) 
 
 # Get compounds and idepics from controls datasets and join by Idepic
@@ -66,7 +70,7 @@ mat <- acast(t1, Var2 ~ Var1, value.var = "value")
 
 # Make data for annotations
 cmpd_meta <- read_csv("Biocrates_cmpd_metadata.csv")
-df <- data_frame(displayname = rownames(mat))
+df <- tibble(displayname = rownames(mat))
 anno_df <- inner_join(df, cmpd_meta, by = "displayname")
 
 t3 <- inner_join(t2, anno_df, by = "displayname")
@@ -77,12 +81,11 @@ library(ComplexHeatmap)
 library(circlize)
 library(RColorBrewer)
 
-# Make object and legend for class annotations (remove Biogenic amines and monosaccharides if filtering)
+# Make object and legend for class annotations (remove AAs, BCs and monosaccharides if filtering)
 row_ha <- rowAnnotation(Class = anno_df$class, annotation_legend_param = list(
-                        labels = c("Acylcarnitines", #"Amino acids", "Biogenic amines", 
-                                   "LysoPC", #"Monosacchaaride", 
-                                   "PC (acyl-acyl)", 
-                                   "PC (acyl-alkyl)", "Sphingolipids")))
+                        labels = c("Acylcarnitines", "Amino acids", "Biogenic amines", 
+                                   "LysoPC", "Monosacchaaride", 
+                                   "PC (acyl-acyl)", "PC (acyl-alkyl)", "Sphingolipids")))
 
 # Make object for annotated compounds on right
 ha <- rowAnnotation(foo = anno_mark(at = cmpd.pos, labels = corr.cmpds, 
