@@ -4,8 +4,10 @@ library(tidyverse)
 library(Amelia)
 library(zoo)
 
+# Prep data: replace NAs, clean up names, remove empty rows, rename sarcosine_178 to sarcosine
 dat <- read_xlsx("CRC Metabolomics MasterFile only Biocrates.xlsx", skip = 1, na = c(".", "<LOD")) %>% 
-  clean_names() %>% remove_empty("rows") %>% mutate(pathsum = pathology_summary)
+  clean_names() %>% remove_empty("rows") %>% mutate(pathsum = pathology_summary) %>%
+  rename(sarcosine = sarcosine_178)
 
 table(dat$pathology_summary)
 
@@ -41,6 +43,7 @@ missmap(mat1, rank.order = F, x.cex = 1)
 mat2 <- na.aggregate(as.matrix(mat1[, -c(1:4)]), function(x) min(x)/2)
 library(pca3d)
 pca <- prcomp(mat2, scale. = T)
+dev.off()
 pca2d(pca, group = mat1$path.group, legend = "bottomright")
 box(which = "plot", lty = "solid")
 
@@ -49,4 +52,21 @@ box(which = "plot", lty = "solid")
 library(pcpr2)
 props <- runPCPR2(mat2, mat1[, 1:4])
 plot(props, col = "red")
+
+# Get standardised names for matrix (see match_cmpd_names.R)
+mat2a <- mat2
+colnames(mat2a) <- df1$Compound
+
+# Get matrices for normal and adenoma, normal and CRC
+adenoma <- mat2[mat1$path.group %in% c("adenoma", "normal"), ] %>% log2 %>% scale
+crc     <- mat2[mat1$path.group %in% c("crc", "normal"), ] %>% log2 %>% scale
+
+# Get compound overlap between adenoma, crc and EPIC CRC datasets. Then place in same order
+# Run CRC_prep_data
+cmpd_meta <- read_csv("Biocrates_cmpd_metadata.csv")
+
+# Model for transformation to residuals
+adj   <- function(x) residuals(lm(x ~ country, data = mat1))
+
+
 
