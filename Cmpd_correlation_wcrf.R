@@ -1,6 +1,11 @@
 # Correlations between Biocrates compounds and FAs in small CC
-source("CRC_prep_data.R")
-source("CRC_get_signatures.R")
+load("studyA_data_cor.Rdata")
+
+# Get compound metadata for short names
+meta.bioc <- read_csv("Biocrates_cmpd_metadata.csv")
+cmpd.meta <- meta.bioc %>% select(Compound, displayname)
+meta.fa   <- read_csv("FA_compound_data.csv") %>% select(Compound, displayname)
+meta <- bind_rows(meta.bioc, meta.fa)
 
 # Whole case-control 1
 # Get compounds and idepics from CRC1 and join together by Idepic (controls only)
@@ -33,20 +38,15 @@ dim(allcor)
 
 #----
 
-# Get compound metadata for short names
-meta.bioc <- read_csv("Biocrates_cmpd_metadata.csv") %>% select(Compound, displayname)
-meta.fa   <- read_csv("FA_compound_data.csv") %>% select(Compound, displayname)
-meta <- bind_rows(meta.bioc, meta.fa)
-
-mm <- data.frame(Compound = colnames(dat))
-all <- left_join(mm, meta, by = "Compound")
+names.df <- data.frame(Compound = colnames(dat))
+all <- left_join(names.df, meta, by = "Compound")
 
 # Calculate correlations
 cormat <- cor(dat, use = "pairwise.complete.obs")
 rownames(cormat) <- all$displayname
 colnames(cormat) <- all$displayname
 
-# Get table of correlations in descending order
+# Melt cormat to get table of correlations in descending order
 library(reshape2)
 cordf <- melt(cormat) %>% filter(value != 1) %>% arrange(desc(value))
 
@@ -58,7 +58,7 @@ t1 <- t1 %>% group_by(Var2) %>% filter(abs(max(value)) > 0.3)
 
 #----
 
-# Get correlations > 0.5 in correct order (for supplemental table)
+# Supplmental table of correlations: get main correlations in descending order
 t2 <- t1 %>% filter(value > 0.55)
 colnames(t2) <- c("displayname2", "displayname", "value")
 
@@ -69,9 +69,8 @@ mat <- acast(t1, Var2 ~ Var1, value.var = "value")
 # https://jokergoo.github.io/ComplexHeatmap-reference/book/a-single-heatmap.html
 
 # Make data for annotations
-cmpd_meta <- read_csv("Biocrates_cmpd_metadata.csv")
 df <- tibble(displayname = rownames(mat))
-anno_df <- inner_join(df, cmpd_meta, by = "displayname")
+anno_df <- inner_join(df, meta.bioc, by = "displayname")
 
 t3 <- inner_join(t2, anno_df, by = "displayname")
 corr.cmpds <- unique(t3$displayname)
