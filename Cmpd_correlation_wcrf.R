@@ -1,48 +1,45 @@
 # Correlations between Biocrates compounds and FAs in small CC
 load("studyA_data_cor.Rdata")
+library(tidyverse)
 
 # Get compound metadata for short names
-meta.bioc <- read_csv("Biocrates_cmpd_metadata.csv")
+meta.bioc <- read.csv("Biocrates_cmpd_metadata.csv")
 cmpd.meta <- meta.bioc %>% select(Compound, displayname)
-meta.fa   <- read_csv("FA_compound_data.csv") %>% select(Compound, displayname)
+meta.fa   <- read.csv("FA_compound_data.csv") %>% select(Compound, displayname)
 meta <- bind_rows(meta.bioc, meta.fa)
 
-# Whole case-control 1
 # Get compounds and idepics from CRC1 and join together by Idepic (controls only)
+# Fatty acids, just case-control 1 or just controls
 FAs.ID <- crc1fa[, c("Idepic", intersect(colnames(concs), colnames(crcfa)))]
+FAs.ID <- crc1fa[crc1fa$Cncr_Caco_Clrt == 0, c("Idepic", intersect(colnames(concs), colnames(crcfa)))]
+
+# Biocrates, just case-control 1 or just controls
 Bioc.ID <- crc1[, c("Idepic", intersect(colnames(crc1p), colnames(ctrls)))] %>% distinct()
-dat <- inner_join(FAs.ID, Bioc.ID, by = "Idepic") %>% select(-Idepic) 
-
-# Or
-
-# Controls from CC1 and controls dataset
-# Get compounds and idepics from CRC1 and join together by Idepic (controls only)
-#FAs.ID <- CRCfa.ctrl %>% select(Idepic, one_of(common.cols))
-#FAs.IDa <- CRCfa.ctrl[, c("Idepic", intersect(colnames(concs), colnames(crcfa)))]
-FAs.IDb <- crc1fa[crc1fa$Cncr_Caco_Clrt == 0, c("Idepic", intersect(colnames(concs), colnames(crcfa)))]
-
-#Bioc.ID <- select.ctrl.cmpds(list(ctrl, crc1), cor.data = T) %>% distinct() # remove dupes
 Bioc.ID <- crc1[crc1$Cncr_Caco_Clrt == 0, c("Idepic", intersect(colnames(crc1p), colnames(ctrls)))]
-dat <- inner_join(FAs.ID, Bioc.ID, by = "Idepic") %>% select(-Idepic) 
 
+# Get compounds and idepics from CRC1 and join together by Idepic
+join.concs <- inner_join(FAs.ID, Bioc.ID, by = "Idepic") %>% select(-Idepic) 
+
+#----
+
+# Add 241 obs from pooled controls dataset
 # Get compounds and idepics from controls datasets and join by Idepic
-FAs.ID2 <- fa.ctrl %>% select(Idepic, one_of(common.cols))
-Bioc.ID2 <-  ctrl %>% select(Idepic, one_of(sort(colnames(ctrlA))))
-dat2 <- inner_join(FAs.ID2, Bioc.ID2, by = "Idepic") %>% select(-Idepic)
-
-allcordat <- rbind(dat, dat2)
-dim(allcor)
-# Total of 438 + 241 observations for correlation
-# (Did not give very results, perhaps from combining different labs)
+FAs.ID2 <- fa.ctrl[, c("Idepic", intersect(colnames(concs), colnames(crcfa))) ]
+Bioc.ID2 <-  ctrl[ , c("Idepic", intersect(colnames(crc1p), colnames(ctrls)))]
+join.concs1 <- inner_join(FAs.ID2, Bioc.ID2, by = "Idepic") %>% select(-Idepic)
+join.concs2 <- rbind(join.concs, join.concs2)
+dim(allcordat)
+# Total of 439 + 241 = 680 observations for correlation
+# Changed results strangely: lots of correlations for 15:1
 
 
 #----
 
-names.df <- data.frame(Compound = colnames(dat))
+names.df <- data.frame(Compound = colnames(join.concs))
 all <- left_join(names.df, meta, by = "Compound")
 
-# Calculate correlations
-cormat <- cor(dat, use = "pairwise.complete.obs")
+# Calculate correlations and set names to display names
+cormat <- cor(join.concs, use = "pairwise.complete.obs")
 rownames(cormat) <- all$displayname
 colnames(cormat) <- all$displayname
 
@@ -58,7 +55,7 @@ t1 <- t1 %>% group_by(Var2) %>% filter(abs(max(value)) > 0.3)
 
 #----
 
-# Supplmental table of correlations: get main correlations in descending order
+# Supplemental table of correlations: get main correlations in descending order
 t2 <- t1 %>% filter(value > 0.55)
 colnames(t2) <- c("displayname2", "displayname", "value")
 
@@ -70,25 +67,27 @@ mat <- acast(t1, Var2 ~ Var1, value.var = "value")
 
 # Make data for annotations
 df <- tibble(displayname = rownames(mat))
-anno_df <- inner_join(df, meta.bioc, by = "displayname")
+anno.df <- inner_join(df, meta.bioc, by = "displayname")
 
-t3 <- inner_join(t2, anno_df, by = "displayname")
+t3 <- inner_join(t2, anno.df, by = "displayname")
 corr.cmpds <- unique(t3$displayname)
-cmpd.pos <- which(anno_df$displayname %in% corr.cmpds)
+cmpd.pos <- which(anno.df$displayname %in% corr.cmpds)
 
 library(ComplexHeatmap)
 library(circlize)
 library(RColorBrewer)
 
 # Make object and legend for class annotations (remove AAs, BCs and monosaccharides if filtering)
-row_ha <- rowAnnotation(Class = anno_df$class, annotation_legend_param = list(
+row_ha <- rowAnnotation(Class = anno.df$class, annotation_legend_param = list(
                         labels = c("Acylcarnitines", "Amino acids", "Biogenic amines", 
                                    "LysoPC", "Monosacchaaride", 
-                                   "PC (acyl-acyl)", "PC (acyl-alkyl)", "Sphingolipids")))
+                                   "PC (diacyl)", "PC (acyl-alkyl)", "Sphingolipids")))
 
 # Make object for annotated compounds on right
 ha <- rowAnnotation(foo = anno_mark(at = cmpd.pos, labels = corr.cmpds, 
                                     labels_gp = gpar(fontsize = 9)))
+#ha2 <- rowAnnotation(foo = anno_mark(at = cmpd.pos, labels = corr.cmpds, 
+ #                                   labels_gp = gpar(fontsize = 9)))
 
 # Colour ramp palette is taken from pheatmap
 rownames(mat) <- NULL
@@ -96,16 +95,37 @@ Heatmap(mat, col = colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))(100)
         #column_title = "Fatty acids", row_title = "Endogenous metabolites", 
         #cluster_rows = T,
         #cluster_columns = T,
-        #row_split = anno_df$class,
+        #row_split = anno.df$class,
         row_title = NULL,
-        row_names_side = "right", show_row_names = T,
+        #row_names_side = "right", show_row_names = T,
         row_names_gp = gpar(fontsize = 10),
         column_names_gp = gpar(fontsize = 10),
         left_annotation = row_ha,
         right_annotation = ha,
+        #bottom_annotation = ha,
         heatmap_legend_param = list(title = "Correlation"),
         row_gap = unit(0, "mm"),
         border = F)
+
+
+# With ggplot
+# First get fatty acid clusters
+ord <- hclust(dist(t(mat)))$order
+ord2 <- hclust(dist(mat))$order
+
+library(RColorBrewer)
+
+# borrowing pheatmap's colour palette:
+library(RColorBrewer)
+phtpalette <- colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))(100)
+
+ggplot(droplevels(t1), aes(x = Var2, y = Var1, fill = value)) + geom_tile() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+        axis.title = element_blank()) +
+  #scale_fill_gradient2(low="blue", high="red")
+  scale_fill_gradientn(colours = phtpalette) +
+  scale_y_discrete(limits = levels(t1$Var1)[ord]) +
+  #scale_x_discrete(limits = levels(t1$Var2)[ord2])
 
 
 # Correlation matrix (large) (supplemental data)
@@ -117,7 +137,7 @@ corrplot(cormat, tl.col = "black", tl.cex = 0.3, order = "hclust", method = "col
 # Not in manuscript
 
 #library(pheatmap)
-#pheatmap(mat, fontsize = 8, color = colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))(100),)
+#pheatmap(mat, color = colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))(100),)
 
 # Dendrogram. First get order of clustered compounds
 dend <- cormat %>% dist %>% hclust %>% as.dendrogram
