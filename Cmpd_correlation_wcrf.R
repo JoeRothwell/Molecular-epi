@@ -3,9 +3,9 @@ load("studyA_data_cor.Rdata")
 library(tidyverse)
 
 # Get compound metadata for short names
-meta.bioc <- read.csv("Biocrates_cmpd_metadata.csv")
+meta.bioc <- read_csv("Biocrates_cmpd_metadata.csv")
 cmpd.meta <- meta.bioc %>% select(Compound, displayname)
-meta.fa   <- read.csv("FA_compound_data.csv") %>% select(Compound, displayname)
+meta.fa   <- read_csv("FA_compound_data.csv") %>% select(Compound, displayname)
 meta <- bind_rows(meta.bioc, meta.fa)
 
 # Get compounds and idepics from CRC1 and join together by Idepic (controls only)
@@ -44,23 +44,26 @@ rownames(cormat) <- all$displayname
 colnames(cormat) <- all$displayname
 
 # Melt cormat to get table of correlations in descending order
-library(reshape2)
-cordf <- melt(cormat) %>% filter(value != 1) %>% arrange(desc(value))
+#library(reshape2)
+#cordf <- melt(cormat) %>% filter(value != 1) %>% arrange(desc(value))
+
+library(corrr)
+cordf <- cormat %>% as_cordf() %>% stretch(na.rm = T)
 
 # Keep Biocrates - fatty acids correlations only
-t1 <- cordf %>% filter(Var1 %in% meta.fa$displayname & Var2 %in% meta.bioc$displayname)
+t1 <- cordf %>% filter(x %in% meta.fa$displayname & y %in% meta.bioc$displayname)
 # or
 # Keep Biocrates compounds with max correlation < 0.25 only (remove some low correlations from heatmap)
-t1 <- t1 %>% group_by(Var2) %>% filter(abs(max(value)) > 0.3)
+t1 <- t1 %>% group_by(y) %>% filter(abs(max(r)) > 0.3)
 
 #----
 
 # Supplemental table of correlations: get main correlations in descending order
-t2 <- t1 %>% filter(value > 0.55)
+t2 <- t1 %>% filter(r > 0.55)
 colnames(t2) <- c("displayname2", "displayname", "value")
 
 # Heatmap Biocrates vs fatty acids only
-mat <- acast(t1, Var2 ~ Var1, value.var = "value")
+mat <- acast(t1, y ~ x, value.var = "r")
 
 # Annotated heatmap of correlations
 # https://jokergoo.github.io/ComplexHeatmap-reference/book/a-single-heatmap.html
@@ -77,10 +80,10 @@ library(ComplexHeatmap)
 library(circlize)
 library(RColorBrewer)
 
-# Make object and legend for class annotations (remove AAs, BCs and monosaccharides if filtering)
+# Make object and legend for class annotations (remove AAs, BCs or monosaccharides if filtering)
 row_ha <- rowAnnotation(Class = anno.df$class, annotation_legend_param = list(
-                        labels = c("Acylcarnitines", "Amino acids", "Biogenic amines", 
-                                   "LysoPC", "Monosacchaaride", 
+                        labels = c("Acylcarnitines", "Amino acids", #"Biogenic amines", 
+                                   "LysoPC", #"Monosacchaaride", 
                                    "PC (diacyl)", "PC (acyl-alkyl)", "Sphingolipids")))
 
 # Make object for annotated compounds on right
@@ -92,12 +95,13 @@ ha <- rowAnnotation(foo = anno_mark(at = cmpd.pos, labels = corr.cmpds,
 # Colour ramp palette is taken from pheatmap
 rownames(mat) <- NULL
 Heatmap(mat, col = colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))(100),
-        #column_title = "Fatty acids", row_title = "Endogenous metabolites", 
+        column_title = "Fatty acids", row_title = "Endogenous metabolites", 
+        row_title_gp = gpar(fontsize = 11), column_title_gp = gpar(fontsize = 11),
+        row_title_side = "right", column_title_side = "bottom",
         #cluster_rows = T,
-        #cluster_columns = T,
-        #row_split = anno.df$class,
-        row_title = NULL,
-        #row_names_side = "right", show_row_names = T,
+        #row_title = NULL,
+        #row_names_side = "right", 
+        #show_row_names = F, # affects the spacing of annotations
         row_names_gp = gpar(fontsize = 10),
         column_names_gp = gpar(fontsize = 10),
         left_annotation = row_ha,
@@ -113,18 +117,18 @@ Heatmap(mat, col = colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))(100)
 ord <- hclust(dist(t(mat)))$order
 ord2 <- hclust(dist(mat))$order
 
+
 library(RColorBrewer)
 
 # borrowing pheatmap's colour palette:
 library(RColorBrewer)
 phtpalette <- colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))(100)
 
-ggplot(droplevels(t1), aes(x = Var2, y = Var1, fill = value)) + geom_tile() +
+ggplot(t1, aes(x = y, y = x, fill = r)) + geom_tile() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1),
         axis.title = element_blank()) +
-  #scale_fill_gradient2(low="blue", high="red")
-  scale_fill_gradientn(colours = phtpalette) +
-  scale_y_discrete(limits = levels(t1$Var1)[ord]) +
+  scale_fill_gradientn(colours = phtpalette)# +
+  #scale_y_discrete(limits = levels(t1$y)[ord]) +
   #scale_x_discrete(limits = levels(t1$Var2)[ord2])
 
 
