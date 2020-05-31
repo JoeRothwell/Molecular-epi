@@ -36,11 +36,12 @@ missmap(mat, rank.order = F, x.cex = 1)
 
 # Convert character columns to numeric
 mat <- mat %>% mutate_at(.vars = vars(lyso_pc_a_c16_0:c9), .funs = as.numeric)
-mat1 <- mat %>% select_if(~ sum(is.na(.)) < 80)
+mat1 <- mat %>% select_if(~ sum(is.na(.)) < 80) %>% mutate(ct = ifelse(path.group == "normal", 0, 1))
 missmap(mat1, rank.order = F, x.cex = 1)
+# Add numeric case-control variable
 
 # Impute half min value
-mat2 <- na.aggregate(as.matrix(mat1[, -c(1:4)]), function(x) min(x)/2)
+mat2 <- na.aggregate(as.matrix(mat1[, -c(1:4, 133)]), function(x) min(x)/2)
 library(pca3d)
 pca <- prcomp(mat2, scale. = T)
 dev.off()
@@ -53,20 +54,35 @@ library(pcpr2)
 props <- runPCPR2(mat2, mat1[, 1:4])
 plot(props, col = "red")
 
-# Get standardised names for matrix (see match_cmpd_names.R)
-mat2a <- mat2
-colnames(mat2a) <- df1$Compound
-
 # Get matrices for normal and adenoma, normal and CRC
 adenoma <- mat2[mat1$path.group %in% c("adenoma", "normal"), ] %>% log2 %>% scale
 crc     <- mat2[mat1$path.group %in% c("crc", "normal"), ] %>% log2 %>% scale
 
-# Get compound overlap between adenoma, crc and EPIC CRC datasets. Then place in same order
-# Run CRC_prep_data
-cmpd_meta <- read_csv("Biocrates_cmpd_metadata.csv")
+adenoma.meta <- mat1[mat1$path.group %in% c("adenoma", "normal"), ]
+crc.meta <- mat1[mat1$path.group %in% c("crc", "normal"), ]
 
-# Model for transformation to residuals
-adj   <- function(x) residuals(lm(x ~ country, data = mat1))
+
+# Get standardised compound names for PLS
+cmpd.meta <- read_csv("Biocrates_cmpd_metadata.csv")
+
+# Make data frame of Biocrates compound names
+#allnames <- dat %>% select(lyso_pc_a_c16_0:c9)
+matnames <- data.frame(cmpd.low = colnames(mat2), ord = 1:length(colnames(mat2)))
+
+# Make new names that match those in adenoma dataset
+cmpd.meta2 <- cmpd.meta %>% separate(Compound, into = c("Compound.cl", "Compound.str"),
+                                     remove = F, extra = "merge", fill = "right") %>%
+  mutate(cmpd.low = str_to_lower(Compound.str)) %>% 
+  mutate(cmpd.low = str_replace(cmpd.low, "lyso", "lyso_")) %>%
+  mutate(cmpd.low = str_replace(cmpd.low, "c4_oh_", "c4_oh"))
+
+library(fuzzyjoin)
+df1 <- stringdist_right_join(cmpd.meta2, matnames, by = "cmpd.low", max_dist = 0.5)
+
+
+# Get standardised names for matrix (see match_cmpd_names.R)
+mat2a <- mat2
+colnames(mat2a) <- df1$Compound
 
 
 
