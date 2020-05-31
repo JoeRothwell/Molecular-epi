@@ -5,8 +5,8 @@ load("coefficient_tables.Rdata")
 library(ggplot2)
 library(tidyverse)
 
-pltdata %>% filter(abs(Coefficient) > 0.02) %>%
-  ggplot(aes(x = 0, xend = Coefficient, y = reorder(compound, Coefficient), 
+sig1 <- pltdata %>% filter(abs(Coefficient) > 0.02)
+  ggplot(sig1, aes(x = 0, xend = Coefficient, y = reorder(compound, Coefficient), 
              yend = (reorder(compound, Coefficient)))) + 
   geom_segment(arrow = arrow(length = unit(0.1, "inches"), type = "closed"),
                arrow.fill = "blue") + 
@@ -15,8 +15,8 @@ pltdata %>% filter(abs(Coefficient) > 0.02) %>%
   xlab("Coefficient on first PLSR latent variable") +
   theme(axis.title.y = element_blank())
 
-faplot %>% filter(abs(Coefficient) > 0.045) %>%
-  ggplot(aes(x = 0, xend = Coefficient, y = reorder(compound, Coefficient), 
+sig2 <- faplot %>% filter(abs(Coefficient) > 0.045)
+  ggplot(sig2, aes(x = 0, xend = Coefficient, y = reorder(compound, Coefficient), 
              yend = (reorder(compound, Coefficient)))) + 
   geom_segment(arrow = arrow(length = unit(0.1, "inches"), type = "closed"),
                arrow.fill = "red") + 
@@ -24,6 +24,20 @@ faplot %>% filter(abs(Coefficient) > 0.045) %>%
   geom_vline(xintercept = 0, linetype = "dashed") +
   xlab("Coefficient on first PLSR latent variable") +
   theme(axis.title.y = element_blank())
+
+sigall <- bind_rows("Fatty acids" = sig2, "Endogenous metabolites" = sig1, .id = "Signature")
+  ggplot(sigall, aes(y = 0, yend = Coefficient, x = reorder(compound, Coefficient), 
+                   xend = (reorder(compound, Coefficient)))) + 
+    geom_hline(yintercept = 0, linetype = "dotted") +
+  geom_segment(arrow = arrow(length = unit(0.1, "inches"), type = "closed"),
+               arrow.fill = "red") + 
+  theme_bw() +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  ylab("Coefficient on first PLSR latent variable") +
+  theme(axis.title.x = element_blank()) +
+  facet_wrap(. ~ Signature, scales = "free") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
 
 
 # Coefficient plots
