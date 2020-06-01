@@ -123,24 +123,44 @@ faplot  <- plot.signature(mod2, biocrates = F, percentile = 10, all = T)
 # Small case-control (no zero intensities) (Predictions from 1 comp)
 df0 <- crc1[, colnames(ctrlA)] %>% log2 %>% scale %>% as_tibble
 df1 <- colon1[, colnames(ctrlA)] %>% log2 %>% scale %>% as_tibble
-crc1.ph <- cbind(crc1, comp1 = predict(mod1a, df0)[,,1]) %>% group_by(Match_Caseset) %>% 
-  filter(n() == 2)
-col1.ph <- cbind(colon1, comp1 = predict(mod1a, df1)[,,1]) %>% group_by(Match_Caseset) %>% 
-  filter(n() == 2)
+df0t <- crc1t[, colnames(ctrlA)] %>% log2 %>% scale %>% as_tibble
+df0f <- crc1f[, colnames(ctrlA)] %>% log2 %>% scale %>% as_tibble
+df0m <- crc1m[, colnames(ctrlA)] %>% log2 %>% scale %>% as_tibble
+
+
+crc1.ph <- cbind(crc1, comp1 = predict(mod1a, df0)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+col1.ph <- cbind(colon1, comp1 = predict(mod1a, df1)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+crc1t.ph <- cbind(crc1t, comp1 = predict(mod1a, df0t)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+crc1f.ph <- cbind(crc1f, comp1 = predict(mod1a, df0f)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+crc1m.ph <- cbind(crc1m, comp1 = predict(mod1a, df0m)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+
 
 # Large case-control (Use predictions from 1 comp)
 hm <- function(x) min(x)/2
 df2 <- crc2[, colnames(ctrlB)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
 df3 <- colon2[, colnames(ctrlB)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
 df4 <- rectal2[, colnames(ctrlB)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
+df2t <- crc2t[, colnames(ctrlB)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
+df2f <- crc2f[, colnames(ctrlB)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
+df2m <- crc2m[, colnames(ctrlB)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
+
 crc2.ph <- cbind(crc2, comp1 = predict(mod1b, df2)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
 col2.ph <- cbind(colon2, comp1 = predict(mod1b, df3)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
 rec2.ph <- cbind(rectal2, comp1 = predict(mod1b, df4)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+crc2t.ph <- cbind(crc2t, comp1 = predict(mod1b, df2t)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+crc2f.ph <- cbind(crc2f, comp1 = predict(mod1b, df2f)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+crc2m.ph <- cbind(crc2m, comp1 = predict(mod1b, df2m)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
 
 # Small case-control fatty acids (Use predictions from 2 comps)
-#df5 <- crc1fa[, common.cols] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
-df5 <- crc1fa[, colnames(ctrlC)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
-crc3.ph <- cbind(crc1fa, comp2 = predict(mod2, df5)[,,2]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+df5 <- crc3[, colnames(ctrlC)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
+df5t <- crc3t[, colnames(ctrlC)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
+df5f <- crc3f[, colnames(ctrlC)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
+df5m <- crc3m[, colnames(ctrlC)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
+
+crc3.ph <- cbind(crc3, comp2 = predict(mod2, df5)[,,2]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+crc3t.ph <- cbind(crc3t, comp2 = predict(mod2, df5t)[,,2]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+crc3f.ph <- cbind(crc3f, comp2 = predict(mod2, df5f)[,,2]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+crc3m.ph <- cbind(crc3m, comp2 = predict(mod2, df5m)[,,2]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
 
 # Study A and B CRC and colon combined for questionnaires
 vars <- c("Idepic", "Cncr_Caco_Clrt", "Qe_Energy", "L_School", "Smoke_Int", "Match_Caseset", 
