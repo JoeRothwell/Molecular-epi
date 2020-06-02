@@ -1,5 +1,5 @@
 library(tidyverse)
-load("predicted_score_tables2.Rdata")
+load("predicted_score_tables.Rdata")
 
 # Maintain body weight within the normal range
 # Be moderately physically active
@@ -28,6 +28,7 @@ comp2.ct1 <- crc3.ph$comp2[crc3.ph$Cncr_Caco_Clrt == 0]
 comp1.ct1 <- crc1.ph$comp1[crc1.ph$Cncr_Caco_Clrt == 0]
 comp1.ct2 <- crc2.ph$comp1[crc2.ph$Cncr_Caco_Clrt == 0]
 
+# Raw correlations
 library(psych)
 fa1 <- corr.test(comp2.ct1, crc1f, use = "pairwise.complete.obs")
 em1 <- corr.test(comp1.ct1, crc1b, use = "pairwise.complete.obs")
@@ -54,6 +55,7 @@ pcor1 <- apply(crc1f, 2, function(x, dat, predscore) get.pcor(x, dat1, comp2.ct1
 pcor2 <- apply(crc1b, 2, function(x, dat, predscore) get.pcor(x, dat2, comp1.ct1))
 pcor3 <- apply(crc2b, 2, function(x, dat, predscore) get.pcor(x, dat3, comp1.ct2))
 
+library(broom)
 pcor.ci <- bind_rows("Study A, fatty acids" = map_df(pcor1, tidy), 
                      "Study A, endogenous metabolites" = map_df(pcor2, tidy), 
                      "Study B, endogenous metabolites" = map_df(pcor3, tidy), .id = "Model") %>%
