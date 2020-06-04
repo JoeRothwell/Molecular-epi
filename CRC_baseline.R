@@ -4,14 +4,14 @@ source("CRC_prep_data.R")
 
 # Generate time to diagnosis and tumour site variables for both studies
 crc1a <- crc1 %>% group_by(Match_Caseset) %>% filter(n() == 2) %>%
-  select(Sex, location, Age_Blood, Tfollowup, Height_C, Bmi_C, Waist_C, Qe_Energy, 
+  select(Sex, location, Age_Blood, Tfollowup, Height_C, Bmi_C, Waist_C, Qe_Energy, Bdg1clrt,
          Country, Pa_Mets, Smoke_Stat, Qe_Alc, Wcrf_C_Cal, Cncr_Caco_Clrt) %>% 
-  mutate(Study = "CRC1")
+  mutate(Study = "CRC1", Bdg1clrt_hist = ifelse(Bdg1clrt %in% c(53,54,55,56,60,70), 1, 0))
 
 crc2a <- crc2 %>%
-  select(Match_Caseset, Sex, location, Age_Blood, Tfollowup, Height_C, Bmi_C, Waist_C, Qe_Energy, 
+  select(Match_Caseset, Sex, location, Age_Blood, Tfollowup, Height_C, Bmi_C, Waist_C, Qe_Energy, Bdg1clrt,
          Country, Pa_Mets, Smoke_Stat, Qe_Alc, Wcrf_C_Cal, Cncr_Caco_Clrt) %>% 
-  mutate(Study = "CRC2")
+  mutate(Study = "CRC2", Bdg1clrt_hist = ifelse(Bdg1clrt %in% c(53,54,55,56,60,70), 1, 0))
 
 library(qwraps2)
 options(qwraps2_markup = "markdown")
@@ -33,6 +33,9 @@ crc_sum <-
               "Rectum"          = ~ n_perc0(location == 3, na_rm = T, digits = 1),
               "Other"           = ~ n_perc0(location == 4, na_rm = T, digits = 1),
               "Unknown"         = ~ n_perc0(is.na(location), digits = 1)),
+       "Diagnosis with histological verification" =
+         list("Yes"    = ~ n_perc0(Bdg1clrt_hist == 1, na_rm = T, digits = 1),
+              "No"     = ~ n_perc0(Bdg1clrt_hist == 0, na_rm = T, digits = 1)),
        "Age at blood collection (years)" = 
          list("Mean"     =  ~ mean_sd(Age_Blood)),
        "Follow-up time to diagnosis (years)" =
