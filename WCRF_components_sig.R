@@ -1,5 +1,5 @@
 library(tidyverse)
-load("predicted_score_tables.Rdata")
+load("predicted_score_tables2.Rdata")
 
 # Maintain body weight within the normal range
 # Be moderately physically active
@@ -62,15 +62,20 @@ pcor.ci <- bind_rows("Study A, fatty acids" = map_df(pcor1, tidy),
   bind_cols(tibble(component = rep(varlist, 3)))
 
 # Plot data: partial correlation
-ggplot(pcor.ci, aes(x=fct_inorder(component), y=estimate, colour = fct_inorder(Model))) + 
-theme_bw() +
-scale_colour_manual(values = c("red","blue","blue")) +
-geom_hline(yintercept = 0, linetype = "dashed") +
-geom_point(size = 2, position = position_dodge(width = 0.5)) +
-ylab("Partial Pearson correlation") +
+load("df_wcrf_correlations.rds")
+
+# See CRC_manuscript_figs for updated plot
+ggplot(pcor.ci, aes(x=fct_inorder(component), y=estimate, fill = fct_inorder(Model),
+       shape = fct_inorder(Model))) + 
 geom_errorbar(width=0.2, aes(ymin = conf.low, ymax = conf.high), 
-              position= position_dodge(width = 0.5)) +
-scale_x_discrete(labels = nlist) +
+      position= position_dodge(width = 0.5)) +
+geom_point(size = 2, position = position_dodge(width = 0.5)) +
+scale_fill_manual(values = c("red","blue","blue")) +
+scale_shape_manual(values = c(21,21,24)) +
+geom_hline(yintercept = 0, linetype = "dashed") +
+ylab("Partial Pearson correlation") +
+scale_x_discrete(labels = nlist, position = "top") +
+theme_linedraw() +
 theme(axis.title.x = element_blank(), legend.position = "bottom",
       legend.title = element_blank())
 
@@ -87,6 +92,7 @@ cor.ci <- bind_rows(fa1$ci, em1$ci, em2$ci, .id = "Model") %>%
 
 # Plot data: raw correlation
 library(ggplot2)
+
 cor.ci %>%
   ggplot(aes(x=fct_inorder(component), y=r, shape = signature)) + 
   theme_bw() +
