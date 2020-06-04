@@ -1,13 +1,15 @@
 # Model CRC status from WCRF score or signature
 # Requires crc1, crc2, controls and PLS models to be prepared from CRC_data_prep.R
 #source("CRC_get_signatures.R")
-load("predicted_score_tables.Rdata")
+load("predicted_score_tables_sex.Rdata")
+library(tidyverse)
 
 # For smoke intensity, categories 8, 9 and 10 are collapsed into other (Smoke_Int)
 # Define basic model. Note: Smoke intensity has too many levels for the by sex analysis
 
 library(survival)
-base <- Cncr_Caco_Clrt ~ Qe_Energy + L_School + Smoke_Int + Smoke_Stat + Height_C + strata(Match_Caseset)
+base <- Cncr_Caco_Clrt ~ #Qe_Energy + 
+  L_School + Smoke_Int + Smoke_Stat + Height_C + strata(Match_Caseset)
 # Dairy product intake = QGE05
 
 # Biocrates small, large, fatty acids (large fasted subset did not improve OR)

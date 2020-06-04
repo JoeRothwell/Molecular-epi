@@ -1,7 +1,8 @@
-load("predicted_score_tables.Rdata")
+load("predicted_score_tables_sex.Rdata")
 library(survival)
 library(broom)
-base <- Cncr_Caco_Clrt ~ Qe_Energy + L_School + Smoke_Stat + Height_C + strata(Match_Caseset)
+base <- Cncr_Caco_Clrt ~ #Qe_Energy + 
+  L_School + Smoke_Stat + Height_C + strata(Match_Caseset)
 
 # For smoke intensity, categories 8, 9 and 10 are collapsed into other (Smoke_Int)
 # Replace smoking duration NAs with 0

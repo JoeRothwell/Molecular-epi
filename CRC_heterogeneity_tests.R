@@ -3,7 +3,7 @@ rm(list = ls()[!str_detect(ls(), ".ph|.both")])
 rm(list = ls()[str_detect(ls(), "vars")])
 
 # Load the predicted score tables for modelling
-load("predicted_score_tables.Rdata")
+load("predicted_score_tables_sex.Rdata")
 
 # Heterogeneity test for sex. Biocrates A and B and Fatty acids A
 # Matching factors were age, sex, study centre, follow-up time since blood collection, fasting 
@@ -12,8 +12,8 @@ load("predicted_score_tables.Rdata")
 library(tidyverse)
 # Normal GLM with matching factors. Follow up time is meaningless for controls
 # Menopause variables are incomplete
-base <- Cncr_Caco_Clrt ~ Age_Blood + #Tfollowup + #Phase_Mnscycle + #Menopause + 
-  Center + Fasting_C + Qe_Energy + L_School + Smoke_Stat + Smoke_Int + Height_C 
+base <- Cncr_Caco_Clrt ~ Age_Blood + #Tfollowup + #Phase_Mnscycle + #Menopause + #Qe_Energy + 
+  Center + Fasting_C + L_School + Smoke_Stat + Smoke_Int + Height_C 
 
 # Biocrates small, large, fatty acids (large fasted subset did not improve OR)
 
@@ -22,7 +22,7 @@ library(lmtest)
 fit1h <- glm(update(base, ~. + comp1 + Sex), data = crc1.ph, family = "binomial")
 fit1i <- glm(update(base, ~. + comp1 * Sex), data = crc1.ph, family = "binomial")
 lrtest(fit1h, fit1i)
-# pHET = 0.021
+# pHET = 0.018
 
 library(broom)
 s2 <- map_df(list(fit1h, fit1i), ~ tidy(., conf.int = T)) %>% filter(str_detect(term, "score."))
@@ -43,7 +43,7 @@ forest(s2$estimate, ci.lb = s2$conf.low, ci.ub = s2$conf.high, refline = 1, tran
 fit3h <- glm(update(base, ~. + comp1 + Sex), data = crc2.ph, family = "binomial")
 fit3i <- glm(update(base, ~. + comp1 * Sex), data = crc2.ph, family = "binomial")
 lrtest(fit3h, fit3i)
-# p = 0.13
+# p = 0.12
 
 s2 <- map_df(list(fit3h, fit3i), ~ tidy(., conf.int = T)) %>% filter(str_detect(term, "score."))
 forest(s2$estimate, ci.lb = s2$conf.low, ci.ub = s2$conf.high, refline = 1, transf = exp) 
