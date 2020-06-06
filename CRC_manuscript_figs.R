@@ -40,7 +40,7 @@ geom_point(size = 2, position = position_dodge(width = 0.7)) +
 scale_colour_manual(values = c("red","blue","blue")) +
 #scale_shape_manual(values = c(21,21,24)) +
 scale_shape_manual(values = c(15,15,19)) +
-geom_hline(yintercept = 0, linetype = "dashed") +
+geom_hline(yintercept = 0, linetype = "dotted") +
 ylab("Partial Pearson correlation") +
 scale_x_discrete(position = "top") +
 facet_grid(. ~ fct_inorder(component), scales = "free") +
@@ -80,7 +80,7 @@ ggplot(sig1, aes(x = 0, xend = Coefficient, y = reorder(compound, Coefficient),
   xlab("Coefficient on first PLSR latent variable") +
   theme(axis.title.y = element_blank())
 
-sig2 <- faplot %>% filter(abs(Coefficient) > 0.03)
+sig2 <- faplot %>% filter(abs(Coefficient) > 0.02)
 ggplot(sig2, aes(x = 0, xend = Coefficient, y = reorder(compound, Coefficient), 
                  yend = (reorder(compound, Coefficient)))) + 
   geom_segment(arrow = arrow(length = unit(0.1, "inches"), type = "closed"),
