@@ -54,7 +54,7 @@ cordf <- cormat %>% as_cordf() %>% stretch(na.rm = T)
 t1 <- cordf %>% filter(x %in% meta.fa$displayname & y %in% meta.bioc$displayname)
 # or
 # Keep Biocrates compounds with max correlation < 0.25 only (remove some low correlations from heatmap)
-t1 <- t1 %>% group_by(y) %>% filter(abs(max(r)) > 0.3)
+t1 <- t1 %>% group_by(y) %>% filter(abs(max(r)) > 0.25)
 
 #----
 
@@ -97,11 +97,11 @@ rownames(mat) <- NULL
 Heatmap(mat, col = colorRampPalette(rev(brewer.pal(n = 7, name ="RdYlBu")))(100),
         column_title = "Fatty acids", row_title = "Endogenous metabolites", 
         row_title_gp = gpar(fontsize = 11), column_title_gp = gpar(fontsize = 11),
-        row_title_side = "right", column_title_side = "bottom",
+        row_title_side = "left", column_title_side = "top",
         #cluster_rows = T,
         #row_title = NULL,
-        #row_names_side = "right", 
-        #show_row_names = F, # affects the spacing of annotations
+        row_names_side = "right", 
+        show_row_names = T, # affects the spacing of annotations
         row_names_gp = gpar(fontsize = 10),
         column_names_gp = gpar(fontsize = 10),
         left_annotation = row_ha,
