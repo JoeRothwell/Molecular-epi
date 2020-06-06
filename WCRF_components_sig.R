@@ -1,5 +1,5 @@
 library(tidyverse)
-load("predicted_score_tables2.Rdata")
+load("predicted_score_tables_sex.Rdata")
 
 # Maintain body weight within the normal range
 # Be moderately physically active
@@ -45,8 +45,8 @@ dat3 <- crc2.ph[crc2.ph$Cncr_Caco_Clrt == 0, ]
 
 # Function to get partial correlations, omitting NAs
 get.pcor <- function(x, dat, predscore) {
-  mod1 <- lm(x[!is.na(x)] ~         Qe_Energy + L_School + Smoke_Int + Smoke_Stat + Height_C, data = dat[!is.na(x), ] )
-  mod2 <- lm(predscore[!is.na(x)] ~ Qe_Energy + L_School + Smoke_Int + Smoke_Stat + Height_C, data = dat[!is.na(x), ] )
+  mod1 <- lm(x[!is.na(x)] ~         L_School + Smoke_Int + Smoke_Stat + Height_C, data = dat[!is.na(x), ] )
+  mod2 <- lm(predscore[!is.na(x)] ~ L_School + Smoke_Int + Smoke_Stat + Height_C, data = dat[!is.na(x), ] )
   output <- cor.test(residuals(mod1), residuals(mod2))
 }
 
@@ -62,7 +62,7 @@ pcor.ci <- bind_rows("Study A, fatty acids" = map_df(pcor1, tidy),
   bind_cols(tibble(component = rep(varlist, 3)))
 
 # Plot data: partial correlation
-load("df_wcrf_correlations.rds")
+#load("df_wcrf_correlations.rds")
 
 # See CRC_manuscript_figs for updated plot
 ggplot(pcor.ci, aes(x=fct_inorder(component), y=estimate, fill = fct_inorder(Model),
