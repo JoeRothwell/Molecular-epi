@@ -18,30 +18,62 @@ ggplot() + geom_point(data=mods.adenoma, aes(compound, log10(p.value)), colour =
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
 # Model for transformation to residuals
+# Warning, better predictions without this adjustment for country!!!
 adj   <- function(x) residuals(lm(x ~ country, data = adenoma.meta))
 adj2   <- function(x) residuals(lm(x ~ country, data = crc.meta))
 adjmat1 <- apply(adenoma, 2, adj)
 adjmat2 <- apply(crc, 2, adj2)
 
-# Bind case-control status to adjusted matrix
-plsdat1 <- cbind(path.group = adenoma.meta$path.group, adjmat1) %>% as.tibble
-plsdat2 <- cbind(path.group = crc.meta$path.group, adjmat2) %>% as.tibble
+# Bind case-control status to adjusted (or unadjusted) matrix
+plsdat1 <- data.frame(adenoma)
+plsdat2 <- data.frame(crc)
+plsdat1$path.group <- as.factor(adenoma.meta$path.group)
+plsdat2$path.group <- as.factor(crc.meta$path.group)
 
+
+# Predictive model by PLS
 # Start with a sensible number of components eg 10
-
 library(caret)
-set.seed(100)
-myfolds <- createMultiFolds(plsdat2$path.group, k = 5, times = 5)
-control <- trainControl("repeatedcv", index = myfolds, selectionFunction = "oneSE")
-# Fit models over different tuning parameters
-mod1 <- train(path.group ~ ., data = plsdat2, method = "pls", metric = "Accuracy", 
-              tuneLength = 20, trControl = control)
+# Adenoma
+# Split into training and test sets
+inTrain <- createDataPartition(y = plsdat1$path.group, p = 0.75, list = F)
+training <- plsdat1[inTrain, ]
+testing <- plsdat1[-inTrain, ]
 
-# Get components with lowest RMSEP, "one SE" and "permutation" methods
-print(paste("Lowest RMSEP from", which.min(cv$val[estimate = "adjCV", , ]) - 1, "comps"))
-print(paste("one SE method suggests", selectNcomp(mod, method = "onesigma", plot = F), "comps"))
-permut     <- selectNcomp(mod, method = "randomization", plot = T)
+set.seed(111)
+folds <- createMultiFolds(y = training$path.group, k = 5, times = 5)
+control <- trainControl("repeatedcv", index = folds, selectionFunction = "oneSE")
+print(sapply(folds, length))
 
-print(paste("Lowest RMSEP from", best.dims, "comp(s);", 
-            "one SE method suggests", onesigma, "comp(s);",
-            "permutation method suggests", permut, "comp(s)"))
+# Train PLS model
+mod0 <- train(path.group ~ ., data = training, method = "pls", metric = "Accuracy", 
+              trControl = control, tuneLength = 20)
+
+plot(mod0)
+confusionMatrix(mod0)
+predictions0 <- predict(mod0, newdata = testing)
+confusionMatrix(predictions0, reference = testing$path.group)
+
+
+# CRC
+# Split into training and test sets
+inTrain <- createDataPartition(y = plsdat2$path.group, p = 0.75, list = F)
+training <- plsdat2[inTrain, ]
+testing <- plsdat2[-inTrain, ]
+
+set.seed(111)
+folds <- createMultiFolds(y = training$path.group, k = 5, times = 5)
+control <- trainControl("repeatedcv", index = folds, selectionFunction = "oneSE")
+print(sapply(folds, length))
+
+# Train PLS model
+mod1 <- train(path.group ~ ., data = training, method = "pls", metric = "Accuracy", 
+              trControl = control, tuneLength = 20) 
+plot(mod1)
+confusionMatrix(mod1)
+predictions1 <- predict(mod1, newdata = testing)
+confusionMatrix(predictions1, reference = testing$path.group)
+
+
+
+

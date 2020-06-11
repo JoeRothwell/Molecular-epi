@@ -54,12 +54,6 @@ library(pcpr2)
 props <- runPCPR2(mat2, mat1[, 1:4])
 plot(props, col = "red")
 
-# Get matrices for normal and adenoma, normal and CRC
-adenoma <- mat2[mat1$path.group %in% c("adenoma", "normal"), ] %>% log2 %>% scale
-crc     <- mat2[mat1$path.group %in% c("crc", "normal"), ] %>% log2 %>% scale
-
-adenoma.meta <- mat1[mat1$path.group %in% c("adenoma", "normal"), ]
-crc.meta <- mat1[mat1$path.group %in% c("crc", "normal"), ]
 
 
 # Get standardised compound names for PLS
@@ -70,8 +64,9 @@ cmpd.meta <- read_csv("Biocrates_cmpd_metadata.csv")
 matnames <- data.frame(cmpd.low = colnames(mat2), ord = 1:length(colnames(mat2)))
 
 # Make new names that match those in adenoma dataset
-cmpd.meta2 <- cmpd.meta %>% separate(Compound, into = c("Compound.cl", "Compound.str"),
-                                     remove = F, extra = "merge", fill = "right") %>%
+cmpd.meta2 <- cmpd.meta %>% 
+  separate(Compound, into = c("Compound.cl", "Compound.str"),
+            remove = F, extra = "merge", fill = "right") %>%
   mutate(cmpd.low = str_to_lower(Compound.str)) %>% 
   mutate(cmpd.low = str_replace(cmpd.low, "lyso", "lyso_")) %>%
   mutate(cmpd.low = str_replace(cmpd.low, "c4_oh_", "c4_oh"))
@@ -80,9 +75,14 @@ library(fuzzyjoin)
 df1 <- stringdist_right_join(cmpd.meta2, matnames, by = "cmpd.low", max_dist = 0.5)
 
 
-# Get standardised names for matrix (see match_cmpd_names.R)
+# Replace matrix names with standardised ones (see match_cmpd_names.R)
 mat2a <- mat2
 colnames(mat2a) <- df1$Compound
 
+# Get matrices for normal and adenoma, normal and CRC
+adenoma <- mat2a[mat1$path.group %in% c("adenoma", "normal"), ] %>% log2 %>% scale
+crc     <- mat2a[mat1$path.group %in% c("crc", "normal"), ] %>% log2 %>% scale
 
+adenoma.meta <- mat1[mat1$path.group %in% c("adenoma", "normal"), ]
+crc.meta <- mat1[mat1$path.group %in% c("crc", "normal"), ]
 
