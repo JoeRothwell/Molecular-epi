@@ -1,6 +1,7 @@
 # Get two CRC case controls (code repeated from CRC_prep_data.R)
 library(tidyverse)
 library(haven)
+source("adenoma_crc.R")
 
 # Remove duplicated Idepics (with dplyr or base). Also get follow up time and colorectal site
 var.list <- c("Country", "Center", "Sex", "Match_Caseset", "L_School", #"Smoke_Int", 
@@ -32,14 +33,15 @@ crc2 <- read_csv("biocrates_p150.csv") %>%
 # Get compound overlaps between adenoma (128) and crc1 and crc2
 # First subset compounds only from whole data and remove zero cols
 expr <- "(carn|oacid|genic|roph|ingo|Sugars)[_]"
-crc1p <- crc1 %>% select(matches(expr), -contains("tdq")) %>% select_if(~ sum(., na.rm = T) != 0)
+crc1p <- crc1 %>% select(matches(expr), -contains("tdq")) %>% select_if(~ sum(., na.rm = T) != 0) 
 crc2p <- crc2 %>% select(matches(expr), -contains("tdq")) %>% select_if(~ sum(., na.rm = T) != 0)
 
-# Get crc1 and crc2 overlap datasets
+# Get crc1 and crc2 overlap datasets, replace zeros with half min value, log and scale
 overlap1 <- intersect(colnames(adenoma), colnames(crc1p))
 overlap2 <- intersect(colnames(adenoma), colnames(crc2p))
-crc1sort <- crc1p[, overlap1]
-crc2sort <- crc2p[, overlap2]
+hm <- function(x) min(x)/2
+crc1sort <- crc1p[, overlap1] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale
+crc2sort <- crc2p[, overlap2] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale
 
 # Refit PLS models with adenoma and crc overlap dataset
 # Bind case-control status to  matrix
@@ -67,10 +69,11 @@ mod2 <- train(path.group ~ ., data = training, method = "pls", metric = "Accurac
 plot(mod2, main = paste("Model", length(mod2$coefnames), "compounds", sep = " "))
 confusionMatrix(mod2)
 predictions2 <- predict(mod2, newdata = testing)
-confusionMatrix(predictions0, reference = testing$path.group)
+confusionMatrix(predictions2, reference = testing$path.group)
 
 predict.crc1 <- predict(mod2, newdata = crc1sort)
-# only 6 predicted adenomas
+table(predict.crc1)
+# 133 predicted adenomas, 808 predicted normal
 
 # Overlap 2 for crc2
 inTrain <- createDataPartition(y = plsdat1b$path.group, p = 0.75, list = F)
@@ -87,12 +90,12 @@ mod3 <- train(path.group ~ ., data = training, method = "pls", metric = "Accurac
               trControl = control, tuneLength = 20)
 plot(mod3, main = paste("Model", length(mod3$coefnames), "compounds", sep = " "))
 confusionMatrix(mod3)
-predictions2 <- predict(mod3, newdata = testing)
-confusionMatrix(predictions0, reference = testing$path.group)
+predictions3 <- predict(mod3, newdata = testing)
+confusionMatrix(predictions3, reference = testing$path.group)
 
 predict.crc2 <- predict(mod3, newdata = crc2sort)
 table(predict.crc2)
-# zero predicted adenomas
+# 394 predicted adenomas, 1888 predicted normal
 
 
 
@@ -123,6 +126,7 @@ confusionMatrix(predictions4, reference = testing$path.group)
 
 predict.crc3 <- predict(mod4, newdata = crc1sort)
 table(predict.crc3)
+# 654 predicted crc, 287 predicted normal
 
 # Overlap 2 for crc2
 inTrain <- createDataPartition(y = plsdat2b$path.group, p = 0.75, list = F)
@@ -144,4 +148,4 @@ confusionMatrix(predictions5, reference = testing$path.group)
 
 predict.crc4 <- predict(mod5, newdata = crc2sort)
 table(predict.crc4)
-# Only predicts 12 normals
+# 1542 predicted crc, 740 predicted normal
