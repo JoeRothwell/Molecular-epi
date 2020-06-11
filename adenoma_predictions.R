@@ -1,0 +1,147 @@
+# Get two CRC case controls (code repeated from CRC_prep_data.R)
+library(tidyverse)
+library(haven)
+
+# Remove duplicated Idepics (with dplyr or base). Also get follow up time and colorectal site
+var.list <- c("Country", "Center", "Sex", "Match_Caseset", "L_School", #"Smoke_Int", 
+              "Smoke_Stat", "Smoke_Intensity", "Fasting_C", "Menopause", "Phase_Mnscycle")
+
+meta <- read_dta("clrt_caco.dta") %>% 
+  mutate(Tfollowup.days = D_Dgclrt - D_Bld_Coll, Tfollowup = Tfollowup.days/365.25, 
+         location = case_when(
+           Case_Mal_Colon_Prox == 1 ~ 1, Case_Mal_Colon_Dist == 1 ~ 2,
+           Case_Mal_Colon_Nos  == 1 ~ 4, Case_Mal_Rectum     == 1 ~ 3)) %>%
+  group_by(Match_Caseset) %>% fill(c(D_Dgclrt, location), .direction = "downup") %>% ungroup() %>%
+  select(-Match_Caseset, -Cncr_Caco_Clrt) %>%
+  distinct(Idepic, .keep_all = T)
+
+crc1 <- read_sas("clrt_caco_metabo.sas7bdat") %>% filter(!is.na(Aminoacid_Glu)) %>%
+  left_join(meta, by = "Idepic", suffix = c("_1", "")) %>%
+  mutate_at(vars(var.list), as.factor) %>% 
+  mutate(Smoke_Int = fct_collapse(Smoke_Intensity, Other = c("8", "9", "10"))) %>% 
+  filter(Country != 6)
+
+library(lubridate)
+crc2 <- read_csv("biocrates_p150.csv") %>% 
+  select(Match_Caseset, Cncr_Caco_Clrt, ends_with("Idepic"), 
+         matches("(carn|oacid|genic|roph|ingo|Sugars)[_]"), -contains("tdq")) %>%
+  inner_join(meta, by = "Idepic") %>% mutate_at(vars(var.list), as.factor) %>% 
+  mutate(Smoke_Int = fct_collapse(Smoke_Intensity, Other = c("8", "9", "10"))) %>%
+  filter(Country != 6)
+
+# Get compound overlaps between adenoma (128) and crc1 and crc2
+# First subset compounds only from whole data and remove zero cols
+expr <- "(carn|oacid|genic|roph|ingo|Sugars)[_]"
+crc1p <- crc1 %>% select(matches(expr), -contains("tdq")) %>% select_if(~ sum(., na.rm = T) != 0)
+crc2p <- crc2 %>% select(matches(expr), -contains("tdq")) %>% select_if(~ sum(., na.rm = T) != 0)
+
+# Get crc1 and crc2 overlap datasets
+overlap1 <- intersect(colnames(adenoma), colnames(crc1p))
+overlap2 <- intersect(colnames(adenoma), colnames(crc2p))
+crc1sort <- crc1p[, overlap1]
+crc2sort <- crc2p[, overlap2]
+
+# Refit PLS models with adenoma and crc overlap dataset
+# Bind case-control status to  matrix
+# Adenoma (only 1 compound less)
+plsdat1a <- data.frame(adenoma[, overlap1])
+plsdat1b <- data.frame(adenoma[, overlap2])
+plsdat1a$path.group <- as.factor(adenoma.meta$path.group)
+plsdat1b$path.group <- as.factor(adenoma.meta$path.group)
+
+library(caret)
+# Overlap 1 for crc1
+# Split into training and test sets
+inTrain <- createDataPartition(y = plsdat1a$path.group, p = 0.75, list = F)
+training <- plsdat1a[inTrain, ]
+testing <- plsdat1a[-inTrain, ]
+
+set.seed(111)
+folds <- createMultiFolds(y = training$path.group, k = 5, times = 5)
+control <- trainControl("repeatedcv", index = folds, selectionFunction = "oneSE")
+print(sapply(folds, length))
+
+# Train PLS model
+mod2 <- train(path.group ~ ., data = training, method = "pls", metric = "Accuracy", 
+              trControl = control, tuneLength = 20)
+plot(mod2, main = paste("Model", length(mod2$coefnames), "compounds", sep = " "))
+confusionMatrix(mod2)
+predictions2 <- predict(mod2, newdata = testing)
+confusionMatrix(predictions0, reference = testing$path.group)
+
+predict.crc1 <- predict(mod2, newdata = crc1sort)
+# only 6 predicted adenomas
+
+# Overlap 2 for crc2
+inTrain <- createDataPartition(y = plsdat1b$path.group, p = 0.75, list = F)
+training <- plsdat1b[inTrain, ]
+testing <- plsdat1b[-inTrain, ]
+
+set.seed(111)
+folds <- createMultiFolds(y = training$path.group, k = 5, times = 5)
+control <- trainControl("repeatedcv", index = folds, selectionFunction = "oneSE")
+print(sapply(folds, length))
+
+# Train PLS model
+mod3 <- train(path.group ~ ., data = training, method = "pls", metric = "Accuracy", 
+              trControl = control, tuneLength = 20)
+plot(mod3, main = paste("Model", length(mod3$coefnames), "compounds", sep = " "))
+confusionMatrix(mod3)
+predictions2 <- predict(mod3, newdata = testing)
+confusionMatrix(predictions0, reference = testing$path.group)
+
+predict.crc2 <- predict(mod3, newdata = crc2sort)
+table(predict.crc2)
+# zero predicted adenomas
+
+
+
+# CRC (13 compounds less)
+plsdat2a <- data.frame(crc[, overlap1])
+plsdat2b <- data.frame(crc[, overlap2])
+plsdat2a$path.group <- as.factor(crc.meta$path.group)
+plsdat2b$path.group <- as.factor(crc.meta$path.group)
+
+# Overlap 1 for crc1
+# Split into training and test sets
+inTrain <- createDataPartition(y = plsdat2a$path.group, p = 0.75, list = F)
+training <- plsdat2a[inTrain, ]
+testing <- plsdat2a[-inTrain, ]
+
+set.seed(111)
+folds <- createMultiFolds(y = training$path.group, k = 5, times = 5)
+control <- trainControl("repeatedcv", index = folds, selectionFunction = "oneSE")
+print(sapply(folds, length))
+
+# Train PLS model
+mod4 <- train(path.group ~ ., data = training, method = "pls", metric = "Accuracy", 
+              trControl = control, tuneLength = 20)
+plot(mod4, main = paste("Model", length(mod4$coefnames), "compounds", sep = " "))
+confusionMatrix(mod4)
+predictions4 <- predict(mod4, newdata = testing)
+confusionMatrix(predictions4, reference = testing$path.group)
+
+predict.crc3 <- predict(mod4, newdata = crc1sort)
+table(predict.crc3)
+
+# Overlap 2 for crc2
+inTrain <- createDataPartition(y = plsdat2b$path.group, p = 0.75, list = F)
+training <- plsdat2b[inTrain, ]
+testing <- plsdat2b[-inTrain, ]
+
+set.seed(111)
+folds <- createMultiFolds(y = training$path.group, k = 5, times = 5)
+control <- trainControl("repeatedcv", index = folds, selectionFunction = "oneSE")
+print(sapply(folds, length))
+
+# Train PLS model
+mod5 <- train(path.group ~ ., data = training, method = "pls", metric = "Accuracy", 
+              trControl = control, tuneLength = 20)
+plot(mod5, main = paste("Model", length(mod5$coefnames), "compounds", sep = " "))
+confusionMatrix(mod5)
+predictions5 <- predict(mod5, newdata = testing)
+confusionMatrix(predictions5, reference = testing$path.group)
+
+predict.crc4 <- predict(mod5, newdata = crc2sort)
+table(predict.crc4)
+# Only predicts 12 normals
