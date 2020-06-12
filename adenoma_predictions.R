@@ -54,44 +54,50 @@ plsdat1b$path.group <- as.factor(adenoma.meta$path.group)
 library(caret)
 # Overlap 1 for crc1
 # Split into training and test sets
-inTrain <- createDataPartition(y = plsdat1a$path.group, p = 0.75, list = F)
-training <- plsdat1a[inTrain, ]
-testing <- plsdat1a[-inTrain, ]
+#inTrain <- createDataPartition(y = plsdat1a$path.group, p = 0.75, list = F)
+#training <- plsdat1a[inTrain, ]
+#testing <- plsdat1a[-inTrain, ]
 
 set.seed(111)
-folds <- createMultiFolds(y = training$path.group, k = 5, times = 5)
+#folds <- createMultiFolds(y = training$path.group, k = 5, times = 5)
+folds <- createMultiFolds(y = plsdat1a$path.group, k = 5, times = 5)
 control <- trainControl("repeatedcv", index = folds, selectionFunction = "oneSE")
 print(sapply(folds, length))
 
 # Train PLS model
-mod2 <- train(path.group ~ ., data = training, method = "pls", metric = "Accuracy", 
+#mod2 <- train(path.group ~ ., data = training, method = "pls", metric = "Accuracy", 
+              #trControl = control, tuneLength = 20)
+mod2 <- train(path.group ~ ., data = plsdat1a, method = "pls", metric = "Accuracy", 
               trControl = control, tuneLength = 20)
 plot(mod2, main = paste("Model", length(mod2$coefnames), "compounds", sep = " "))
 confusionMatrix(mod2)
-predictions2 <- predict(mod2, newdata = testing)
-confusionMatrix(predictions2, reference = testing$path.group)
+#predictions2 <- predict(mod2, newdata = testing)
+#confusionMatrix(predictions2, reference = testing$path.group)
 
 predict.crc1 <- predict(mod2, newdata = crc1sort)
 table(predict.crc1)
 # 133 predicted adenomas, 808 predicted normal
 
 # Overlap 2 for crc2
-inTrain <- createDataPartition(y = plsdat1b$path.group, p = 0.75, list = F)
-training <- plsdat1b[inTrain, ]
-testing <- plsdat1b[-inTrain, ]
+#inTrain <- createDataPartition(y = plsdat1b$path.group, p = 0.75, list = F)
+#training <- plsdat1b[inTrain, ]
+#testing <- plsdat1b[-inTrain, ]
 
 set.seed(111)
-folds <- createMultiFolds(y = training$path.group, k = 5, times = 5)
+#folds <- createMultiFolds(y = training$path.group, k = 5, times = 5)
+folds <- createMultiFolds(y = plsdat1b$path.group, k = 5, times = 5)
 control <- trainControl("repeatedcv", index = folds, selectionFunction = "oneSE")
 print(sapply(folds, length))
 
 # Train PLS model
-mod3 <- train(path.group ~ ., data = training, method = "pls", metric = "Accuracy", 
+#mod3 <- train(path.group ~ ., data = training, method = "pls", metric = "Accuracy", 
+              #trControl = control, tuneLength = 20)
+mod3 <- train(path.group ~ ., data = plsdat1b, method = "pls", metric = "Accuracy", 
               trControl = control, tuneLength = 20)
 plot(mod3, main = paste("Model", length(mod3$coefnames), "compounds", sep = " "))
 confusionMatrix(mod3)
-predictions3 <- predict(mod3, newdata = testing)
-confusionMatrix(predictions3, reference = testing$path.group)
+#predictions3 <- predict(mod3, newdata = testing)
+#confusionMatrix(predictions3, reference = testing$path.group)
 
 predict.crc2 <- predict(mod3, newdata = crc2sort)
 table(predict.crc2)
@@ -107,45 +113,61 @@ plsdat2b$path.group <- as.factor(crc.meta$path.group)
 
 # Overlap 1 for crc1
 # Split into training and test sets
-inTrain <- createDataPartition(y = plsdat2a$path.group, p = 0.75, list = F)
-training <- plsdat2a[inTrain, ]
-testing <- plsdat2a[-inTrain, ]
+#inTrain <- createDataPartition(y = plsdat2a$path.group, p = 0.75, list = F)
+#training <- plsdat2a[inTrain, ]
+#testing <- plsdat2a[-inTrain, ]
 
 set.seed(111)
-folds <- createMultiFolds(y = training$path.group, k = 5, times = 5)
+#folds <- createMultiFolds(y = training$path.group, k = 5, times = 5)
+folds <- createMultiFolds(y = plsdat2a$path.group, k = 5, times = 5)
 control <- trainControl("repeatedcv", index = folds, selectionFunction = "oneSE")
 print(sapply(folds, length))
 
 # Train PLS model
-mod4 <- train(path.group ~ ., data = training, method = "pls", metric = "Accuracy", 
+#mod4 <- train(path.group ~ ., data = training, method = "pls", metric = "Accuracy", 
+              #trControl = control, tuneLength = 20)
+mod4 <- train(path.group ~ ., data = plsdat2a, method = "pls", metric = "Accuracy", 
               trControl = control, tuneLength = 20)
 plot(mod4, main = paste("Model", length(mod4$coefnames), "compounds", sep = " "))
 confusionMatrix(mod4)
-predictions4 <- predict(mod4, newdata = testing)
-confusionMatrix(predictions4, reference = testing$path.group)
+#predictions4 <- predict(mod4, newdata = testing)
+#confusionMatrix(predictions4, reference = testing$path.group)
 
 predict.crc3 <- predict(mod4, newdata = crc1sort)
 table(predict.crc3)
 # 654 predicted crc, 287 predicted normal
 
 # Overlap 2 for crc2
-inTrain <- createDataPartition(y = plsdat2b$path.group, p = 0.75, list = F)
-training <- plsdat2b[inTrain, ]
-testing <- plsdat2b[-inTrain, ]
+#inTrain <- createDataPartition(y = plsdat2b$path.group, p = 0.75, list = F)
+#training <- plsdat2b[inTrain, ]
+#testing <- plsdat2b[-inTrain, ]
 
 set.seed(111)
-folds <- createMultiFolds(y = training$path.group, k = 5, times = 5)
+#folds <- createMultiFolds(y = training$path.group, k = 5, times = 5)
+folds <- createMultiFolds(y = plsdat2b$path.group, k = 5, times = 5)
 control <- trainControl("repeatedcv", index = folds, selectionFunction = "oneSE")
 print(sapply(folds, length))
 
 # Train PLS model
-mod5 <- train(path.group ~ ., data = training, method = "pls", metric = "Accuracy", 
+#mod5 <- train(path.group ~ ., data = training, method = "pls", metric = "Accuracy", 
+              #trControl = control, tuneLength = 20)
+mod5 <- train(path.group ~ ., data = plsdat2b, method = "pls", metric = "Accuracy", 
               trControl = control, tuneLength = 20)
 plot(mod5, main = paste("Model", length(mod5$coefnames), "compounds", sep = " "))
 confusionMatrix(mod5)
-predictions5 <- predict(mod5, newdata = testing)
-confusionMatrix(predictions5, reference = testing$path.group)
+#predictions5 <- predict(mod5, newdata = testing)
+#confusionMatrix(predictions5, reference = testing$path.group)
 
 predict.crc4 <- predict(mod5, newdata = crc2sort)
 table(predict.crc4)
 # 1542 predicted crc, 740 predicted normal
+
+
+# Compare predictions with CRC case-control status
+s1 <- cbind(crc1, pred.adenoma = predict.crc1, pred.crc = predict.crc3) %>% filter(Tfollowup < 2)
+s2 <- cbind(crc2, pred.adenoma = predict.crc2, pred.crc = predict.crc4) %>% filter(Tfollowup < 2)
+
+table(s1$Cncr_Caco_Clrt, s1$pred.adenoma)
+table(s1$Cncr_Caco_Clrt, s1$pred.crc)
+table(s2$Cncr_Caco_Clrt, s2$pred.adenoma)
+table(s2$Cncr_Caco_Clrt, s2$pred.crc)

@@ -25,16 +25,15 @@ dat <- dat %>% mutate(ct = case_when(pathsum %in% 2:3 ~ 1, pathsum %in% 5:6 ~ 0)
 table(dat$ct)
 
 # Metabolite selection (From Magda sheet) (377 subjects)
-# Remove 11 missings (no peak detected)
-# Remove those with more than 21% missings
 # Recode 998 and 999 with missing, remove missing > 40%
 
 # Get Biocrates data only (use glutamate)
-#mat <- dat %>% select(path.group, lyso_pc_a_c16_0:c9) %>% filter(!is.na(glu))
+# Remove 11 missings (no peak detected)
 mat <- dat %>% select(path.group, country:age, lyso_pc_a_c16_0:c9) %>% filter(!is.na(glu))
 missmap(mat, rank.order = F, x.cex = 1)
 
-# Convert character columns to numeric
+# Convert character columns to numeric, remove metabolites with more than 21% missings (80),
+# code normal = 0, pathology = 1
 mat <- mat %>% mutate_at(.vars = vars(lyso_pc_a_c16_0:c9), .funs = as.numeric)
 mat1 <- mat %>% select_if(~ sum(is.na(.)) < 80) %>% mutate(ct = ifelse(path.group == "normal", 0, 1))
 missmap(mat1, rank.order = F, x.cex = 1)
@@ -85,4 +84,6 @@ crc     <- mat2a[mat1$path.group %in% c("crc", "normal"), ] %>% log2 %>% scale
 
 adenoma.meta <- mat1[mat1$path.group %in% c("adenoma", "normal"), ]
 crc.meta <- mat1[mat1$path.group %in% c("crc", "normal"), ]
+
+
 

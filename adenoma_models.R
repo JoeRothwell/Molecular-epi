@@ -8,14 +8,17 @@ fits <- apply(adenoma, 2, mod)
 fits2 <- apply(crc, 2, mod2)
 
 library(broom)
-mods.adenoma <- map_df(fits, tidy) %>% filter(term == "x") %>% add_column(compound = colnames(mat2))
-mods.crc <- map_df(fits2, tidy) %>% filter(term == "x") %>% add_column(compound = colnames(mat2))
+mods.adenoma <- map_df(fits, tidy) %>% filter(term == "x") %>%
+  mutate(p.fdr = p.adjust(p.value, method = "fdr")) %>% add_column(compound = colnames(mat2))
+mods.crc <- map_df(fits2, tidy) %>% filter(term == "x") %>% 
+  mutate(p.fdr = p.adjust(p.value, method = "fdr")) %>% add_column(compound = colnames(mat2))
 
 library(ggplot2)
 ggplot() + geom_point(data=mods.adenoma, aes(compound, log10(p.value)), colour = "red") +
   geom_point(data=mods.crc, aes(compound, log10(p.value)), colour = "blue") +
-  theme_minimal() + scale_y_reverse() +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+  theme_grey() + scale_y_reverse() + ylab("-log10 raw p-value") + xlab("Metabolite") +
+  geom_hline(yintercept = log10(0.00424), linetype = "dotted") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 
 # Model for transformation to residuals
 # Warning, better predictions without this adjustment for country!!!
@@ -47,7 +50,7 @@ print(sapply(folds, length))
 
 # Train PLS model
 mod0 <- train(path.group ~ ., data = training, method = "pls", metric = "Accuracy", 
-              trControl = control, tuneLength = 20)
+              trControl = control, tuneLength = 10)
 
 plot(mod0)
 confusionMatrix(mod0)
