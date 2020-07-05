@@ -44,7 +44,7 @@ rownames(cormat) <- all$displayname
 colnames(cormat) <- all$displayname
 
 # Melt cormat to get table of correlations in descending order
-#library(reshape2)
+library(reshape2)
 #cordf <- melt(cormat) %>% filter(value != 1) %>% arrange(desc(value))
 
 library(corrr)
@@ -80,17 +80,24 @@ library(ComplexHeatmap)
 library(circlize)
 library(RColorBrewer)
 
-# Make object and legend for class annotations (remove AAs, BCs or monosaccharides if filtering)
-row_ha <- rowAnnotation(Class = anno.df$class, annotation_legend_param = list(
-                        labels = c("Acylcarnitines", "Amino acids", #"Biogenic amines", 
-                                   "LysoPC", #"Monosacchaaride", 
-                                   "PC (diacyl)", "PC (acyl-alkyl)", "Sphingolipids")))
+# Define colours for class annotations (from colorbrewer2.org, qualitatitve, first scheme)
+col6 <- list(Class = c('Amino acids' = '#ffff99',
+             'Acylcarnitines' = '#beaed4',
+             'Lysophosphatidylcholine' = '#fdc086',
+             'Phosphatidylcholine (acyl-acyl)' = '#7fc97f',
+             'Phosphatidylcholine (acyl-alkyl)' = '#386cb0',
+             'Sphingolipids' = '#f0027f'))
+
 
 # Make object for annotated compounds on right
 ha <- rowAnnotation(foo = anno_mark(at = cmpd.pos, labels = corr.cmpds, 
                                     labels_gp = gpar(fontsize = 9)))
-#ha2 <- rowAnnotation(foo = anno_mark(at = cmpd.pos, labels = corr.cmpds, 
- #                                   labels_gp = gpar(fontsize = 9)))
+
+# Make object and legend for class annotations (remove AAs, BCs or monosaccharides if filtering)
+row_ha <- rowAnnotation(Class = as.factor(anno.df$class), col = col6, annotation_legend_param = list(
+  labels = c("Acylcarnitines", "Amino acids", #"Biogenic amines", 
+                                    "LysoPC", #"Monosacchaaride", 
+             "PC (diacyl)", "PC (acyl-alkyl)", "Sphingolipids")))
 
 # Colour ramp palette is taken from pheatmap
 rownames(mat) <- NULL
