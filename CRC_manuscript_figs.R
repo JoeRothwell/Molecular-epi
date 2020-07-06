@@ -17,12 +17,13 @@ geom_hline(yintercept = 0, linetype = "dotted") +
 geom_segment(arrow = arrow(length = unit(0.06, "inches"), type = "closed"), arrow.fill = NULL) + 
 scale_colour_manual(values = c("blue", "red")) +
 geom_vline(xintercept = 0, linetype = "dashed") +
-ylab("Coefficient on first PLSR latent variable") +
+ylab("Coefficient on first PLSR latent variable") + theme_classic() +
 theme(axis.title.x = element_blank()) +
 facet_wrap(. ~ fct_inorder(Signature), scales = "free") +
 theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, colour = "black"),
       axis.ticks.y = element_line(), strip.background = element_blank(),
-      axis.ticks.x = element_blank(), strip.text.x = element_text(size = 11),
+      #axis.ticks.x = element_blank(), 
+      strip.text.x = element_text(size = 11),
       panel.spacing = unit(2, "lines"),
       legend.position = "none") #+ ggtitle("B")
 
@@ -43,13 +44,14 @@ scale_fill_manual(values = c("red","blue","blue")) +
 scale_shape_manual(values = c(23,23,21)) +
 #scale_shape_manual(values = c(15,15,19)) +
 geom_hline(yintercept = 0, linetype = "dotted") +
-ylab("Partial Pearson correlation") +
-scale_x_discrete(position = "top") +
+ylab("Partial Pearson correlation") + theme_classic() +
+scale_x_discrete(position = "bottom") +
 facet_grid(. ~ fct_inorder(component), scales = "free") +
-theme(axis.title.x = element_blank(), legend.position = "bottom",
+theme(axis.title.x = element_blank(), legend.position = "top",
       axis.text.x = element_text(colour = "black"),
       axis.ticks.x = element_blank(),
       legend.title = element_blank(),
+      legend.box.background = element_rect(colour = "black",size = 1),
       strip.text.x = element_blank()) #+ ggtitle("C")
 
 
@@ -61,14 +63,16 @@ geom_errorbar(width=0.2, aes(ymin = conf.low, ymax = conf.high),
                 position= position_dodge(width = 0.5), colour = "grey60") +
 geom_point(size = 2, position = position_dodge(width = 0.5)) +
 scale_fill_manual(values = c("red","blue","blue")) +
-scale_shape_manual(values = c(21,21,24)) +
+scale_shape_manual(values = c(21,21,24)) + theme_classic() +
 geom_hline(yintercept = 0, linetype = "dashed") +
 ylab("Partial Pearson correlation") +
-scale_x_discrete(position = "top") +
+scale_x_discrete(position = "bottom") +
 facet_grid(. ~ fct_inorder(component) %>% fct_relabel(~nlist), scales = "free") +
-theme(axis.title.x = element_blank(), legend.position = "bottom",
+theme(axis.title.x = element_blank(), legend.position = "right",
       axis.text.x = element_blank(), axis.ticks.x = element_blank(),
-        legend.title = element_blank())
+      strip.background.x = element_blank(),
+        legend.title = element_blank(),
+      legend.box.background = element_rect(colour = "black"))
 
 # Old (no facetting)
 ggplot(sig1, aes(x = 0, xend = Coefficient, y = reorder(compound, Coefficient), 
