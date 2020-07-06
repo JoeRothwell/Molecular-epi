@@ -8,7 +8,6 @@ labs <- c("      Endogenous metabolites",
           "      Fatty acids", 
           "      WCRF/AICR score")
 
-
 par(mar=c(3,4,0,2))
 library(metafor)
 forest(estimate, ci.lb = conf.low, ci.ub = conf.high, refline = 1, 
@@ -27,18 +26,15 @@ par("usr")
 
 
 # Cut-down version
-
 par(mar=c(3,4,0,2))
 library(metafor)
 forest(estimate, ci.lb = conf.low, ci.ub = conf.high, refline = 1, 
-       #slab = labs, 
-       #alabs = c(0.2,1.2),
        efac = c(0,0), psize = 1.5,
-       bg = "orange",
-       #header =c("Measure of Healthy Lifestyle", "Odds ratio per unit increase"),
-       rows = c(1,2,5), ylim = c(0,10), alim = c(0.25, 1.25),
-       xlim = c(-1, 1.8),
+       rows = c(1,2,5), ylim = c(0,6), alim = c(0.2, 1.2),
+       steps = 6,
        slab = NA,
+       header = F,
+       top = 0,
        xlab = NA, annosym = c(" (", "-", ")"),
-       pch = 23)
+       pch = 18)
 
