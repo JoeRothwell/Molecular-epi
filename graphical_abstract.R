@@ -31,6 +31,7 @@ library(metafor)
 forest(estimate, ci.lb = conf.low, ci.ub = conf.high, refline = 1, 
        efac = c(0,0), psize = 1.5,
        rows = c(1,2,5), ylim = c(0,6), alim = c(0.2, 1.2),
+       xlim = c(-0.54, 2),
        steps = 6,
        slab = NA,
        header = F,

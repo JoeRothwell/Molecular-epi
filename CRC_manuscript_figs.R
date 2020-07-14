@@ -29,8 +29,8 @@ theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, colour = "b
       legend.position = "none") #+ ggtitle("B")
 
 
-nlist <- c("Maintain normal\nbody weight", "Be moderately\nphysically active", 
-           "Limit foods that\npromote weight gain", "Eat mostly\nplant foods", "Limit red and\nprocessed meat", "Avoid\nalcohol", 
+nlist <- c("Maintain normal\nbody weight", "Be moderately\nphysically\nactive", 
+           "Limit foods\nthat promote\nweight gain", "Eat mostly\nplant foods", "Limit red and\nprocessed meat", "Avoid\nalcohol", 
            "Overall WCRF/\nAICR score")
 
 # Correlation plot with CIs (method 1) (probably the best)
@@ -48,10 +48,11 @@ xlab("WCRF/AICR recommendation") +
 ylab("Partial Pearson correlation") + theme_classic() +
 scale_x_discrete(position = "bottom") +
 facet_wrap(. ~ fct_inorder(component), scales = "free_x", nrow = 1) +
-theme(legend.position = "top",
+theme(legend.position = "right",
       axis.text.x = element_text(colour = "black"),
       axis.ticks.x = element_blank(),
       legend.title = element_blank(),
+      legend.key.height=unit(1.2, "cm"),
       legend.box.background = element_rect(colour = "black",size = 1),
       strip.text.x = element_blank()) #+ ggtitle("C")
 
