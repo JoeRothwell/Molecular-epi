@@ -56,9 +56,9 @@ pcor2 <- apply(crc1b, 2, function(x, dat, predscore) get.pcor(x, dat2, comp1.ct1
 pcor3 <- apply(crc2b, 2, function(x, dat, predscore) get.pcor(x, dat3, comp1.ct2))
 
 library(broom)
-pcor.ci <- bind_rows("Fatty acids, Study A" = map_df(pcor1, tidy), 
-                     "Endogenous metabolites, Study A" = map_df(pcor2, tidy), 
-                     "Endogenous metabolites, Study B" = map_df(pcor3, tidy), .id = "Model") %>%
+pcor.ci <- bind_rows("Fatty acids,\nStudy A" = map_df(pcor1, tidy), 
+                     "Endogenous\nmetabolites,\nStudy A" = map_df(pcor2, tidy), 
+                     "Endogenous\nmetabolites,\nStudy B" = map_df(pcor3, tidy), .id = "Model") %>%
   bind_cols(tibble(component = rep(varlist, 3)))
 
 # Plot data: partial correlation
