@@ -1,5 +1,7 @@
 library(tidyverse)
-load("predicted_score_tables_sex.Rdata")
+#load("predicted_score_tables_sex.Rdata")
+source("CRC_prep_data_rev.R")
+load("pred_score_tables_rev.Rdata")
 
 # Maintain body weight within the normal range
 # Be moderately physically active
@@ -14,54 +16,54 @@ load("predicted_score_tables_sex.Rdata")
 # Breastfeed infants exclusively up to 6 months: Wcrf_Bf
 # Overall score
 
-varlist <- c("Wcrf_Bmi", "Wcrf_Pa", "Wcrf_Fwg_Cal", "Wcrf_Pf_Cal", "Wcrf_Meat_Cal", 
-             "Wcrf_Alc", "Wcrf_C_Cal")
+varlist <- c("Wcrf_Bmi", "Wcrf_Pa", "Wcrf_Fwg_Cal", "Wcrf_Pf_Cal", "Wcrf_Meat_Cal", "Wcrf_Alc", "Wcrf_C_Cal")
 nlist <- c("Maintain normal\nbody weight", "Be moderately\nphysically active", 
            "Limit foods that\npromote weight gain", "Eat mostly\nplant foods", "Limit red and\nprocessed meat", "Avoid\nalcohol", 
            "Overall WCRF/AICR\nscore")
 
 crc1f <- crc3.ph %>% ungroup %>% filter(Cncr_Caco_Clrt == 0) %>% select(one_of(varlist)) %>% as.matrix
-crc1b <- crc1.ph %>% ungroup %>% filter(Cncr_Caco_Clrt == 0) %>% select(one_of(varlist)) %>% as.matrix
-crc2b <- crc2.ph %>% ungroup %>% filter(Cncr_Caco_Clrt == 0) %>% select(one_of(varlist)) %>% as.matrix
+crc1b <- crc.ph %>% ungroup %>% filter(Cncr_Caco_Clrt == 0) %>% select(one_of(varlist)) %>% as.matrix
+#crc2b <- crc2.ph %>% ungroup %>% filter(Cncr_Caco_Clrt == 0) %>% select(one_of(varlist)) %>% as.matrix
 
 comp2.ct1 <- crc3.ph$comp2[crc3.ph$Cncr_Caco_Clrt == 0]
-comp1.ct1 <- crc1.ph$comp1[crc1.ph$Cncr_Caco_Clrt == 0]
-comp1.ct2 <- crc2.ph$comp1[crc2.ph$Cncr_Caco_Clrt == 0]
+comp1.ct1 <- crc.ph$comp1[crc.ph$Cncr_Caco_Clrt == 0]
+#comp1.ct2 <- crc2.ph$comp1[crc2.ph$Cncr_Caco_Clrt == 0]
 
-# Raw correlations
-library(psych)
-fa1 <- corr.test(comp2.ct1, crc1f, use = "pairwise.complete.obs")
-em1 <- corr.test(comp1.ct1, crc1b, use = "pairwise.complete.obs")
-em2 <- corr.test(comp1.ct2, crc2b, use = "pairwise.complete.obs")
-
-cor.ci <- bind_rows(fa1$ci, em1$ci, em2$ci, .id = "Model") %>% 
-  bind_cols(tibble(component = rep(varlist, 3)))
-
-# Partial correlations
-# Subset controls only from prediction tables
+# Partial correlations. Subset controls only from prediction tables
 dat1 <- crc3.ph[crc3.ph$Cncr_Caco_Clrt == 0, ]
-dat2 <- crc1.ph[crc1.ph$Cncr_Caco_Clrt == 0, ]
-dat3 <- crc2.ph[crc2.ph$Cncr_Caco_Clrt == 0, ]
+dat2 <- crc.ph[crc.ph$Cncr_Caco_Clrt == 0, ]
+#dat3 <- crc2.ph[crc2.ph$Cncr_Caco_Clrt == 0, ]
 
 # Function to get partial correlations, omitting NAs
 get.pcor <- function(x, dat, predscore) {
-  mod1 <- lm(x[!is.na(x)] ~         L_School + Smoke_Int + Smoke_Stat + Height_C, data = dat[!is.na(x), ] )
-  mod2 <- lm(predscore[!is.na(x)] ~ L_School + Smoke_Int + Smoke_Stat + Height_C, data = dat[!is.na(x), ] )
-  output <- cor.test(residuals(mod1), residuals(mod2))
+  mod1 <- lm(x[!is.na(x)] ~         L_School + Qe_Energy + Smoke_Int + Height_C, data = dat[!is.na(x), ] )
+  mod2 <- lm(predscore[!is.na(x)] ~ L_School + Qe_Energy + Smoke_Int + Height_C, data = dat[!is.na(x), ] )
+  output <- cor.test(residuals(mod1), residuals(mod2), method = "pearson")
+}
+
+# Biocrates data also adjusted for laboratory of analysis
+get.pcor.lab <- function(x, dat, predscore) {
+  mod1 <- lm(x[!is.na(x)] ~         L_School + lab + Qe_Energy + Smoke_Int + Height_C, data = dat[!is.na(x), ] )
+  mod2 <- lm(predscore[!is.na(x)] ~ L_School + lab + Qe_Energy + Smoke_Int + Height_C, data = dat[!is.na(x), ] )
+  output <- cor.test(residuals(mod1), residuals(mod2), method = "pearson")
 }
 
 # Run function and extract data 
 pcor1 <- apply(crc1f, 2, function(x, dat, predscore) get.pcor(x, dat1, comp2.ct1)) 
-pcor2 <- apply(crc1b, 2, function(x, dat, predscore) get.pcor(x, dat2, comp1.ct1))
-pcor3 <- apply(crc2b, 2, function(x, dat, predscore) get.pcor(x, dat3, comp1.ct2))
+pcor2 <- apply(crc1b, 2, function(x, dat, predscore) get.pcor.lab(x, dat2, comp1.ct1))
+#pcor3 <- apply(crc2b, 2, function(x, dat, predscore) get.pcor(x, dat3, comp1.ct2))
 
 library(broom)
-pcor.ci <- bind_rows("Fatty acids,\nStudy A" = map_df(pcor1, tidy), 
-                     "Endogenous\nmetabolites,\nStudy A" = map_df(pcor2, tidy), 
-                     "Endogenous\nmetabolites,\nStudy B" = map_df(pcor3, tidy), .id = "Model") %>%
-  bind_cols(tibble(component = rep(varlist, 3)))
+#pcor.ci <- bind_rows("Fatty acids,\nStudy A" = map_df(pcor1, tidy), 
+                 #    "Endogenous\nmetabolites,\nStudy A" = map_df(pcor2, tidy), 
+                   #  "Endogenous\nmetabolites,\nStudy B" = map_df(pcor3, tidy), 
+                  #   .id = "Model") %>% bind_cols(tibble(component = rep(varlist, 3)))
+
+pcor.ci <- bind_rows("Fatty acids" = map_df(pcor1, tidy), "Endogenous\nmetabolites" = map_df(pcor2, tidy), 
+  .id = "Model") %>% bind_cols(tibble(component = rep(varlist, 2)))
 
 # Plot data: partial correlation
+#saveRDS(pcor.ci, "df_wcrf_corr1.rds")
 #load("df_wcrf_correlations.rds")
 
 # See CRC_manuscript_figs for updated plot

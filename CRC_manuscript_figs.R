@@ -35,7 +35,8 @@ nlist <- c("Maintain normal\nbody weight", "Be moderately\nphysically\nactive",
 
 # Correlation plot with CIs (method 1) (probably the best)
 #source("WCRF_components_sig.R")
-#pcor.ci <- readRDS("df_wcrf_correlations.rds")
+pcor.ci <- readRDS("df_wcrf_corr1.rds")
+
 ggplot(pcor.ci, aes(x=fct_inorder(component) %>% fct_relabel(~nlist), 
         y=estimate, colour = fct_inorder(Model), shape = fct_inorder(Model))) + 
 geom_errorbar(width=0.2, aes(ymin = conf.low, ymax = conf.high), 

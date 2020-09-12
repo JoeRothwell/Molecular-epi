@@ -1,17 +1,26 @@
 # Baseline characteristics for the 2 CRC metabolomics studies
 # 8 unpaired samples have been removed for CRC1
 source("CRC_prep_data.R")
+load("pred_score_tables_rev.Rdata")
 
 # Generate time to diagnosis and tumour site variables for both studies
-crc1a <- crc1 %>% group_by(Match_Caseset) %>% filter(n() == 2) %>%
-  select(Sex, location, Age_Blood, Tfollowup, Height_C, Bmi_C, Waist_C, Qe_Energy, Bdg1clrt,
+crc1a <- crc1 %>% group_by(Match_Caseset) %>% filter(n() == 2) %>% ungroup() %>%
+  select(Idepic, Match_Caseset, Sex, location, Age_Blood, Tfollowup, Height_C, Bmi_C, Waist_C, Qe_Energy, Bdg1clrt,
          Country, Pa_Mets, Smoke_Stat, Qe_Alc, Wcrf_C_Cal, Cncr_Caco_Clrt) %>% 
   mutate(Study = "CRC1", Bdg1clrt_hist = ifelse(Bdg1clrt %in% c(53,54,55,56,60,70), 1, 0))
 
 crc2a <- crc2 %>%
-  select(Match_Caseset, Sex, location, Age_Blood, Tfollowup, Height_C, Bmi_C, Waist_C, Qe_Energy, Bdg1clrt,
+  select(Idepic, Match_Caseset, Sex, location, Age_Blood, Tfollowup, Height_C, Bmi_C, Waist_C, Qe_Energy, Bdg1clrt,
          Country, Pa_Mets, Smoke_Stat, Qe_Alc, Wcrf_C_Cal, Cncr_Caco_Clrt) %>% 
   mutate(Study = "CRC2", Bdg1clrt_hist = ifelse(Bdg1clrt %in% c(53,54,55,56,60,70), 1, 0))
+
+# Merge for revised submission and add predicted WCRF score
+crc.ph0 <- crc.ph %>% select(Idepic, comp1)
+crc.ph1 <- crc3.ph %>% select(Idepic, comp2)
+crc <- bind_rows(crc1a, crc2a) %>% left_join(crc.ph, by = "Idepic")
+crc.sig <- crc %>% left_join(crc.ph1, by = "Idepic")
+crc.sig$Tfollowup <- as.numeric(crc.sig$Tfollowup)
+
 
 library(qwraps2)
 options(qwraps2_markup = "markdown")
@@ -22,32 +31,17 @@ options(qwraps2_markup = "markdown")
 
 # Manually specified
 crc_sum <-
-  list("Total subjects"   =
-         list("N"   =   ~ n()),
+  list(#"Total subjects"   =
+        # list("N"   =   ~ n()),
        "Sex" = 
          list("Male"       =  ~ n_perc0(Sex == 1, digits = 1),
               "Female"     =  ~ n_perc0(Sex == 2, digits = 1)),
-       "Tumor site" =
-         list("Proximal colon"  = ~ n_perc0(location == 1, na_rm = T, digits = 1),
-              "Distal colon"    = ~ n_perc0(location == 2, na_rm = T, digits = 1),
-              "Rectum"          = ~ n_perc0(location == 3, na_rm = T, digits = 1),
-              "Other"           = ~ n_perc0(location == 4, na_rm = T, digits = 1),
-              "Unknown"         = ~ n_perc0(is.na(location), digits = 1)),
-       "Diagnosis with histological verification" =
-         list("Yes"    = ~ n_perc0(Bdg1clrt_hist == 1, na_rm = T, digits = 1),
-              "No"     = ~ n_perc0(Bdg1clrt_hist == 0, na_rm = T, digits = 1)),
        "Age at blood collection (years)" = 
-         list("Mean"     =  ~ mean_sd(Age_Blood)),
+         list("Mean"     =  ~ mean_sd(Age_Blood, digits = 1)),
+       
        "Follow-up time to diagnosis (years)" =
-         list("Mean"     =  ~ mean_sd(Tfollowup)),
-       "Height (cm)" =
-         list("Mean (SD)" = ~ mean_sd(Height_C)),
-       "BMI (kg/m2)" =
-         list("Mean (SD)" = ~ mean_sd(Bmi_C)),
-       "Waist circumference (cm)" =
-         list("Mean (SD)" = ~ mean_sd(Waist_C)),
-       "Total energy intake (kCal)" =
-         list("Mean (SD)" = ~ mean_sd(Qe_Energy, na_rm = T, show_n = "never")),
+         list("Mean"     =  ~ mean_sd(Tfollowup, digits = 1)),
+       
        "Country" = 
          list("France"         = ~ n_perc0(Country == 1, digits = 1),
               "Italy"          = ~ n_perc0(Country == 2, digits = 1),
@@ -57,30 +51,59 @@ crc_sum <-
               #"Greece"        = ~ n_perc0(Country == 6, digits = 1),
               "Germany"        = ~ n_perc0(Country == 7, digits = 1),
               "Denmark"        = ~ n_perc0(Country == 9, digits = 1)),
-       "Physical activity" =
-         list("Mean (SD)" = ~ mean_sd(Pa_Mets, na_rm = T, show_n = "never")),
-       "Alcohol intake (g/day)" =
-         list("Mean (SD)" = ~ mean_sd(Qe_Alc, na_rm = T, show_n = "never")),
+       
+       "Tumor site" =
+         list("Proximal colon"  = ~ n_perc0(location == 1, na_rm = T, digits = 1),
+              "Distal colon"    = ~ n_perc0(location == 2, na_rm = T, digits = 1),
+              "Rectum"          = ~ n_perc0(location == 3, na_rm = T, digits = 1),
+              "Other"           = ~ n_perc0(location == 4, na_rm = T, digits = 1),
+              "Unknown"         = ~ n_perc0(is.na(location), digits = 1)),
+       "Diagnosis with histological verification" =
+         list("Yes"    = ~ n_perc0(Bdg1clrt_hist == 1, na_rm = T, digits = 1),
+              "No"     = ~ n_perc0(Bdg1clrt_hist == 0, na_rm = T, digits = 1)),
+       
        "Smoking status" =
          list("Non smoker"     = ~ n_perc0(Smoke_Stat == 1, digits = 1),
               "Never smoker"   = ~ n_perc0(Smoke_Stat == 2, digits = 1),
               "Smoker"         = ~ n_perc0(Smoke_Stat == 3, digits = 1)),
        #"Unknown"      =  ~ n_perc0(Smoke_Stat == 4, digits = 1)),
-       "WCRF score" = 
-         list("Mean (SD)" = ~ mean_sd(Wcrf_C_Cal, na_rm = T, show_n = "never"))
-  )
-st1 <- summary_table(group_by(crc1a, Cncr_Caco_Clrt), crc_sum)
-st2 <- summary_table(group_by(crc2a, Cncr_Caco_Clrt), crc_sum)
-both <- cbind(st1, st2)
-print(both, cnames = c("CRC1 controls", "CRC1 cases", "CRC2 controls", "CRC2 cases"))
-# Copy and paste output into an Rmarkdown file and render to word/pdf etc
 
+       "Height (cm)" =
+         list("Mean (SD)" = ~ mean_sd(Height_C, digits = 1)),
+       "BMI (kg/m2)" =
+         list("Mean (SD)" = ~ mean_sd(Bmi_C, digits = 1)),
+       "Waist circumference (cm)" =
+         list("Mean (SD)" = ~ mean_sd(Waist_C, digits = 1)),
+       "Total energy intake (kCal)" =
+         list("Mean (SD)" = ~ mean_sd(Qe_Energy, na_rm = T, show_n = "never", digits = 0)),
+
+       "Physical activity" =
+         list("Mean (SD)" = ~ mean_sd(Pa_Mets, na_rm = T, show_n = "never", digits = 1)),
+       "Alcohol intake (g/day)" =
+         list("Mean (SD)" = ~ mean_sd(Qe_Alc, na_rm = T, show_n = "never", digits = 1)),
+
+       "WCRF score" = 
+         list("Mean (SD)" = ~ mean_sd(Wcrf_C_Cal, na_rm = T, show_n = "never")),
+       "Fatty acid metabolic signature" = 
+         list("Mean (SD)" = ~ mean_sd(comp1, na_rm = T, show_n = "never")),
+       "Endogenous metabolic signature" = 
+         list("Mean (SD)" = ~ mean_sd(comp2, na_rm = T, show_n = "never"))
+  )
+
+#st1 <- summary_table(group_by(crc1a, Cncr_Caco_Clrt), crc_sum)
+#st2 <- summary_table(group_by(crc2a, Cncr_Caco_Clrt), crc_sum)
+#both <- cbind(st1, st2)
+
+st1 <- summary_table(group_by(crc.sig, Cncr_Caco_Clrt), crc_sum)
+print(st1, cnames = c("Controls", "Cases"))
+# Copy and paste output into an Rmarkdown file and render to word/pdf etc
+# Note: for some reason Tfollowup didn't work. Calculated mean and SD manually
 
 # Tests for p-values for table -----------------------------
 # McNemar and Wilcoxon signed rank test?
 
 # Arrange df to pair cases and controls
-df1 <- crc1a %>% arrange(Cncr_Caco_Clrt, Match_Caseset)
+df1 <- crc.sig %>% arrange(Cncr_Caco_Clrt, Match_Caseset.x)
 
 # Case/control models: CRC A
 t.test(df1$Height_C ~ df1$Cncr_Caco_Clrt, paired = T)$p.value

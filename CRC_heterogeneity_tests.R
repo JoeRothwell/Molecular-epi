@@ -9,6 +9,8 @@ load("predicted_score_tables_sex.Rdata")
 # Matching factors were age, sex, study centre, follow-up time since blood collection, fasting 
 # status, menopausal status and phase of menstrual cycle at blood collection.
 
+### Revised manuscript: studies A and B merged ###
+
 library(tidyverse)
 # Normal GLM with matching factors. Follow up time is meaningless for controls
 # Menopause variables are incomplete
@@ -17,44 +19,24 @@ base <- Cncr_Caco_Clrt ~ Age_Blood + #Tfollowup + #Phase_Mnscycle + #Menopause +
 
 # Biocrates small, large, fatty acids (large fasted subset did not improve OR)
 
-# CRC A: score and signature
+# CRC endogenous: score and signature
 library(lmtest)
-fit1h <- glm(update(base, ~. + comp1 + Sex), data = crc1.ph, family = "binomial")
-fit1i <- glm(update(base, ~. + comp1 * Sex), data = crc1.ph, family = "binomial")
+fit1h <- glm(update(base, ~. + comp1 + Sex), data = crc.ph, family = "binomial")
+fit1i <- glm(update(base, ~. + comp1 * Sex), data = crc.ph, family = "binomial")
 lrtest(fit1h, fit1i)
-# pHET = 0.018
+# pHET = 0.022
 
 library(broom)
 s2 <- map_df(list(fit1h, fit1i), ~ tidy(., conf.int = T)) %>% filter(str_detect(term, "score."))
 forest(s2$estimate, ci.lb = s2$conf.low, ci.ub = s2$conf.high, refline = 1, transf = exp) 
 
 
-fit2h <- glm(update(base, ~. + Wcrf_C_Cal + Sex), data = crc1.ph, family = "binomial")
-fit2i <- glm(update(base, ~. + Wcrf_C_Cal * Sex), data = crc1.ph, family = "binomial")
+fit2h <- glm(update(base, ~. + Wcrf_C_Cal + Sex), data = crc.ph, family = "binomial")
+fit2i <- glm(update(base, ~. + Wcrf_C_Cal * Sex), data = crc.ph, family = "binomial")
 lrtest(fit2h, fit2i)
-# pHET = 0.64
+# pHET = 0.22
 
 s2 <- map_df(list(fit2h, fit2i), ~ tidy(., conf.int = T)) %>% filter(str_detect(term, "Wcrf_"))
-forest(s2$estimate, ci.lb = s2$conf.low, ci.ub = s2$conf.high, refline = 1, transf = exp) 
-
-
-
-# CRC B: score and signature
-fit3h <- glm(update(base, ~. + comp1 + Sex), data = crc2.ph, family = "binomial")
-fit3i <- glm(update(base, ~. + comp1 * Sex), data = crc2.ph, family = "binomial")
-lrtest(fit3h, fit3i)
-# p = 0.12
-
-s2 <- map_df(list(fit3h, fit3i), ~ tidy(., conf.int = T)) %>% filter(str_detect(term, "score."))
-forest(s2$estimate, ci.lb = s2$conf.low, ci.ub = s2$conf.high, refline = 1, transf = exp) 
-
-
-fit4h <- glm(update(base, ~. + Wcrf_C_Cal + Sex), data = crc2.ph, family = "binomial")
-fit4i <- glm(update(base, ~. + Wcrf_C_Cal * Sex), data = crc2.ph, family = "binomial")
-lrtest(fit4h, fit4i)
-# p = 0.008
-
-s2 <- map_df(list(fit4h, fit4i), ~ tidy(., conf.int = T)) %>% filter(str_detect(term, "Wcrf_"))
 forest(s2$estimate, ci.lb = s2$conf.low, ci.ub = s2$conf.high, refline = 1, transf = exp) 
 
 
@@ -75,4 +57,26 @@ lrtest(fit6h, fit6i)
 
 s2 <- map_df(list(fit6h, fit6i), ~ tidy(., conf.int = T)) %>% filter(str_detect(term, "Wcrf_"))
 forest(s2$estimate, ci.lb = s2$conf.low, ci.ub = s2$conf.high, refline = 1, transf = exp) 
+
+# Colon endogenous: score and signature
+fit7h <- glm(update(base, ~. + comp1 + Sex), data = col.ph, family = "binomial")
+fit7i <- glm(update(base, ~. + comp1 * Sex), data = col.ph, family = "binomial")
+lrtest(fit7h, fit7i)
+# pHET = 0.025
+
+fit8h <- glm(update(base, ~. + Wcrf_C_Cal + Sex), data = col.ph, family = "binomial")
+fit8i <- glm(update(base, ~. + Wcrf_C_Cal * Sex), data = col.ph, family = "binomial")
+lrtest(fit8h, fit8i)
+# pHET = 0.0002
+
+# Rectal endogenous: score and signature
+fit3h <- glm(update(base, ~. + comp1 + Sex), data = rec.ph, family = "binomial")
+fit3i <- glm(update(base, ~. + comp1 * Sex), data = rec.ph, family = "binomial")
+lrtest(fit3h, fit3i)
+# pHET = 0.022
+
+fit4h <- glm(update(base, ~. + Wcrf_C_Cal + Sex), data = rec.ph, family = "binomial")
+fit4i <- glm(update(base, ~. + Wcrf_C_Cal * Sex), data = rec.ph, family = "binomial")
+lrtest(fit4h, fit4i)
+# pHET = 0.8346
 
