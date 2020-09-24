@@ -34,7 +34,7 @@ forest(s2$estimate, ci.lb = s2$conf.low, ci.ub = s2$conf.high, refline = 1, tran
 fit2h <- glm(update(base, ~. + Wcrf_C_Cal + Sex), data = crc.ph, family = "binomial")
 fit2i <- glm(update(base, ~. + Wcrf_C_Cal * Sex), data = crc.ph, family = "binomial")
 lrtest(fit2h, fit2i)
-# pHET = 0.22
+# pHET = 0.022
 
 s2 <- map_df(list(fit2h, fit2i), ~ tidy(., conf.int = T)) %>% filter(str_detect(term, "Wcrf_"))
 forest(s2$estimate, ci.lb = s2$conf.low, ci.ub = s2$conf.high, refline = 1, transf = exp) 
@@ -44,7 +44,7 @@ forest(s2$estimate, ci.lb = s2$conf.low, ci.ub = s2$conf.high, refline = 1, tran
 fit5h <- glm(update(base, ~. + comp2 + Sex), data = crc3.ph, family = "binomial")
 fit5i <- glm(update(base, ~. + comp2 * Sex), data = crc3.ph, family = "binomial")
 lrtest(fit5h, fit5i)
-# pHET = 0.06
+# pHET = 0.054
 
 s2 <- map_df(list(fit5h, fit5i), ~ tidy(., conf.int = T)) %>% filter(str_detect(term, "score."))
 forest(s2$estimate, ci.lb = s2$conf.low, ci.ub = s2$conf.high, refline = 1, transf = exp) 
@@ -67,13 +67,13 @@ lrtest(fit7h, fit7i)
 fit8h <- glm(update(base, ~. + Wcrf_C_Cal + Sex), data = col.ph, family = "binomial")
 fit8i <- glm(update(base, ~. + Wcrf_C_Cal * Sex), data = col.ph, family = "binomial")
 lrtest(fit8h, fit8i)
-# pHET = 0.0002
+# pHET = 0.002
 
 # Rectal endogenous: score and signature
 fit3h <- glm(update(base, ~. + comp1 + Sex), data = rec.ph, family = "binomial")
 fit3i <- glm(update(base, ~. + comp1 * Sex), data = rec.ph, family = "binomial")
 lrtest(fit3h, fit3i)
-# pHET = 0.022
+# pHET = 0.49
 
 fit4h <- glm(update(base, ~. + Wcrf_C_Cal + Sex), data = rec.ph, family = "binomial")
 fit4i <- glm(update(base, ~. + Wcrf_C_Cal * Sex), data = rec.ph, family = "binomial")
