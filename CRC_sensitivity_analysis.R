@@ -179,6 +179,26 @@ ll <- list(fit1, fit2, fit3, fit4, fit5, fit6)
 mods <- map_df(ll, ~tidy(., exponentiate = T)) %>% filter(grepl("Wcrf_", term)) %>%
   mutate_if(is.numeric, ~round(., 2))
 
+# Models for high and low BMI and WCRF score
+fit1 <- clogit(update(base, ~. + comp1), data = crcN.ph)
+fit2 <- clogit(update(base, ~. + comp1), data = crcO.ph)
+fit3 <- clogit(update(base, ~. + comp1), data = crcL.ph)
+fit4 <- clogit(update(base, ~. + comp1), data = crcH.ph)
+
+ll <- list(fit1, fit2, fit3, fit4)
+mods <- map_df(ll, ~tidy(., exponentiate = T)) %>% filter(grepl("comp1", term)) %>%
+  mutate_if(is.numeric, ~round(., 2))
+
+# Fatty acids
+fit1 <- clogit(update(base, ~. + comp2), data = crc3N.ph)
+fit2 <- clogit(update(base, ~. + comp2), data = crc3O.ph)
+fit3 <- clogit(update(base, ~. + comp2), data = crc3L.ph)
+fit4 <- clogit(update(base, ~. + comp2), data = crc3H.ph)
+
+ll <- list(fit1, fit2, fit3, fit4)
+mods <- map_df(ll, ~tidy(., exponentiate = T)) %>% filter(grepl("comp2", term)) %>%
+  mutate_if(is.numeric, ~round(., 2))
+
 
 
 # Metabolite-CRC associations for manuscript Table 2
