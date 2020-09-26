@@ -63,6 +63,7 @@ colon2 <- crc2 %>% group_by(Match_Caseset) %>%
 
 rectal2 <- crc2 %>% group_by(Match_Caseset) %>% filter(max(location, na.rm = T) == 3) %>% ungroup(Match_Caseset)
 prox2 <- crc2 %>% group_by(Match_Caseset) %>% filter(max(location, na.rm = T) == 1) %>% ungroup(Match_Caseset)
+#prox2a <- crc2 %>% filter(location == 1)
 dist2 <- crc2 %>% group_by(Match_Caseset) %>% filter( max(location, na.rm = T) == 2) %>% ungroup(Match_Caseset)
 
 
@@ -156,8 +157,7 @@ crc3 <- read_dta("Database_Fatty acids.dta") %>%
 # Get male and female subsets, diagnosed after 2 years
 crc3m <- crc3 %>% filter(Sex == 1)
 crc3f <- crc3 %>% filter(Sex == 2)
-crc3t <- crc3 %>% group_by(Match_Caseset) %>% filter(mean(Tfollowup, na.rm = T) > 2) %>% ungroup()
-crc3ta <- crc3 %>% filter(Tfollowup > 2)
+crc3t <- crc3 %>% filter(Tfollowup > 2)
 
 # Colon cancer only
 col3 <- crc3 %>% filter(location %in% 1:2)

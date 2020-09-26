@@ -69,6 +69,28 @@ fit8i <- glm(update(base, ~. + Wcrf_C_Cal * Sex), data = col.ph, family = "binom
 lrtest(fit8h, fit8i)
 # pHET = 0.002
 
+# Prox colon endogenous: score and signature
+fit7h <- glm(update(base, ~. + comp1 + Sex), data = prox.ph, family = "binomial")
+fit7i <- glm(update(base, ~. + comp1 * Sex), data = prox.ph, family = "binomial")
+lrtest(fit7h, fit7i)
+# pHET = 0.20
+
+fit8h <- glm(update(base, ~. + Wcrf_C_Cal + Sex), data = prox.ph, family = "binomial")
+fit8i <- glm(update(base, ~. + Wcrf_C_Cal * Sex), data = prox.ph, family = "binomial")
+lrtest(fit8h, fit8i)
+# pHET = 0.12
+
+# Dist endogenous: score and signature
+fit7h <- glm(update(base, ~. + comp1 + Sex), data = dist.ph, family = "binomial")
+fit7i <- glm(update(base, ~. + comp1 * Sex), data = dist.ph, family = "binomial")
+lrtest(fit7h, fit7i)
+# pHET = 0.11
+
+fit8h <- glm(update(base, ~. + Wcrf_C_Cal + Sex), data = dist.ph, family = "binomial")
+fit8i <- glm(update(base, ~. + Wcrf_C_Cal * Sex), data = dist.ph, family = "binomial")
+lrtest(fit8h, fit8i)
+# pHET = 0.005
+
 # Rectal endogenous: score and signature
 fit3h <- glm(update(base, ~. + comp1 + Sex), data = rec.ph, family = "binomial")
 fit3i <- glm(update(base, ~. + comp1 * Sex), data = rec.ph, family = "binomial")
@@ -79,4 +101,15 @@ fit4h <- glm(update(base, ~. + Wcrf_C_Cal + Sex), data = rec.ph, family = "binom
 fit4i <- glm(update(base, ~. + Wcrf_C_Cal * Sex), data = rec.ph, family = "binomial")
 lrtest(fit4h, fit4i)
 # pHET = 0.8346
+
+# Colon fatty acids: score and signature
+fit9h <- glm(update(base, ~. + Wcrf_C_Cal + Sex), data = col3.ph, family = "binomial")
+fit9i <- glm(update(base, ~. + Wcrf_C_Cal * Sex), data = col3.ph, family = "binomial")
+lrtest(fit9h, fit9i)
+# pHET = 0.2836
+
+fit10h <- glm(update(base, ~. + comp2 + Sex), data = col3.ph, family = "binomial")
+fit10i <- glm(update(base, ~. + comp2 * Sex), data = col3.ph, family = "binomial")
+lrtest(fit10h, fit10i)
+# pHET = 0.1148
 

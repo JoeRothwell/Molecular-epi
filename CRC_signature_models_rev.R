@@ -48,7 +48,7 @@ sigmodlist <- list(fit2, fit4, fit6, fit8, fit10, fit12, fit14, fit16, fit18, fi
 
 scorenames <- c("CRC FA, all", "CRC FA, women", "CRC FA men", 
                 "CRC endogenous all", "CRC endogenous women", "CRC endogenous men", 
-                "Colon endogenous all", "Colon endogenous women", "Colon endogenous male", 
+                "Colon endogenous all", "Colon endogenous women", "Colon endogenous men", 
                 "Rectal endogenous, all", "Rectal endogenous, women", "Rectal endogenous, men")
 
 library(broom)
@@ -61,12 +61,52 @@ sigmods <- map_df(sigmodlist, ~tidy(., exponentiate = T)) %>% filter(term == "co
   #add_column(model = scorenames[-c(10, 13)], .before = T)
 
 
-# Additional models for revision: colon proximal and distal by sex
+# Additional models for revision: colon proximal and distal by sex, colon and distal for fatty acids
+fit1 <- clogit(update(base, ~. + comp1), data = prox.ph)
+fit2 <- clogit(update(base, ~. + comp1), data = proxF.ph)
+fit3 <- clogit(update(base, ~. + comp1), data = proxM.ph)
+
+fit4 <- clogit(update(base, ~. + comp1), data = dist.ph)
+fit5 <- clogit(update(base, ~. + comp1), data = distF.ph)
+fit6 <- clogit(update(base, ~. + comp1), data = distM.ph)
+
+fit7 <- clogit(update(base, ~. + comp2), data = col3.ph)
+fit8 <- clogit(update(base, ~. + comp2), data = col3f.ph)
+fit9 <- clogit(update(base, ~. + comp2), data = col3m.ph)
+
+fit10 <- clogit(update(base, ~. + comp2), data = dist3.ph)
+fit11 <- clogit(update(base, ~. + comp2), data = prox3.ph)
+
+modlist <- list(fit1, fit2, fit3, fit4, fit5, fit6, fit7, fit8, fit9, fit10, fit11)
+
+library(broom)
+mods <- map_df(modlist, ~tidy(., exponentiate = T)) %>% filter(term == "comp2" | term == "comp1") %>%
+  mutate_if(is.numeric, ~round(., 2)) %>% unite(OR.CI, estimate, conf.low, conf.high, sep = "-")
 
 
+# Score
+fit1 <- clogit(update(base, ~. + Wcrf_C_Cal), data = prox.ph)
+fit2 <- clogit(update(base, ~. + Wcrf_C_Cal), data = proxF.ph)
+fit3 <- clogit(update(base, ~. + Wcrf_C_Cal), data = proxM.ph)
 
+fit4 <- clogit(update(base, ~. + Wcrf_C_Cal), data = dist.ph)
+fit5 <- clogit(update(base, ~. + Wcrf_C_Cal), data = distF.ph)
+fit6 <- clogit(update(base, ~. + Wcrf_C_Cal), data = distM.ph)
 
+fit7 <- clogit(update(base, ~. + Wcrf_C_Cal), data = col3.ph)
+fit8 <- clogit(update(base, ~. + Wcrf_C_Cal), data = col3f.ph)
+fit9 <- clogit(update(base, ~. + Wcrf_C_Cal), data = col3m.ph)
 
+fit10 <- clogit(update(base, ~. + Wcrf_C_Cal), data = dist3.ph)
+fit11 <- clogit(update(base, ~. + Wcrf_C_Cal), data = prox3.ph)
+
+modlistA <- list(fit1, fit2, fit3, fit4, fit5, fit6, fit7, fit8, fit9, fit10, fit11)
+
+library(broom)
+modsA <- map_df(modlistA, ~tidy(., exponentiate = T)) %>% filter(term == "Wcrf_C_Cal") %>%
+  mutate_if(is.numeric, ~round(., 2)) %>% unite(OR.CI, estimate, conf.low, conf.high, sep = "-")
+
+modscoresig <- cbind(modsA, mods)
 
 
 

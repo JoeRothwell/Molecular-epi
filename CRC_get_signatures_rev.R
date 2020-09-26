@@ -122,8 +122,8 @@ cols <- colnames(ctrlA)
 df2 <- crc[, cols] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
 df3 <- colon[, cols] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
 df4 <- rectal[, cols] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
-df3 <- prox[, cols] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
-df4 <- dist[, cols] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
+df3a <- prox[, cols] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
+df3b <- dist[, cols] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
 
 # Excluding 2 year follow up, male and female only
 dff <- crcF[, cols] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
@@ -161,8 +161,8 @@ dfm4 <- distM[, cols] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale
 crc.ph <- cbind(crc, comp1 = predict(mod1b, df2)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
 col.ph <- cbind(colon, comp1 = predict(mod1b, df3)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
 rec.ph <- cbind(rectal, comp1 = predict(mod1b, df4)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
-prox.ph <- cbind(prox, comp1 = predict(mod1b, df4)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
-dist.ph <- cbind(dist, comp1 = predict(mod1b, df4)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+prox.ph <- cbind(prox, comp1 = predict(mod1b, df3a)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+dist.ph <- cbind(dist, comp1 = predict(mod1b, df3b)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
 
 # CRC by sex, excluding 2 year follow up
 crcT.ph <- cbind(crcT, comp1 = predict(mod1b, dft)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
@@ -207,6 +207,10 @@ df5o <- crc3O[, colnames(ctrlC)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log
 df5l <- crc3L[, colnames(ctrlC)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
 df5h <- crc3H[, colnames(ctrlC)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
 
+df6a <- col3[, colnames(ctrlC)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
+df6b <- col3f[, colnames(ctrlC)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
+df6c <- col3m[, colnames(ctrlC)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
+
 # Proximal and distal (only 12 cases of rectal)
 df6 <- prox3[, colnames(ctrlC)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
 df7 <- dist3[, colnames(ctrlC)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
@@ -223,8 +227,13 @@ crc3t.ph <- cbind(crc3t, comp2 = predict(mod2, df5t)[,,2]) %>% group_by(Match_Ca
 crc3f.ph <- cbind(crc3f, comp2 = predict(mod2, df5f)[,,2]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
 crc3m.ph <- cbind(crc3m, comp2 = predict(mod2, df5m)[,,2]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
 
-prox3.ph <- cbind(crc3f, comp2 = predict(mod2, df6)[,,2]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
-dist3.ph <- cbind(crc3f, comp2 = predict(mod2, df7)[,,2]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+col3.ph <- cbind(col3, comp2 = predict(mod2, df6a)[,,2]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+col3f.ph <- cbind(col3f, comp2 = predict(mod2, df6b)[,,2]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+col3m.ph <- cbind(col3m, comp2 = predict(mod2, df6c)[,,2]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+
+
+prox3.ph <- cbind(prox3, comp2 = predict(mod2, df6)[,,2]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+dist3.ph <- cbind(dist3, comp2 = predict(mod2, df7)[,,2]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
 
 # Study A and B CRC and colon combined for questionnaires
 #vars <- c("Idepic", "Cncr_Caco_Clrt", "Qe_Energy", "L_School", "Smoke_Int", "Match_Caseset", 
