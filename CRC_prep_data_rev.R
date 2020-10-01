@@ -30,9 +30,9 @@ crc1 <- read_sas("clrt_caco_metabo.sas7bdat") %>% filter(!is.na(Aminoacid_Glu)) 
   filter(Country != 6)
 
 # Get colon cancer only (ungroup to stop Match_Caseset from being readded later)
-colon1a <- crc1 %>% filter(location == 1 | location  == 2)
+colon1 <- crc1 %>% filter(location == 1 | location  == 2)
 
-colon1a <- crc1 %>% #group_by(Match_Caseset) %>% 
+colon1 <- crc1 %>% #group_by(Match_Caseset) %>% 
   filter(max(location, na.rm = T) == 1 | max(location, na.rm = T) == 2) #%>% ungroup(Match_Caseset)
 
 # Subsites
@@ -145,6 +145,8 @@ ctrlA <- ctrls[, intersect(colnames(ctrls), colnames(crcp))]
 # Gets common compounds between case-control and discovery controls and puts them in the same order.
 
 # Get CRC dataset from Elom and join WCRF scores. Convert categorical co-variates to factors
+wcrf <- meta %>% select(Idepic, Wcrf_C_Cal)
+
 crc3 <- read_dta("Database_Fatty acids.dta") %>% 
   mutate(Tfollowup.days = D_Dgclrt - D_Bld_Coll, Tfollowup = Tfollowup.days/365.25, 
          location = case_when(
@@ -152,6 +154,7 @@ crc3 <- read_dta("Database_Fatty acids.dta") %>%
            Case_Mal_Colon_Nos  == 1 ~ 4, Case_Mal_Rectum     == 1 ~ 3)) %>%
   group_by(Match_Caseset) %>% fill(c(Tfollowup, location), .direction = "downup") %>% ungroup() %>%
   mutate(Smoke_Int = fct_collapse(as.factor(Smoke_Intensity), Other = c("8", "9", "10"))) %>%
+  left_join(wcrf, by = "Idepic") %>%
   filter(Country != 6)
 
 # Get male and female subsets, diagnosed after 2 years
@@ -171,21 +174,20 @@ crc3O <- crc3 %>% filter(Bmi_C >= 25)
 crc3L <- crc3 %>% filter(Wcrf_C_Cal %in% 1:2)
 crc3H <- crc3 %>% filter(Wcrf_C_Cal %in% 3:5)
 
-# Colon cancer only
+# Colon proximal, distal, rectal cases only
 col3 <- crc3 %>% filter(location %in% 1:2)
-prox3 <- crc3 %>% filter(location == 1)
-dist3 <- crc3 %>% filter(location == 2)
-#rect3 <- crc3 %>% filter(location == 3) # only 5 cases
-
-# By sex
 col3m <- col3 %>% filter(Sex == 1)
 col3f <- col3 %>% filter(Sex == 2)
 
-
-# Colon, proximal, distal, rectal cases only
-rect3 <- crc3 %>% filter(location == 3)
 prox3 <- crc3 %>% filter(location == 1)
+prox3m <- prox3 %>% filter(Sex == 1)
+prox3f <- prox3 %>% filter(Sex == 2)
+
 dist3 <- crc3 %>% filter(location == 2)
+dist3m <- dist3 %>% filter(Sex == 1)
+dist3f <- dist3 %>% filter(Sex == 2)
+
+#rect3 <- crc3 %>% filter(location == 3) # only 5 cases
 
 
 # Get dataset for PLS modelling (all EPIC controls). Exclude compounds with many missings

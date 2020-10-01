@@ -74,10 +74,17 @@ fit7 <- clogit(update(base, ~. + comp2), data = col3.ph)
 fit8 <- clogit(update(base, ~. + comp2), data = col3f.ph)
 fit9 <- clogit(update(base, ~. + comp2), data = col3m.ph)
 
-fit10 <- clogit(update(base, ~. + comp2), data = dist3.ph)
-fit11 <- clogit(update(base, ~. + comp2), data = prox3.ph)
+fit10 <- clogit(update(base, ~. + comp2), data = prox3.ph)
+fit11 <- clogit(update(base, ~. + comp2), data = prox3f.ph)
+fit12 <- clogit(update(base, ~. + comp2), data = prox3m.ph)
 
-modlist <- list(fit1, fit2, fit3, fit4, fit5, fit6, fit7, fit8, fit9, fit10, fit11)
+fit13 <- clogit(update(base, ~. + comp2), data = dist3.ph)
+fit14 <- clogit(update(base, ~. + comp2), data = dist3f.ph)
+fit15 <- clogit(update(base, ~. + comp2), data = dist3m.ph)
+
+#modlist <- list(fit1, fit2, fit3, fit4, fit5, fit6, fit7, fit8, fit9, fit10, fit11)
+modlist <- list(fit1, fit2, fit3, fit4, fit5, fit6)
+modlist <- list(fit10, fit11, fit12, fit13, fit14, fit15)
 
 library(broom)
 mods <- map_df(modlist, ~tidy(., exponentiate = T)) %>% filter(term == "comp2" | term == "comp1") %>%
@@ -97,10 +104,17 @@ fit7 <- clogit(update(base, ~. + Wcrf_C_Cal), data = col3.ph)
 fit8 <- clogit(update(base, ~. + Wcrf_C_Cal), data = col3f.ph)
 fit9 <- clogit(update(base, ~. + Wcrf_C_Cal), data = col3m.ph)
 
-fit10 <- clogit(update(base, ~. + Wcrf_C_Cal), data = dist3.ph)
-fit11 <- clogit(update(base, ~. + Wcrf_C_Cal), data = prox3.ph)
+fit10 <- clogit(update(base, ~. + Wcrf_C_Cal), data = prox3.ph)
+fit11 <- clogit(update(base, ~. + Wcrf_C_Cal), data = prox3f.ph)
+fit12 <- clogit(update(base, ~. + Wcrf_C_Cal), data = prox3m.ph)
 
-modlistA <- list(fit1, fit2, fit3, fit4, fit5, fit6, fit7, fit8, fit9, fit10, fit11)
+fit13 <- clogit(update(base, ~. + Wcrf_C_Cal), data = dist3.ph)
+fit14 <- clogit(update(base, ~. + Wcrf_C_Cal), data = dist3f.ph)
+fit15 <- clogit(update(base, ~. + Wcrf_C_Cal), data = dist3m.ph)
+
+#modlistA <- list(fit1, fit2, fit3, fit4, fit5, fit6, fit7, fit8, fit9, fit10, fit11)
+modlistA <- list(fit1, fit2, fit3, fit4, fit5, fit6)
+modlistA <- list(fit10, fit11, fit12, fit13, fit14, fit15)
 
 library(broom)
 modsA <- map_df(modlistA, ~tidy(., exponentiate = T)) %>% filter(term == "Wcrf_C_Cal") %>%

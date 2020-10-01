@@ -113,3 +113,24 @@ fit10i <- glm(update(base, ~. + comp2 * Sex), data = col3.ph, family = "binomial
 lrtest(fit10h, fit10i)
 # pHET = 0.1148
 
+# Prox fatty acids: score and signature
+fit11h <- glm(update(base, ~. + Wcrf_C_Cal + Sex), data = prox3.ph, family = "binomial")
+fit11i <- glm(update(base, ~. + Wcrf_C_Cal * Sex), data = prox3.ph, family = "binomial")
+lrtest(fit11h, fit11i)
+# pHET = 0.4379
+
+fit12h <- glm(update(base, ~. + comp2 + Sex), data = prox3.ph, family = "binomial")
+fit12i <- glm(update(base, ~. + comp2 * Sex), data = prox3.ph, family = "binomial")
+lrtest(fit12h, fit12i)
+# pHET = 0.4328
+
+# Dist fatty acids: score and signature
+fit13h <- glm(update(base, ~. + Wcrf_C_Cal + Sex), data = dist3.ph, family = "binomial")
+fit13i <- glm(update(base, ~. + Wcrf_C_Cal * Sex), data = dist3.ph, family = "binomial")
+lrtest(fit13h, fit13i)
+# pHET = 0.4864
+
+fit14h <- glm(update(base, ~. + comp2 + Sex), data = dist3.ph, family = "binomial")
+fit14i <- glm(update(base, ~. + comp2 * Sex), data = dist3.ph, family = "binomial")
+lrtest(fit14h, fit14i)
+# pHET = 0.1846

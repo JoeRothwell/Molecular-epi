@@ -212,8 +212,13 @@ df6b <- col3f[, colnames(ctrlC)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log
 df6c <- col3m[, colnames(ctrlC)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
 
 # Proximal and distal (only 12 cases of rectal)
-df6 <- prox3[, colnames(ctrlC)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
-df7 <- dist3[, colnames(ctrlC)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
+df7 <- prox3[, colnames(ctrlC)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
+df7a <- prox3f[, colnames(ctrlC)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
+df7b <- prox3m[, colnames(ctrlC)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
+
+df8 <- dist3[, colnames(ctrlC)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
+df8a <- dist3f[, colnames(ctrlC)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
+df8b <- dist3m[, colnames(ctrlC)] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale %>% as_tibble
 
 # By BMI and WCRF score strata (for paper revisions)
 crc3N.ph <- cbind(crc3N, comp2 = predict(mod2, df5n)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
@@ -231,9 +236,15 @@ col3.ph <- cbind(col3, comp2 = predict(mod2, df6a)[,,2]) %>% group_by(Match_Case
 col3f.ph <- cbind(col3f, comp2 = predict(mod2, df6b)[,,2]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
 col3m.ph <- cbind(col3m, comp2 = predict(mod2, df6c)[,,2]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
 
+prox3.ph <- cbind(prox3, comp2 = predict(mod2, df7)[,,2]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+prox3f.ph <- cbind(prox3f, comp2 = predict(mod2, df7a)[,,2]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+prox3m.ph <- cbind(prox3m, comp2 = predict(mod2, df7b)[,,2]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
 
-prox3.ph <- cbind(prox3, comp2 = predict(mod2, df6)[,,2]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
-dist3.ph <- cbind(dist3, comp2 = predict(mod2, df7)[,,2]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+dist3.ph <- cbind(dist3, comp2 = predict(mod2, df8)[,,2]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+dist3f.ph <- cbind(dist3f, comp2 = predict(mod2, df8a)[,,2]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+dist3m.ph <- cbind(dist3m, comp2 = predict(mod2, df8b)[,,2]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+
+
 
 # Study A and B CRC and colon combined for questionnaires
 #vars <- c("Idepic", "Cncr_Caco_Clrt", "Qe_Energy", "L_School", "Smoke_Int", "Match_Caseset", 
@@ -248,3 +259,4 @@ col.both <- colon
 rm(list = ls()[!str_detect(ls(), ".ph|.both")])
 # Save workspace (for .Rmd file)
 #save.image(file="pred_score_tables_rev.Rdata")
+#save.image(file="pred_score_tables_FA.Rdata")
