@@ -245,16 +245,6 @@ dist3f.ph <- cbind(dist3f, comp2 = predict(mod2, df8a)[,,2]) %>% group_by(Match_
 dist3m.ph <- cbind(dist3m, comp2 = predict(mod2, df8b)[,,2]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
 
 
-
-# Study A and B CRC and colon combined for questionnaires
-#vars <- c("Idepic", "Cncr_Caco_Clrt", "Qe_Energy", "L_School", "Smoke_Int", "Match_Caseset", 
- #         "Wcrf_C_Cal", "Height_C", "Smoke_Stat")
-#crc.both <- rbind(crc1.ph[, vars], crc2.ph[, vars]) 
-#col.both <- rbind(col1.ph[, vars], col2.ph[, vars])
-
-crc.both <- crc
-col.both <- colon
-
 # Remove unneeded variables from workspace
 rm(list = ls()[!str_detect(ls(), ".ph|.both")])
 # Save workspace (for .Rmd file)
