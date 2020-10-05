@@ -3,14 +3,18 @@ source("adenoma_crc.R")
 # Logistic regression to find discriminants
 mod <- function(x) glm(ct ~ x + country + sex + age, data = adenoma.meta)
 mod2 <- function(x) glm(ct ~ x + country + sex + age, data = crc.meta)
+mod1 <- function(x) glm(ct ~ x + country + sex + age, data = polyp.meta)
 
 fits <- apply(adenoma, 2, mod)
 fits2 <- apply(crc, 2, mod2)
+fits1 <- apply(polyp, 2, mod1)
 
 library(broom)
 mods.adenoma <- map_df(fits, tidy) %>% filter(term == "x") %>%
   mutate(p.fdr = p.adjust(p.value, method = "fdr")) %>% add_column(compound = colnames(mat2))
 mods.crc <- map_df(fits2, tidy) %>% filter(term == "x") %>% 
+  mutate(p.fdr = p.adjust(p.value, method = "fdr")) %>% add_column(compound = colnames(mat2))
+mods.polyp <- map_df(fits1, tidy) %>% filter(term == "x") %>% 
   mutate(p.fdr = p.adjust(p.value, method = "fdr")) %>% add_column(compound = colnames(mat2))
 
 library(ggplot2)
@@ -30,9 +34,10 @@ adjmat2 <- apply(crc, 2, adj2)
 # Bind case-control status to adjusted (or unadjusted) matrix
 plsdat1 <- data.frame(adenoma)
 plsdat2 <- data.frame(crc)
+plsdat3 <- data.frame(polyp)
 plsdat1$path.group <- as.factor(adenoma.meta$path.group)
 plsdat2$path.group <- as.factor(crc.meta$path.group)
-
+plsdat3$path.group <- as.factor(polyp.meta$path.group)
 
 # Predictive model by PLS
 # Start with a sensible number of components eg 10
@@ -78,5 +83,22 @@ predictions1 <- predict(mod1, newdata = testing)
 confusionMatrix(predictions1, reference = testing$path.group)
 
 
+# Polyp
+# Split into training and test sets
+inTrain <- createDataPartition(y = plsdat3$path.group, p = 0.75, list = F)
+training <- plsdat3[inTrain, ]
+testing <- plsdat3[-inTrain, ]
 
+set.seed(111)
+folds <- createMultiFolds(y = training$path.group, k = 5, times = 5)
+control <- trainControl("repeatedcv", index = folds, selectionFunction = "oneSE")
+print(sapply(folds, length))
+
+# Train PLS model
+mod1 <- train(path.group ~ ., data = training, method = "pls", metric = "Accuracy", 
+              trControl = control, tuneLength = 20) 
+plot(mod1)
+confusionMatrix(mod1)
+predictions1 <- predict(mod1, newdata = testing)
+confusionMatrix(predictions1, reference = testing$path.group)
 

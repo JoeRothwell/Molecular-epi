@@ -9,16 +9,27 @@ dat <- read_xlsx("CRC Metabolomics MasterFile only Biocrates.xlsx", skip = 1, na
   clean_names() %>% remove_empty("rows") %>% mutate(pathsum = pathology_summary) %>%
   rename(sarcosine = sarcosine_178)
 
+# Pathology codings
+# 1 = Cancer; 2 = High Grade Dysplasia; 3 = Adenoma (TA, TVA, VA);  4 = Polyp (HP or small TA); 
+# 5 = normal (after colonoscopy); 6 = blood donor control
 table(dat$pathology_summary)
 
 # Make pathology groups
-dat <- dat %>% rename(sex = sex_f_female_m_male) %>%
+dat <- dat %>% 
+  rename(sex = sex_f_female_m_male, 
+         norm.class = normal_classification_for_other_minor_diagnoses_for_colonoscopy_normals) %>%
   mutate(path.group = case_when(
          pathsum == 1 ~ "crc", pathsum %in% 2:3 ~ "adenoma",
          pathsum == 4 ~ "polyp", pathsum %in% 5:6 ~ "normal"
-               ))
+               )) %>%
+  mutate(path = if_else(pathsum %in% 1:4, 1, 0))
 
 table(dat$path.group)
+#adenoma crc  normal   polyp 
+#60      153     103      73
+
+# Remove the normals with inflammatory conditions
+dat <- dat %>% filter(pathsum %in% c(1,2,3,4,6) | norm.class == 1)
 
 # Binary variable for adenoma
 dat <- dat %>% mutate(ct = case_when(pathsum %in% 2:3 ~ 1, pathsum %in% 5:6 ~ 0))
@@ -40,7 +51,7 @@ missmap(mat1, rank.order = F, x.cex = 1)
 # Add numeric case-control variable
 
 # Impute half min value
-mat2 <- na.aggregate(as.matrix(mat1[, -c(1:4, 133)]), function(x) min(x)/2)
+mat2 <- na.aggregate(as.matrix(mat1[, -c(1:4, ncol(mat1))]), function(x) min(x)/2)
 library(pca3d)
 pca <- prcomp(mat2, scale. = T)
 dev.off()
@@ -81,9 +92,16 @@ colnames(mat2a) <- df1$Compound
 # Get matrices for normal and adenoma, normal and CRC
 adenoma <- mat2a[mat1$path.group %in% c("adenoma", "normal"), ] %>% log2 %>% scale
 crc     <- mat2a[mat1$path.group %in% c("crc", "normal"), ] %>% log2 %>% scale
+polyp   <- mat2a[mat1$path.group %in% c("polyp", "normal"), ] %>% log2 %>% scale
 
 adenoma.meta <- mat1[mat1$path.group %in% c("adenoma", "normal"), ]
-crc.meta <- mat1[mat1$path.group %in% c("crc", "normal"), ]
+# Table sex and country
+#   1  2
+#F 58 30
+#M 55 17
 
+
+crc.meta <- mat1[mat1$path.group %in% c("crc", "normal"), ]
+polyp.meta <- mat1[mat1$path.group %in% c("polyp", "normal"), ]
 
 
