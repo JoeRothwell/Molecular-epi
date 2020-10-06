@@ -11,11 +11,17 @@ fits1 <- apply(polyp, 2, mod1)
 
 library(broom)
 mods.adenoma <- map_df(fits, tidy) %>% filter(term == "x") %>%
-  mutate(p.fdr = p.adjust(p.value, method = "fdr")) %>% add_column(compound = colnames(mat2))
+  mutate(p.fdr = p.adjust(p.value, method = "fdr")) %>% add_column(compound = colnames(mat2)) %>%
+  select(compound, estimate, p.fdr) %>% arrange(p.fdr) %>% filter(p.fdr < 0.05)
+# Copy and paste console output into Excel, then into powerpoint
+
 mods.crc <- map_df(fits2, tidy) %>% filter(term == "x") %>% 
-  mutate(p.fdr = p.adjust(p.value, method = "fdr")) %>% add_column(compound = colnames(mat2))
+  mutate(p.fdr = p.adjust(p.value, method = "fdr")) %>% add_column(compound = colnames(mat2)) %>%
+  select(compound, estimate, p.fdr) %>% arrange(p.fdr) %>% filter(p.fdr < 0.05)
+
 mods.polyp <- map_df(fits1, tidy) %>% filter(term == "x") %>% 
-  mutate(p.fdr = p.adjust(p.value, method = "fdr")) %>% add_column(compound = colnames(mat2))
+  mutate(p.fdr = p.adjust(p.value, method = "fdr")) %>% add_column(compound = colnames(mat2)) %>%
+  select(compound, estimate, p.fdr) %>% arrange(p.fdr) %>% filter(p.fdr < 0.05)
 
 library(ggplot2)
 ggplot() + geom_point(data=mods.adenoma, aes(compound, log10(p.value)), colour = "red") +
@@ -28,8 +34,10 @@ ggplot() + geom_point(data=mods.adenoma, aes(compound, log10(p.value)), colour =
 # Warning, better predictions without this adjustment for country!!!
 adj   <- function(x) residuals(lm(x ~ country, data = adenoma.meta))
 adj2   <- function(x) residuals(lm(x ~ country, data = crc.meta))
+adj1   <- function(x) residuals(lm(x ~ country, data = polyp.meta))
 adjmat1 <- apply(adenoma, 2, adj)
 adjmat2 <- apply(crc, 2, adj2)
+adjmat3 <- apply(polyp, 2, adj1)
 
 # Bind case-control status to adjusted (or unadjusted) matrix
 plsdat1 <- data.frame(adenoma)
@@ -44,11 +52,12 @@ plsdat3$path.group <- as.factor(polyp.meta$path.group)
 library(caret)
 # Adenoma
 # Split into training and test sets
+set.seed(111)
 inTrain <- createDataPartition(y = plsdat1$path.group, p = 0.75, list = F)
 training <- plsdat1[inTrain, ]
 testing <- plsdat1[-inTrain, ]
 
-set.seed(111)
+# Create folds and training parameters
 folds <- createMultiFolds(y = training$path.group, k = 5, times = 5)
 control <- trainControl("repeatedcv", index = folds, selectionFunction = "oneSE")
 print(sapply(folds, length))
@@ -65,11 +74,12 @@ confusionMatrix(predictions0, reference = testing$path.group)
 
 # CRC
 # Split into training and test sets
+set.seed(111)
 inTrain <- createDataPartition(y = plsdat2$path.group, p = 0.75, list = F)
 training <- plsdat2[inTrain, ]
 testing <- plsdat2[-inTrain, ]
 
-set.seed(111)
+# Create folds and training parameters
 folds <- createMultiFolds(y = training$path.group, k = 5, times = 5)
 control <- trainControl("repeatedcv", index = folds, selectionFunction = "oneSE")
 print(sapply(folds, length))
@@ -85,20 +95,21 @@ confusionMatrix(predictions1, reference = testing$path.group)
 
 # Polyp
 # Split into training and test sets
+set.seed(111)
 inTrain <- createDataPartition(y = plsdat3$path.group, p = 0.75, list = F)
 training <- plsdat3[inTrain, ]
 testing <- plsdat3[-inTrain, ]
 
-set.seed(111)
+# Create folds and training parameters
 folds <- createMultiFolds(y = training$path.group, k = 5, times = 5)
 control <- trainControl("repeatedcv", index = folds, selectionFunction = "oneSE")
 print(sapply(folds, length))
 
 # Train PLS model
-mod1 <- train(path.group ~ ., data = training, method = "pls", metric = "Accuracy", 
+mod3 <- train(path.group ~ ., data = training, method = "pls", metric = "Accuracy", 
               trControl = control, tuneLength = 20) 
-plot(mod1)
-confusionMatrix(mod1)
-predictions1 <- predict(mod1, newdata = testing)
-confusionMatrix(predictions1, reference = testing$path.group)
+plot(mod3)
+confusionMatrix(mod3)
+predictions3 <- predict(mod3, newdata = testing)
+confusionMatrix(predictions3, reference = testing$path.group)
 
