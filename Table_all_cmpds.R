@@ -37,9 +37,11 @@ load("coefficient_tables.Rdata")
 bioc1 <- bioc %>% left_join(iarc, by = "shortname")
 bioc2 <- bioc1 %>% left_join(helm, by = "shortname")
 
+pltdata1 <- pltdata %>% select(compound:Coefficient)
+
 # Join coefficients table to biocrates metadata
-bioc3 <- pltdata %>% left_join(bioc2, by = c("compound" = "displayname")) %>%
-  select(class.x, compound, Coefficient, CV_Helm, CV_Iarc)
+bioc3 <- pltdata1 %>% left_join(bioc2, by = c("compound" = "displayname")) %>%
+  select(class, compound, Coefficient, CV_Iarc, CV_Helm) %>% arrange(class)
 
 
 # Fatty acids
@@ -47,4 +49,22 @@ cvfa <- read_xlsx("FA-QC-CV.xlsx", col_types = c("text", "numeric")) %>%
   rename(displayname = "Fatty Acid") %>% mutate(CV = round(`CV%`, 1))
 
 facidCV1 <- faplot %>% left_join(cvfa, by = c("compound" = "displayname")) %>%
-  select(class, compound, Coefficient, CV)
+  select(class, compound, Coefficient, CV_Iarc = CV) %>% arrange(class)
+
+# Bind two tables together
+allCVdat <- bind_rows(Endogenous.metabolites = bioc3, Fatty.acids = facidCV1, .id = "Platform")
+
+
+# Get CVs for first two ACs (not supplied with data)
+fullcvs <- list.files("helmholtz_CV_data") %>% 
+  map_df( ~ read_delim(paste("helmholtz_CV_data", ., sep = "/"), delim = ";", skip = 1)) %>% 
+  filter(`Sample Identification` == "Ref_Plasma-Hum_PK3") %>%
+  select(KitBarcodeNr, C0, C2, C3) %>% mutate_at(vars(C0, C2, C3), funs(as.numeric))
+
+# Overall CV (not used in table)
+overallcvs <- fullcvs %>% summarise_all(~ sd(.)/mean(.))
+
+#Batch average CVs
+batchcvs <- fullcvs %>% group_by(KitBarcodeNr) %>% summarise_all(~ sd(.)/mean(.))
+batchcvs %>% summarise_all(mean)
+#C0: 7.0%, C2: 7.1%
