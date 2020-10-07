@@ -14,18 +14,14 @@ adj   <- function(x) residuals(lmer(x ~ Center + batch_no + Sex + (1|Study), dat
 adjFA <- function(x) residuals(lmer(x ~ LABO + STUDY + (1|Center), data = fa.ctrl))
 
 # Replace zero, impute with half mins, scale, transform to residuals of models above
-#logmat0 <- ctrls %>% na_if(0) %>% na.aggregate(FUN = function(x) min(x)/2) %>% log2 %>% scale
-#adjmat0 <- apply(logmat0, 2, adj) %>% data.frame # All control compounds
-
 hm <- function(x) min(x)/2
 logmat1 <- ctrlA %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale
-adjmat1 <- apply(logmat1, 2, adj) %>% data.frame # Overlap control/A
+adjmat1 <- apply(logmat1, 2, adj) %>% data.frame # Overlapping Biocrates compounds
 
 logmat3 <- ctrlC %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale
 adjmat3 <- apply(logmat3, 2, adjFA) %>% data.frame # Fatty acids
 
 # Bind WCRF scores to adjusted metabolite matrix for PLS modelling
-#Bioc0 <- cbind(score = ctrl$Wcrf_C_Cal, adjmat0) %>% filter(!is.na(score))
 Bioc1 <- cbind(score = ctrl$Wcrf_C_Cal, adjmat1) %>% filter(!is.na(score))
 Facid <- cbind(score = fa.ctrl$Wcrf_C_Cal, adjmat3) %>% filter(!is.na(score))
 
@@ -62,9 +58,8 @@ get.signature <- function(plsdata, which.mod = "plsmod"){
 
 # Fit final PLS models with optimal dimensions to get signatures (see PLS vignette p12)
 set.seed(111)
-mod1b <- plsr(score ~ ., data = Bioc1, ncomp = 1)
+mod1 <- plsr(score ~ ., data = Bioc1, ncomp = 1)
 mod2  <- plsr(score ~ ., data = Facid, ncomp = 2)
-#mod0  <- plsr(score ~ ., data = Bioc0, ncomp = 1)
 
 # Make tables of important compounds, using compound metadata to get proper names
 plot.sig <- function(mod, biocrates = T, percentile = 5, all = T){
@@ -103,11 +98,11 @@ plot.sig <- function(mod, biocrates = T, percentile = 5, all = T){
 }
 
 # Data for manuscript tables (copy into ms file via Excel)
-table3a <- plot.sig(mod0, percentile = 5, all = F)
+table3a <- plot.sig(mod1, percentile = 10, all = F)
 table3b <- plot.sig(mod2, biocrates = F, percentile = 10, all = F)
 
 # Data for scatter plots
-pltdata <- plot.sig(mod0, all = T)
+pltdata <- plot.sig(mod1, all = T)
 faplot  <- plot.sig(mod2, biocrates = F, percentile = 10, all = T)
 
 # Save workspace (for .Rmd file)

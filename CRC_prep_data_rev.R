@@ -139,6 +139,8 @@ ctrls <- ctrl %>% select(matches(expr), -contains("tdq")) %>% select_if(~ sum(.,
 crcp <- crc %>% select(matches(expr), -contains("tdq")) %>% select_if(~ sum(., na.rm = T) != 0)
 ctrlA <- ctrls[, intersect(colnames(ctrls), colnames(crcp))]
 
+# Remove compounds with over 40% missings
+ctrlA <- ctrlA[, colSums(is.na(ctrlA)) < 697]
 
 # Fatty acids CRC dataset (from Elom)
 
