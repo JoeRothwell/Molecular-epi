@@ -32,8 +32,8 @@ crc1 <- read_sas("clrt_caco_metabo.sas7bdat") %>% filter(!is.na(Aminoacid_Glu)) 
 # Get colon cancer only (ungroup to stop Match_Caseset from being readded later)
 colon1 <- crc1 %>% filter(location == 1 | location  == 2)
 
-colon1 <- crc1 %>% #group_by(Match_Caseset) %>% 
-  filter(max(location, na.rm = T) == 1 | max(location, na.rm = T) == 2) #%>% ungroup(Match_Caseset)
+#colon1 <- crc1 %>% #group_by(Match_Caseset) %>% 
+#  filter(max(location, na.rm = T) == 1 | max(location, na.rm = T) == 2) #%>% ungroup(Match_Caseset)
 
 # Subsites
 rectal1 <- crc1 %>% group_by(Match_Caseset) %>% filter(max(location, na.rm = T) == 3) %>% ungroup(Match_Caseset)
@@ -141,13 +141,14 @@ ctrlA <- ctrls[, intersect(colnames(ctrls), colnames(crcp))]
 
 # Remove compounds with over 40% missings
 ctrlA <- ctrlA[, colSums(is.na(ctrlA)) < 697]
+ctrlA <- ctrlA %>% select(-Sphingo_Sm_C26_1, -Sphingo_Sm_C26_0)
 
 # Fatty acids CRC dataset (from Elom)
 
 # Gets common compounds between case-control and discovery controls and puts them in the same order.
 
 # Get CRC dataset from Elom and join WCRF scores. Convert categorical co-variates to factors
-wcrf <- meta %>% select(Idepic, Wcrf_C_Cal)
+wcrf <- meta %>% select(Idepic, Wcrf_Fwg_Cal, Wcrf_Pf_Cal, Wcrf_Meat_Cal, Wcrf_C_Cal)
 
 crc3 <- read_dta("Database_Fatty acids.dta") %>% 
   mutate(Tfollowup.days = D_Dgclrt - D_Bld_Coll, Tfollowup = Tfollowup.days/365.25, 
@@ -208,6 +209,11 @@ fa.ctrl <- fa.ctrl %>% mutate_at(vars(var.list), as.factor)
 # Subset concentrations for CRC and controls
 crcfa <- crc3 %>% select(P14_0 : PCLA_9t_11c) 
 concs <- fa.ctrl %>% select(P14_0 : PCLA_9t_11c, -P24_0, -P20_0)
+
+# Compounds with > 20% CV
+concs <- concs %>% select(-P14_1n_5, -P18_1n_7t, -P22_0, -P18_2n_6tt)
+
+
 ctrlC <- fa.ctrl[, intersect(colnames(concs), colnames(crcfa))]
 
 # Number of control profiles for biocrates and fatty acids
