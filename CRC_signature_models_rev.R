@@ -1,7 +1,7 @@
 # Model CRC status from WCRF score or signature
 # Requires crc1, crc2, controls and PLS models to be prepared from CRC_data_prep.R
 #source("CRC_get_signatures_rev.R")
-load("pred_score_tables_rev.Rdata")
+load("predscore_df_subsite.Rdata")
 library(tidyverse)
 
 # For smoke intensity, categories 8, 9 and 10 are collapsed into other (Smoke_Int)
@@ -12,7 +12,8 @@ library(tidyverse)
 # Models for WCRF score LH column of table (corresponding subsets)
 
 library(survival)
-base <- Cncr_Caco_Clrt ~ Qe_Energy + L_School + Smoke_Stat + Smoke_Int + Height_C + strata(Match_Caseset)
+base <- Cncr_Caco_Clrt ~ Qe_Energy + L_School + Smoke_Stat + Smoke_Int + 
+  Height_C + strata(Match_Caseset)
 
 fit1 <- clogit(update(base, ~. + Wcrf_C_Cal), data = crc3.ph)
 fit3 <- clogit(update(base, ~. + Wcrf_C_Cal), data = crc3f.ph)
@@ -31,15 +32,15 @@ fit23 <- clogit(update(base, ~. - L_School + Wcrf_C_Cal), data = recM.ph)
 fit2 <- clogit(update(base, ~. + comp2), data = crc3.ph)
 fit4 <- clogit(update(base, ~. + comp2), data = crc3f.ph)
 fit6 <- clogit(update(base, ~. + comp2), data = crc3m.ph)
-fit8 <- clogit(update(base, ~. + comp1), data = crc.ph)
-fit10 <- clogit(update(base, ~. + comp1), data = crcF.ph)
-fit12 <- clogit(update(base, ~. + comp1), data = crcM.ph)
-fit14 <- clogit(update(base, ~. + comp1), data = col.ph)
-fit16 <- clogit(update(base, ~. + comp1), data = colF.ph)
-fit18 <- clogit(update(base, ~. + comp1), data = colM.ph)
-fit20 <- clogit(update(base, ~. + comp1), data = rec.ph)
-fit22 <- clogit(update(base, ~. - Smoke_Stat + comp1), data = recF.ph)
-fit24 <- clogit(update(base, ~. - Smoke_Stat - L_School + comp1), data = recM.ph)
+fit8 <- clogit(update(base, ~. + lab + comp1), data = crc.ph)
+fit10 <- clogit(update(base, ~. + lab + comp1), data = crcF.ph)
+fit12 <- clogit(update(base, ~. + lab + comp1), data = crcM.ph)
+fit14 <- clogit(update(base, ~. + lab + comp1), data = col.ph)
+fit16 <- clogit(update(base, ~. + lab + comp1), data = colF.ph)
+fit18 <- clogit(update(base, ~. + lab + comp1), data = colM.ph)
+fit20 <- clogit(update(base, ~. + lab + comp1), data = rec.ph)
+fit22 <- clogit(update(base, ~. + lab - Smoke_Stat + comp1), data = recF.ph)
+fit24 <- clogit(update(base, ~. + lab - Smoke_Stat - L_School + comp1), data = recM.ph)
 
 
 # Put score and signature models in separate lists (separate columns in table)
@@ -62,44 +63,34 @@ sigmods <- map_df(sigmodlist, ~tidy(., exponentiate = T)) %>% filter(term == "co
 
 
 # Additional models for revision: colon proximal and distal by sex, colon and distal for fatty acids
-fit1 <- clogit(update(base, ~. + comp1), data = prox.ph)
-fit2 <- clogit(update(base, ~. + comp1), data = proxF.ph)
-fit3 <- clogit(update(base, ~. + comp1), data = proxM.ph)
 
-fit4 <- clogit(update(base, ~. + comp1), data = dist.ph)
-fit5 <- clogit(update(base, ~. + comp1), data = distF.ph)
-fit6 <- clogit(update(base, ~. + comp1), data = distM.ph)
+fit1 <- clogit(update(base, ~. + comp2), data = col3.ph)
+fit2 <- clogit(update(base, ~. + comp2), data = col3f.ph)
+fit3 <- clogit(update(base, ~. + comp2), data = col3m.ph)
+fit4 <- clogit(update(base, ~. + comp2), data = prox3.ph)
+fit5 <- clogit(update(base, ~. + comp2), data = prox3f.ph)
+fit6 <- clogit(update(base, ~. + comp2), data = prox3m.ph)
+fit7 <- clogit(update(base, ~. + comp2), data = dist3.ph)
+fit8 <- clogit(update(base, ~. + comp2), data = dist3f.ph)
+fit9 <- clogit(update(base, ~. + comp2), data = dist3m.ph)
 
-fit7 <- clogit(update(base, ~. + comp2), data = col3.ph)
-fit8 <- clogit(update(base, ~. + comp2), data = col3f.ph)
-fit9 <- clogit(update(base, ~. + comp2), data = col3m.ph)
+fit10 <- clogit(update(base, ~. + lab + comp1), data = prox.ph)
+fit12 <- clogit(update(base, ~. + lab + comp1), data = proxF.ph)
+fit13 <- clogit(update(base, ~. + lab + comp1), data = proxM.ph)
+fit14 <- clogit(update(base, ~. + lab + comp1), data = dist.ph)
+fit15 <- clogit(update(base, ~. + lab + comp1), data = distF.ph)
+fit16 <- clogit(update(base, ~. + lab + comp1), data = distM.ph)
 
-fit10 <- clogit(update(base, ~. + comp2), data = prox3.ph)
-fit11 <- clogit(update(base, ~. + comp2), data = prox3f.ph)
-fit12 <- clogit(update(base, ~. + comp2), data = prox3m.ph)
-
-fit13 <- clogit(update(base, ~. + comp2), data = dist3.ph)
-fit14 <- clogit(update(base, ~. + comp2), data = dist3f.ph)
-fit15 <- clogit(update(base, ~. + comp2), data = dist3m.ph)
-
-#modlist <- list(fit1, fit2, fit3, fit4, fit5, fit6, fit7, fit8, fit9, fit10, fit11)
+modlist <- list(fit1, fit2, fit3, fit4, fit5, fit6, fit7, fit8, fit9)
 modlist <- list(fit1, fit2, fit3, fit4, fit5, fit6)
-modlist <- list(fit10, fit11, fit12, fit13, fit14, fit15)
+modlist <- list(fit10, fit12, fit13, fit14, fit15, fit16)
 
 library(broom)
 mods <- map_df(modlist, ~tidy(., exponentiate = T)) %>% filter(term == "comp2" | term == "comp1") %>%
   mutate_if(is.numeric, ~round(., 2)) %>% unite(OR.CI, estimate, conf.low, conf.high, sep = "-")
 
 
-# Score
-fit1 <- clogit(update(base, ~. + Wcrf_C_Cal), data = prox.ph)
-fit2 <- clogit(update(base, ~. + Wcrf_C_Cal), data = proxF.ph)
-fit3 <- clogit(update(base, ~. + Wcrf_C_Cal), data = proxM.ph)
-
-fit4 <- clogit(update(base, ~. + Wcrf_C_Cal), data = dist.ph)
-fit5 <- clogit(update(base, ~. + Wcrf_C_Cal), data = distF.ph)
-fit6 <- clogit(update(base, ~. + Wcrf_C_Cal), data = distM.ph)
-
+# Score, fatty acids
 fit7 <- clogit(update(base, ~. + Wcrf_C_Cal), data = col3.ph)
 fit8 <- clogit(update(base, ~. + Wcrf_C_Cal), data = col3f.ph)
 fit9 <- clogit(update(base, ~. + Wcrf_C_Cal), data = col3m.ph)
@@ -112,7 +103,17 @@ fit13 <- clogit(update(base, ~. + Wcrf_C_Cal), data = dist3.ph)
 fit14 <- clogit(update(base, ~. + Wcrf_C_Cal), data = dist3f.ph)
 fit15 <- clogit(update(base, ~. + Wcrf_C_Cal), data = dist3m.ph)
 
-#modlistA <- list(fit1, fit2, fit3, fit4, fit5, fit6, fit7, fit8, fit9, fit10, fit11)
+# Score, endogenous
+fit1 <- clogit(update(base, ~. + Wcrf_C_Cal), data = prox.ph)
+fit2 <- clogit(update(base, ~. + Wcrf_C_Cal), data = proxF.ph)
+fit3 <- clogit(update(base, ~. + Wcrf_C_Cal), data = proxM.ph)
+
+fit4 <- clogit(update(base, ~. + Wcrf_C_Cal), data = dist.ph)
+fit5 <- clogit(update(base, ~. + Wcrf_C_Cal), data = distF.ph)
+fit6 <- clogit(update(base, ~. + Wcrf_C_Cal), data = distM.ph)
+
+
+modlistA <- list(fit7, fit8, fit9, fit10, fit11, fit12, fit13, fit14, fit15)
 modlistA <- list(fit1, fit2, fit3, fit4, fit5, fit6)
 modlistA <- list(fit10, fit11, fit12, fit13, fit14, fit15)
 
