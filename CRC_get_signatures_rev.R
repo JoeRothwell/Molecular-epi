@@ -59,7 +59,7 @@ get.signature <- function(plsdata, which.mod = "plsmod"){
 # Fit final PLS models with optimal dimensions to get signatures (see PLS vignette p12)
 set.seed(111)
 mod1 <- plsr(score ~ ., data = Bioc1, ncomp = 1)
-mod2  <- plsr(score ~ ., data = Facid, ncomp = 2)
+mod2 <- plsr(score ~ ., data = Facid, ncomp = 2)
 
 # Make tables of important compounds, using compound metadata to get proper names
 plot.sig <- function(mod, biocrates = T, percentile = 5, all = T){
@@ -103,7 +103,7 @@ table3b <- plot.sig(mod2, biocrates = F, percentile = 10, all = F)
 
 # Data for scatter plots
 pltdata <- plot.sig(mod1, all = T)
-faplot  <- plot.sig(mod2, biocrates = F, percentile = 10, all = T)
+faplot2  <- plot.sig(mod2, biocrates = F, percentile = 10, all = T)
 
 # Save workspace (for .Rmd file)
 #save.image(file="metabolic_signatures.Rdata")
@@ -153,42 +153,42 @@ dfm4 <- distM[, cols] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale
 
 # Predict and bind scores
 # CRC, colon and rectal overall
-crc.ph <- cbind(crc, comp1 = predict(mod1b, df2)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
-col.ph <- cbind(colon, comp1 = predict(mod1b, df3)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
-rec.ph <- cbind(rectal, comp1 = predict(mod1b, df4)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
-prox.ph <- cbind(prox, comp1 = predict(mod1b, df3a)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
-dist.ph <- cbind(dist, comp1 = predict(mod1b, df3b)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+crc.ph <- cbind(crc, comp1 = predict(mod1, df2)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+col.ph <- cbind(colon, comp1 = predict(mod1, df3)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+rec.ph <- cbind(rectal, comp1 = predict(mod1, df4)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+prox.ph <- cbind(prox, comp1 = predict(mod1, df3a)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+dist.ph <- cbind(dist, comp1 = predict(mod1, df3b)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
 
 # CRC by sex, excluding 2 year follow up
-crcT.ph <- cbind(crcT, comp1 = predict(mod1b, dft)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
-crcF.ph <- cbind(crcF, comp1 = predict(mod1b, dff)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
-crcM.ph <- cbind(crcM, comp1 = predict(mod1b, dfm)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+crcT.ph <- cbind(crcT, comp1 = predict(mod1, dft)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+crcF.ph <- cbind(crcF, comp1 = predict(mod1, dff)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+crcM.ph <- cbind(crcM, comp1 = predict(mod1, dfm)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
 
 # CRC by BMI and WCRF score strata (for paper revisions)
-crcN.ph <- cbind(crcN, comp1 = predict(mod1b, dfn)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
-crcO.ph <- cbind(crcO, comp1 = predict(mod1b, dfo)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
-crcL.ph <- cbind(crcL, comp1 = predict(mod1b, dfl)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
-crcH.ph <- cbind(crcH, comp1 = predict(mod1b, dfh)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+crcN.ph <- cbind(crcN, comp1 = predict(mod1, dfn)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+crcO.ph <- cbind(crcO, comp1 = predict(mod1, dfo)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+crcL.ph <- cbind(crcL, comp1 = predict(mod1, dfl)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+crcH.ph <- cbind(crcH, comp1 = predict(mod1, dfh)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
 
 
 # Colon by sex and excluding 2 year follow up (new for revised manuscript)
-colT.ph <- cbind(colonT, comp1 = predict(mod1b, dft1)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
-colF.ph <- cbind(colonF, comp1 = predict(mod1b, dff1)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
-colM.ph <- cbind(colonM, comp1 = predict(mod1b, dfm1)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+colT.ph <- cbind(colonT, comp1 = predict(mod1, dft1)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+colF.ph <- cbind(colonF, comp1 = predict(mod1, dff1)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+colM.ph <- cbind(colonM, comp1 = predict(mod1, dfm1)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
 
 # Rectal by sex and excluding 2 year follow up (new for revised manuscript)
-recT.ph <- cbind(rectalT, comp1 = predict(mod1b, dft2)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
-recF.ph <- cbind(rectalF, comp1 = predict(mod1b, dff2)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
-recM.ph <- cbind(rectalM, comp1 = predict(mod1b, dfm2)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+recT.ph <- cbind(rectalT, comp1 = predict(mod1, dft2)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+recF.ph <- cbind(rectalF, comp1 = predict(mod1, dff2)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+recM.ph <- cbind(rectalM, comp1 = predict(mod1, dfm2)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
 
 # Proximal and distal by sex and excluding 2 year follow up
-proxT.ph <- cbind(proxT, comp1 = predict(mod1b, dft3)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
-proxF.ph <- cbind(proxF, comp1 = predict(mod1b, dff3)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
-proxM.ph <- cbind(proxM, comp1 = predict(mod1b, dfm3)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+proxT.ph <- cbind(proxT, comp1 = predict(mod1, dft3)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+proxF.ph <- cbind(proxF, comp1 = predict(mod1, dff3)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+proxM.ph <- cbind(proxM, comp1 = predict(mod1, dfm3)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
 
-distT.ph <- cbind(distT, comp1 = predict(mod1b, dft4)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
-distF.ph <- cbind(distF, comp1 = predict(mod1b, dff4)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
-distM.ph <- cbind(distM, comp1 = predict(mod1b, dfm4)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+distT.ph <- cbind(distT, comp1 = predict(mod1, dft4)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+distF.ph <- cbind(distF, comp1 = predict(mod1, dff4)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
+distM.ph <- cbind(distM, comp1 = predict(mod1, dfm4)[,,1]) %>% group_by(Match_Caseset) %>% filter(n() == 2)
 
 
 # Small case-control fatty acids (Use predictions from 2 comps)
@@ -245,3 +245,4 @@ rm(list = ls()[!str_detect(ls(), ".ph|.both")])
 # Save workspace (for .Rmd file)
 #save.image(file="pred_score_tables_rev.Rdata")
 #save.image(file="pred_score_tables_FA.Rdata")
+save.image(file="predscore_df_subsite1.Rdata")
