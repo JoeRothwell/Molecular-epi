@@ -42,15 +42,33 @@ crcp <- crc.both %>% select(matches(expr), -contains("tdq")) %>% select_if(~ sum
 # Get overlap dataset, replace zeros with half min value, log and scale
 overlap <- intersect(colnames(adenoma), colnames(crcp))
 hm <- function(x) min(x)/2
-crc.sort <- crcp[, overlap] %>% na_if(0) %>% na.aggregate(FUN = hm) %>% log2 %>% scale
+crc.sort <- crcp[, overlap] %>% na_if(0) %>% na.aggregate(FUN = hm) #%>% log2 %>% scale
 
 
 
+# Put cross-sectional and case-control samples together and make group labels
+allmat <- rbind(as.matrix(log2(crc.sort)), mat2)
+grps <- as.factor(c(rep("crc1", nrow(crc1)), rep("crc2", nrow(crc2)), rep("CS", nrow(mat2))))
+grps1 <- as.factor(c(rep("crc1", nrow(crc1)), rep("crc2", nrow(crc2)), mat$path.group))
+
+
+# Plot PCA
+pca <- prcomp(allmat, scale. = T)
+library(pca3d)
+pca2d(pca, group = grps1, legend = "bottomright")
+box(which = "plot", lty = "solid")
+
+# Adjust matrix with residuals method and repeat PCA
+adjmat <- apply(allmat, 2, function(x) residuals(lm(x ~ grps)))
+pca1 <- prcomp(adjmat, scale. = T)
+pca2d(pca1, group = grps1, legend = "bottomright")
+box(which = "plot", lty = "solid")
 
 # Refit PLS models with adenoma and crc overlap dataset
 # Bind case-control status to  matrix
 
 
+# Make PLS data
 # Adenoma (only 1 compound less)
 plsdat1 <- data.frame(adenoma[, overlap])
 plsdat1$path.group <- as.factor(adenoma.meta$path.group)
