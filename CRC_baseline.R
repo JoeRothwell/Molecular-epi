@@ -1,39 +1,37 @@
 # Baseline characteristics for the 2 CRC metabolomics studies
 # 8 unpaired samples have been removed for CRC1
 source("CRC_prep_data.R")
-load("pred_score_tables_rev.Rdata")
+library(tidyverse)
+
+#Get predicted WCRF score
+load("predscore_df_subsite1.Rdata")
+crc.ph0 <- crc.ph %>% select(Idepic, comp1)
+crc.ph1 <- crc3.ph %>% select(Idepic, comp2)
 
 # Generate time to diagnosis and tumour site variables for both studies
 crc1a <- crc1 %>% group_by(Match_Caseset) %>% filter(n() == 2) %>% ungroup() %>%
   select(Idepic, Match_Caseset, Sex, location, Age_Blood, Tfollowup, Height_C, Bmi_C, Waist_C, Qe_Energy, Bdg1clrt,
          Country, Pa_Mets, Smoke_Stat, Qe_Alc, Wcrf_C_Cal, Cncr_Caco_Clrt) %>% 
-  mutate(Study = "CRC1", Bdg1clrt_hist = ifelse(Bdg1clrt %in% c(53,54,55,56,60,70), 1, 0))
+  mutate(Study = "CRC1", Bdg1clrt_hist = ifelse(Bdg1clrt %in% c(53,54,55,56,60,70), 1, 0)) %>%
+  left_join(crc.ph0, by = "Idepic") %>%
+  left_join(crc.ph1, by = "Idepic")
 
 crc2a <- crc2 %>%
   select(Idepic, Match_Caseset, Sex, location, Age_Blood, Tfollowup, Height_C, Bmi_C, Waist_C, Qe_Energy, Bdg1clrt,
          Country, Pa_Mets, Smoke_Stat, Qe_Alc, Wcrf_C_Cal, Cncr_Caco_Clrt) %>% 
-  mutate(Study = "CRC2", Bdg1clrt_hist = ifelse(Bdg1clrt %in% c(53,54,55,56,60,70), 1, 0))
+  mutate(Study = "CRC2", Bdg1clrt_hist = ifelse(Bdg1clrt %in% c(53,54,55,56,60,70), 1, 0)) %>%
+  left_join(crc.ph0, by = "Idepic")
 
 # Merge for revised submission and add predicted WCRF score
-crc.ph0 <- crc.ph %>% select(Idepic, comp1)
-crc.ph1 <- crc3.ph %>% select(Idepic, comp2)
-crc <- bind_rows(crc1a, crc2a) %>% left_join(crc.ph, by = "Idepic")
-crc.sig <- crc %>% left_join(crc.ph1, by = "Idepic")
+crc.sig <- bind_rows(crc1a, crc2a)
 crc.sig$Tfollowup <- as.numeric(crc.sig$Tfollowup)
-
 
 library(qwraps2)
 options(qwraps2_markup = "markdown")
 
-# Generate table automatically
-#crcsum <- bind_rows(crc1a, crc2a) %>% qsummary(., numeric_summaries = list("Mean (SD)" = "~ mean_sd(%s)"),
-#           n_perc_args = list(digits = 1, show_symbol = TRUE))
-
-# Manually specified
-crc_sum <-
-  list(#"Total subjects"   =
-        # list("N"   =   ~ n()),
-       "Sex" = 
+# Manually specified summary
+crc.sum <-
+  list("Sex" = 
          list("Male"       =  ~ n_perc0(Sex == 1, digits = 1),
               "Female"     =  ~ n_perc0(Sex == 2, digits = 1)),
        "Age at blood collection (years)" = 
@@ -90,11 +88,7 @@ crc_sum <-
          list("Mean (SD)" = ~ mean_sd(comp2, na_rm = T, show_n = "never"))
   )
 
-#st1 <- summary_table(group_by(crc1a, Cncr_Caco_Clrt), crc_sum)
-#st2 <- summary_table(group_by(crc2a, Cncr_Caco_Clrt), crc_sum)
-#both <- cbind(st1, st2)
-
-st1 <- summary_table(group_by(crc.sig, Cncr_Caco_Clrt), crc_sum)
+st1 <- summary_table(group_by(crc.sig, Cncr_Caco_Clrt), crc.sum)
 print(st1, cnames = c("Controls", "Cases"))
 # Copy and paste output into an Rmarkdown file and render to word/pdf etc
 # Note: for some reason Tfollowup didn't work. Calculated mean and SD manually
