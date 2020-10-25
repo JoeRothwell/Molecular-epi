@@ -17,7 +17,9 @@ table(dat$pathology_summary)
 # Make pathology groups
 dat <- dat %>% 
   rename(sex = sex_f_female_m_male, 
-         norm.class = normal_classification_for_other_minor_diagnoses_for_colonoscopy_normals) %>%
+         norm.class = normal_classification_for_other_minor_diagnoses_for_colonoscopy_normals,
+         batch = batch_plasma_metabolomics,
+         smoke = smoking) %>%
   mutate(path.group = case_when(
          pathsum == 1 ~ "crc", pathsum %in% 2:3 ~ "adenoma",
          pathsum == 4 ~ "polyp", pathsum %in% 5:6 ~ "normal"
@@ -40,14 +42,15 @@ table(dat$ct)
 
 # Get Biocrates data only (use glutamate)
 # Remove 11 missings (no peak detected)
-mat <- dat %>% select(path.group, country:age, lyso_pc_a_c16_0:c9) %>% filter(!is.na(glu))
-missmap(mat, rank.order = F, x.cex = 1)
+mat <- dat %>% select(path.group, country:age, batch, smoke, lyso_pc_a_c16_0:c9) %>% 
+  filter(!is.na(glu))
+#missmap(mat, rank.order = F, x.cex = 1)
 
 # Convert character columns to numeric, remove metabolites with more than 21% missings (80),
 # code normal = 0, pathology = 1
 mat <- mat %>% mutate_at(.vars = vars(lyso_pc_a_c16_0:c9), .funs = as.numeric)
 mat1 <- mat %>% select_if(~ sum(is.na(.)) < 80) %>% mutate(ct = ifelse(path.group == "normal", 0, 1))
-missmap(mat1, rank.order = F, x.cex = 1)
+#missmap(mat1, rank.order = F, x.cex = 1)
 # Add numeric case-control variable
 
 # Impute half min value
@@ -61,7 +64,7 @@ box(which = "plot", lty = "solid")
 # mat1 is the unimputed matrix with metadata, mat2 is the imputed matrix without metadata
 # PC-PR2
 library(pcpr2)
-props <- runPCPR2(mat2, mat1[, 1:4])
+props <- runPCPR2(mat2, mat1[, 1:5])
 plot(props, col = "red")
 
 
