@@ -77,19 +77,36 @@ mat <- crc1 %>% #filter(Cncr_Caco_Clrt == 1) %>%
   log %>% scale
 
 crc1$pred.alc <- predict(mod1, mat)[,,1]
-fit3a <- clogit(update(base, ~. + exp(pred.alc)), data = crc1) #2.63 (1.43-4.81)
-summary(fit3a)
+#fit3a <- clogit(update(base, ~. + exp(pred.alc)), data = crc1) 
+#2.63 (1.43-4.81)
 
-# NDE (direct effect, adjusting for mediator)
-modY <- clogit(update(base, ~. + I(Qe_Alc/12) + exp(pred.alc)), data = crc1) #1.08 (0.95-1.22)
-summary(fit3b)
 
-# NIE (indirect effect, mediator modelled by exposure)
-# Is the mediator predicted by the exposure
+# Calculation of NDE, NIE and RD ratio from Van Steenland 2010 (pg 1342)
+
+# Logistic model adjusting for mediator (OR from theta coefficients)
+# Natural direct effect is given as exp(coeff for 1 unit change in exposure)
+modY <- clogit(update(base, ~. + I(Qe_Alc/12) + exp(pred.alc)), data = crc1) 
+# OR(NDE) = 1.08 (0.95-1.22)
+
+# Linear model of outcome and mediator (OR from beta coefficients)
+# Natural indirect effect is given as expt(coeff of theta for mediator x beta for exposure)
 modM <- lm(exp(pred.alc) ~ Bmi_C + Qe_Energy + L_School + Smoke_Stat + Smoke_Int + Height_C + 
               Qge0701 + I(Qe_Alc/12), data = crc1)
 
-library(mediation)
-mediate(modM, modY, treat = "Qe_Alc", mediator = "pred.alc", boot = T, sims = 100)
+# Get coefficients for calculation of RDR
+# Risk difference ratio is defined as log(TE) - log(NDE) / log (NDE)
+df0 <- tidy(fit3)[20, -1]
+df1 <- tidy(modY)[20, -1]
+df1a <- tidy(modY)[21, ]
+df2 <- tidy(modM)[21, ]
+
+RDR <- ((df0 - df1) / df1) * 100
+
+
+
+# Percentage mediation
+
+# RDratio
+
 
 
