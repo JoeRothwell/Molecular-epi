@@ -4,7 +4,15 @@ library(tidyverse)
 library(Amelia)
 library(zoo)
 
-# Prep data: replace NAs, clean up names, remove empty rows, rename sarcosine_178 to sarcosine
+# Prep data. Get standardised compound names for PLScthat match those in adenoma data
+cmpd.meta <- read_csv("Biocrates_cmpd_metadata.csv") %>%
+  separate(Compound, into = c("Compound.cl", "Compound.str"),
+           remove = F, extra = "merge", fill = "right") %>%
+  mutate(cmpd.low = str_to_lower(Compound.str)) %>% 
+  mutate(cmpd.low = str_replace(cmpd.low, "lyso", "lyso_")) %>%
+  mutate(cmpd.low = str_replace(cmpd.low, "c4_oh_", "c4_oh")) 
+
+# Main adenoma data: replace NAs, clean up names, remove empty rows, rename sarcosine_178 to sarcosine
 dat <- read_xlsx("CRC Metabolomics MasterFile only Biocrates.xlsx", skip = 1, na = c(".", "<LOD")) %>% 
   clean_names() %>% remove_empty("rows") %>% mutate(pathsum = pathology_summary) %>%
   rename(sarcosine = sarcosine_178)
@@ -53,8 +61,35 @@ mat1 <- mat %>% select_if(~ sum(is.na(.)) < 80) %>% mutate(ct = ifelse(path.grou
 #missmap(mat1, rank.order = F, x.cex = 1)
 # Add numeric case-control variable
 
-# Impute half min value
-mat2 <- na.aggregate(as.matrix(mat1[, -c(1:4, ncol(mat1))]), function(x) min(x)/2)
+# Impute half min value and subset full matrix
+expr <- "(carn|oacid|genic|roph|ingo|Sugars)[_]"
+mat2 <- na.aggregate(as.matrix(mat1[, -c(1:5, ncol(mat1))]), function(x) min(x)/2)
+
+# Replace matrix names with standardised ones (see match_cmpd_names.R)
+matnames <- data.frame(cmpd.low = colnames(mat2), ord = 1:length(colnames(mat2)))
+
+library(fuzzyjoin)
+df1 <- stringdist_right_join(cmpd.meta, matnames, by = "cmpd.low", max_dist = 0.5)
+mat2a <- mat2
+colnames(mat2a) <- df1$Compound
+
+
+# Subsets for all, normal vs adenoma, CRC or polyp
+adenoma <- mat2a[mat1$path.group %in% c("adenoma", "normal"), ] %>% log2 %>% scale
+crc     <- mat2a[mat1$path.group %in% c("crc", "normal"), ] %>% log2 %>% scale
+polyp   <- mat2a[mat1$path.group %in% c("polyp", "normal"), ] %>% log2 %>% scale
+
+# Metadata
+adenoma.meta <- mat1[mat1$path.group %in% c("adenoma", "normal"), ]
+crc.meta <- mat1[mat1$path.group %in% c("crc", "normal"), ]
+polyp.meta <- mat1[mat1$path.group %in% c("polyp", "normal"), ]
+
+# Table sex and country
+#   1  2
+#F 58 30
+#M 55 17
+
+# Plot PCA and PCPR2
 library(pca3d)
 pca <- prcomp(mat2, scale. = T)
 dev.off()
@@ -66,45 +101,3 @@ box(which = "plot", lty = "solid")
 library(pcpr2)
 props <- runPCPR2(mat2, mat1[, 1:5])
 plot(props, col = "red")
-
-
-
-# Get standardised compound names for PLS
-cmpd.meta <- read_csv("Biocrates_cmpd_metadata.csv")
-
-# Make data frame of Biocrates compound names
-#allnames <- dat %>% select(lyso_pc_a_c16_0:c9)
-matnames <- data.frame(cmpd.low = colnames(mat2), ord = 1:length(colnames(mat2)))
-
-# Make new names that match those in adenoma dataset
-cmpd.meta2 <- cmpd.meta %>% 
-  separate(Compound, into = c("Compound.cl", "Compound.str"),
-            remove = F, extra = "merge", fill = "right") %>%
-  mutate(cmpd.low = str_to_lower(Compound.str)) %>% 
-  mutate(cmpd.low = str_replace(cmpd.low, "lyso", "lyso_")) %>%
-  mutate(cmpd.low = str_replace(cmpd.low, "c4_oh_", "c4_oh"))
-
-library(fuzzyjoin)
-df1 <- stringdist_right_join(cmpd.meta2, matnames, by = "cmpd.low", max_dist = 0.5)
-
-
-# Replace matrix names with standardised ones (see match_cmpd_names.R)
-mat2a <- mat2
-colnames(mat2a) <- df1$Compound
-
-# Get matrices for normal and adenoma, normal and CRC
-adenoma <- mat2a[mat1$path.group %in% c("adenoma", "normal"), ] %>% log2 %>% scale
-crc     <- mat2a[mat1$path.group %in% c("crc", "normal"), ] %>% log2 %>% scale
-polyp   <- mat2a[mat1$path.group %in% c("polyp", "normal"), ] %>% log2 %>% scale
-
-adenoma.meta <- mat1[mat1$path.group %in% c("adenoma", "normal"), ]
-# Table sex and country
-#   1  2
-#F 58 30
-#M 55 17
-
-
-crc.meta <- mat1[mat1$path.group %in% c("crc", "normal"), ]
-polyp.meta <- mat1[mat1$path.group %in% c("polyp", "normal"), ]
-
-
