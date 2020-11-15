@@ -7,12 +7,14 @@ source("adenoma_crc.R")
 var.list <- c("Country", "Center", "Sex", "Match_Caseset", "L_School", #"Smoke_Int", 
               "Smoke_Stat", "Smoke_Intensity", "Fasting_C", "Menopause", "Phase_Mnscycle")
 
+# Metadata (removed location for this study)
 meta <- read_dta("clrt_caco.dta") %>% 
+  group_by(Match_Caseset) %>% fill(D_Dgclrt, .direction = "downup") %>% ungroup() %>%
   mutate(Tfollowup.days = D_Dgclrt - D_Bld_Coll, Tfollowup = Tfollowup.days/365.25, 
          location = case_when(
            Case_Mal_Colon_Prox == 1 ~ 1, Case_Mal_Colon_Dist == 1 ~ 2,
            Case_Mal_Colon_Nos  == 1 ~ 4, Case_Mal_Rectum     == 1 ~ 3)) %>%
-  group_by(Match_Caseset) %>% fill(c(D_Dgclrt, location), .direction = "downup") %>% ungroup() %>%
+  #group_by(Match_Caseset) %>% fill(c(D_Dgclrt, location), .direction = "downup") %>% ungroup() %>%
   select(-Match_Caseset, -Cncr_Caco_Clrt) %>%
   distinct(Idepic, .keep_all = T)
 
@@ -57,7 +59,7 @@ box(which = "plot", lty = "solid")
 # Adjust matrix with residuals method and repeat PCA
 adjmat <- apply(allmat, 2, function(x) residuals(lm(x ~ grps)))
 pca1 <- prcomp(adjmat, scale. = F)
-pca2d(pca1, group = grps1, legend = "topleft")
+pca2d(pca1, group = fct_inorder(grps1), legend = "topleft")
 box(which = "plot", lty = "solid")
 
 # Refit PLS models with adenoma and crc overlap dataset
@@ -90,7 +92,7 @@ confusionMatrix(mod1)
 crc.sort <- adjmat[grps1 %in% c("case-ctrlA", "case-ctrlB"), ] %>% data.frame
 predict.crc1 <- predict(mod1, newdata = crc.sort)
 table(predict.crc1)
-# 1422 predicted adenomas, 1801 predicted normal (scaled separately)
+# 364 predicted adenomas, 2859 predicted normal (scaled separately)
 
 
 
@@ -113,7 +115,7 @@ confusionMatrix(mod2)
 
 predict.crc2 <- predict(mod2, newdata = crc.sort)
 table(predict.crc2)
-# 2180 predicted crc, 1043 predicted normal
+# 1372 predicted crc, 1851 predicted normal
 
 
 
@@ -137,17 +139,35 @@ confusionMatrix(mod3)
 
 predict.crc3 <- predict(mod3, newdata = crc.sort)
 table(predict.crc3)
-# 475 predicted polyp, 2748 predicted normal
+# 332 predicted polyp, 2891 predicted normal
 
 
 
 # Compare predictions with CRC case-control status
 s1 <- cbind(crc.both, pred.adenoma = predict.crc1, pred.crc = predict.crc2, 
-            pred.polyp = predict.crc3) %>% filter(Tfollowup < 5)
+            pred.polyp = predict.crc3)
+s2 <- s1 %>% filter(Tfollowup < 5)
+s3 <- s1 %>% filter(Tfollowup < 2)
+s4 <- s1 %>% filter(Age_Blood < 60)
+s5 <- s1 %>% filter(Age_Blood > 60)
 
+# Adenoma, all case-control subjects and <5 and <2 y follow up only
 table(s1$Cncr_Caco_Clrt, s1$pred.adenoma)
+table(s2$Cncr_Caco_Clrt, s2$pred.adenoma)
+table(s3$Cncr_Caco_Clrt, s3$pred.adenoma)
+
+# CRC
 table(s1$Cncr_Caco_Clrt, s1$pred.crc)
+table(s2$Cncr_Caco_Clrt, s2$pred.crc)
+table(s3$Cncr_Caco_Clrt, s3$pred.crc)
+
+# Polyp
 table(s1$Cncr_Caco_Clrt, s1$pred.polyp)
+table(s2$Cncr_Caco_Clrt, s2$pred.polyp)
+table(s3$Cncr_Caco_Clrt, s3$pred.polyp)
+
+table(s4$Cncr_Caco_Clrt, s4$pred.polyp)
+table(s5$Cncr_Caco_Clrt, s5$pred.polyp)
 
 library(sjmisc)
 s1$Age_cat <- dicho(s1$Age_Blood)
