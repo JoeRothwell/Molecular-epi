@@ -1,4 +1,4 @@
-source("Mediator_variables.R")
+source("Make_alc_mediators.R")
 library(haven)
 library(survival)
 library(sjmisc)
