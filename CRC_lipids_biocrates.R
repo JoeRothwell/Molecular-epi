@@ -49,6 +49,7 @@ multiclr <- function(x, dat) {
     Qe_Alc + Qge0701 + Qge0704 + strata(Match_Caseset), data = dat) 
   }
 
+library(broom)
 # Apply models by subsite (use 2nd fn parameter as an option)
 mods1 <- apply(scalemat1, 2, multiclr, dat = crc) %>% map_df( ~ tidy(., exponentiate = T)) %>% 
   filter(grepl("x", term)) %>% mutate(p.adj = p.adjust(p.value, method = "fdr"))
@@ -84,13 +85,29 @@ mat9 <- mat4 %>% mutate_all(~cut_number(., n = 4, labels = 1:4))
 mat10 <- mat5 %>% mutate_all(~cut_number(., n = 4, labels = 1:4))
 
 
-fits1 <- apply(mat6, 2, multiclr, dat = crc) %>% map_df( ~tidy(., exponentiate = T)) %>% 
-  filter(grepl("x", term)) %>% mutate_if(is.numeric, ~round(., 3)) %>%
-  mutate(p.adj = p.adjust(p.value, method = "fdr")) %>% 
+fits1a <- apply(mat6, 2, multiclr, dat = crc) %>% map_df( ~tidy(., exponentiate = T)) %>% 
+  filter(grepl("x", term)) %>% mutate(p.adj = p.adjust(p.value, method = "fdr")) %>%
+  mutate_if(is.numeric, ~round(., 3)) #%>%
   #unite(OR.CI, estimate, conf.low, conf.high, sep = "-") %>%
-  cbind(cmpd = colnames(df3)) %>% group_by(cmpd) %>% filter(min(p.value) < 0.05)
-  arrange(cmpd)
+  #cbind(cmpd = colnames(df3)) %>% group_by(cmpd) %>% filter(min(p.value) < 0.05)
   
+fits2 <- apply(mat7, 2, multiclr, dat = colon) %>% map_df( ~tidy(., exponentiate = T)) %>% 
+  filter(grepl("x4", term)) %>% mutate(p.adj = p.adjust(p.value, method = "fdr")) %>%
+  mutate_if(is.numeric, ~round(., 3))
+  
+fits3 <- apply(mat8, 2, multiclr, dat = prox) %>% map_df( ~tidy(., exponentiate = T)) %>% 
+  filter(grepl("x4", term)) %>% mutate(p.adj = p.adjust(p.value, method = "fdr")) %>%
+  mutate_if(is.numeric, ~round(., 3))
+
+fits4 <- apply(mat9, 2, multiclr, dat = dist) %>% map_df( ~tidy(., exponentiate = T)) %>% 
+  filter(grepl("x4", term)) %>% mutate(p.adj = p.adjust(p.value, method = "fdr")) %>%
+  mutate_if(is.numeric, ~round(., 3)) 
+
+fits5 <- apply(mat10, 2, multiclr, dat = rectal) %>% map_df( ~tidy(., exponentiate = T)) %>% 
+  filter(grepl("x4", term)) %>% mutate(p.adj = p.adjust(p.value, method = "fdr")) %>%
+  mutate_if(is.numeric, ~round(., 3))
+
+
   
 # Polygenic risk scores
 snps <- read_dta("clrt_gwas_gecco_snps_GRS.dta")
