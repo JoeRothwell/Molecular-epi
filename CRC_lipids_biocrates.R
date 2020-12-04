@@ -8,6 +8,7 @@ rm(list = ls(pattern = "1|2|bmi"))
 # Join GRS data
 snps <- read_dta("clrt_gwas_gecco_snps_GRS.dta")
 csnp <- inner_join(crc, snps, by = "Idepic")
+crc1 <- left_join(crc, snps, by = "Idepic")
 table(CT = csnp$Cncr_Caco_Clrt, lab = csnp$lab)
 table(CT = csnp$Cncr_Caco_Clrt)
 
@@ -122,3 +123,72 @@ chisq.test(csnp$Cncr_Caco_Clrt, csnp$GRScat)
 
 ggplot(csnp, aes(x = GRS, group = as.factor(Cncr_Caco_Clrt))) + 
   geom_density(aes(fill = as.factor(Cncr_Caco_Clrt)), alpha = 0.4)
+
+# Metabolite associations with covariates
+# Subset control matrix
+ints <- mat1[crc$Cncr_Caco_Clrt == 0, ]
+meta1 <- crc1[crc1$Cncr_Caco_Clrt == 0, ]
+
+
+
+lm1 <- function(x) lm(as.numeric(Fasting_C) ~ x + Sex + lab, data = meta1)
+lm2 <- function(x) lm(as.numeric(Sex) ~ x + Fasting_C + lab, data = meta1)
+lm3 <- function(x) lm(as.numeric(lab) ~ x + Fasting_C + Sex, data = meta1)
+lm4 <- function(x) lm(Qe_Alc ~ x + Fasting_C + Sex + lab, data = meta1)
+lm5 <- function(x) lm(as.numeric(Smoke_Stat) ~ x + Fasting_C + Sex + lab, data = meta1)
+lm6 <- function(x) lm(as.numeric(Smoke_Int) ~ x + Fasting_C + Sex + lab, data = meta1)
+lm7 <- function(x) lm(Age_Blood ~ x + Bmi_C + Fasting_C + Sex + lab, data = meta1)
+lm8 <- function(x) lm(Bmi_C ~ x + Fasting_C + Sex + lab, data = meta1)
+lm9 <- function(x) lm(Waist_C ~ x + Fasting_C + Sex + lab, data = meta1)
+lm10 <- function(x) lm(Qge0701 ~ x + Fasting_C + Sex + lab, data = meta1)
+lm11 <- function(x) lm(Qge0704 ~ x + Fasting_C + Sex + lab, data = meta1)
+lm12 <- function(x) lm(GRS ~ x + Fasting_C + Sex + lab, data = meta1)
+
+library(broom)
+fits1 <- apply(ints, 2, lm1) %>% map_df(tidy) #%>% filter(str_detect(term, "x"))
+fits2 <- apply(ints, 2, lm2) %>% map_df(tidy) #%>% filter(str_detect(term, "x"))
+fits3 <- apply(ints, 2, lm3) %>% map_df(tidy) #%>% filter(str_detect(term, "x"))
+fits4 <- apply(ints, 2, lm4) %>% map_df(tidy) #%>% filter(str_detect(term, "x"))
+fits5 <- apply(ints, 2, lm5) %>% map_df(tidy) #%>% filter(str_detect(term, "x"))
+fits6 <- apply(ints, 2, lm6) %>% map_df(tidy) #%>% filter(str_detect(term, "x"))
+fits7 <- apply(ints, 2, lm7) %>% map_df(tidy) #%>% filter(str_detect(term, "x"))
+fits8 <- apply(ints, 2, lm8) %>% map_df(tidy) #%>% filter(str_detect(term, "x"))
+fits9 <- apply(ints, 2, lm9) %>% map_df(tidy) #%>% filter(str_detect(term, "x"))
+fits10 <- apply(ints, 2, lm10) %>% map_df(tidy) #%>% filter(str_detect(term, "x"))
+fits11 <- apply(ints, 2, lm11) %>% map_df(tidy) #%>% filter(str_detect(term, "x"))
+fits12 <- apply(ints, 2, lm12) %>% map_df(tidy) #%>% filter(str_detect(term, "x"))
+
+all <- bind_rows(
+                 #fits1, fits2, fits3, 
+                 fits4, fits5, fits6, fits7, fits8, fits9, fits10,
+                 fits11, fits12) %>% filter(term == "x") %>%
+  mutate(p.adj = p.adjust(p.value, method = "fdr")) %>%
+  bind_cols(cmpd = rep(colnames(ints), 9))
+
+library(RColorBrewer)
+# Different colour palettes
+set2 <- rep(brewer.pal(8, "Set2"), each = 112, length.out = nrow(all))
+accent <- rep(brewer.pal(8, "Accent") , each = 112, length.out = nrow(all))
+rain <- rep(rainbow(12), each = 112, length.out = nrow(all))
+
+# Plot (add col palette as necessary)
+#plot(-log10(all$p.value), col = set2, pch = 19, cex = 0.6)
+
+# x axis width
+x = 1:nrow(all)
+
+# draw empty plot
+plot(NULL, xlim=c(0, nrow(all)), ylim=c(0, max(-log10(all$p.value))), xaxt='n',
+     ylab='-log10(p-value)', xlab='')
+points(x, -log10(all$p.value), pch=19, col=set2, cex = 0.6)
+
+# axis labels
+labs <- c("Alc", "Smoke", "Smoke", "Age", "BMI", "Waist", "Red meat", "Proc meat", 
+          "Genetic risk")
+abline(h = -log(0.05), col = "grey")
+abline(h = -log(0.016), col = "red")
+axis(1, at = c(21, 64, 107, 150, 193, 236, 279, 322, 365, 408, 451, 494), labels = labs, 
+     las=1, cex.axis = 0.7)
+text(350, 22.5, "Choline", pos = 2, cex = 0.7)
+text(360, 21.5, "Glycerophosphocholine", pos = 2, cex = 0.7)
+
