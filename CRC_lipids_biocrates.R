@@ -52,7 +52,8 @@ multiclr <- function(x, dat) {
 library(broom)
 # Apply models by subsite (use 2nd fn parameter as an option)
 mods1 <- apply(scalemat1, 2, multiclr, dat = crc) %>% map_df( ~ tidy(., exponentiate = T)) %>% 
-  filter(grepl("x", term)) %>% mutate(p.adj = p.adjust(p.value, method = "fdr"))
+  filter(grepl("x", term)) %>% mutate(p.adj = p.adjust(p.value, method = "fdr")) #%>%
+  #mutate(cmpd.lab = ifelse(-log10(p.value) > 2, compound, NA))
 
 mods2 <- apply(scalemat2, 2, multiclr, dat = colon) %>% map_df( ~ tidy(., exponentiate = T)) %>% 
   filter(grepl("x", term)) %>% mutate(p.adj = p.adjust(p.value, method = "fdr"))
@@ -107,7 +108,22 @@ fits5 <- apply(mat10, 2, multiclr, dat = rectal) %>% map_df( ~tidy(., exponentia
   filter(grepl("x4", term)) %>% mutate(p.adj = p.adjust(p.value, method = "fdr")) %>%
   mutate_if(is.numeric, ~round(., 3))
 
+# Smile plots for manuscript. Colorectal:
+ggplot(mods1, aes(x = estimate, y = -log10(p.value))) + geom_point(shape = 1) +
+  #facet_wrap(subsite ~ .) + 
+  theme_bw() + geom_vline(xintercept = 1, colour = "grey60") +
+  geom_hline(yintercept = -log10(0.05), size = 0.2, colour = "grey60")
 
+# Subsites:
+all <- bind_rows(colon = mods2, prox = mods3, dist = mods4, rectal = mods5, .id = "subsite") %>%
+  bind_cols(compound = rep(colnames(mat1), 4)) %>%
+  mutate(cmpd.lab = ifelse(-log10(p.value) > 2, compound, NA))
+
+ggplot(all, aes(x = estimate, y = -log10(p.value))) + geom_point(shape = 1) +
+  facet_wrap(subsite ~ .) + theme_bw() + geom_vline(xintercept = 1, colour = "grey60") +
+  geom_hline(yintercept = -log10(0.05), size = 0.2, colour = "grey60") +
+  theme(panel.grid.major = element_blank()) +
+  geom_text(aes(label = cmpd.lab), size = 3, hjust = 0)
   
 # Polygenic risk scores
 snps <- read_dta("clrt_gwas_gecco_snps_GRS.dta")
