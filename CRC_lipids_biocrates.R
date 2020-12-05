@@ -7,12 +7,10 @@ rm(list = ls(pattern = "1|2|bmi"))
 
 # Join GRS data
 snps <- read_dta("clrt_gwas_gecco_snps_GRS.dta")
-csnp <- inner_join(crc, snps, by = "Idepic")
+#csnp <- inner_join(crc, snps, by = "Idepic")
 crc1 <- left_join(crc, snps, by = "Idepic")
 table(CT = csnp$Cncr_Caco_Clrt, lab = csnp$lab)
 table(CT = csnp$Cncr_Caco_Clrt)
-
-library(zoo)
 
 # Continuous models (needs imputation and log transformation)
 # Remove non-matched subjects
@@ -28,6 +26,7 @@ mat5 <- rectal %>% select(Acylcarn_C10:Acylcarn_C8, Glyceroph_Lysopc_A_C16_0:Sph
 
 # Check for missings
 hist(colSums(is.na(mat)), breaks = 30)
+library(zoo)
 scalemat1 <- mat1 %>% na.aggregate(FUN = function(x) min(x)/2) %>% log2 %>% scale
 scalemat2 <- mat2 %>% na.aggregate(FUN = function(x) min(x)/2) %>% log2 %>% scale
 scalemat3 <- mat3 %>% na.aggregate(FUN = function(x) min(x)/2) %>% log2 %>% scale
@@ -124,12 +123,14 @@ chisq.test(csnp$Cncr_Caco_Clrt, csnp$GRScat)
 ggplot(csnp, aes(x = GRS, group = as.factor(Cncr_Caco_Clrt))) + 
   geom_density(aes(fill = as.factor(Cncr_Caco_Clrt)), alpha = 0.4)
 
-# Metabolite associations with covariates
+# Metabolite associations with covariates (idea from Jelena thesis p189)
 # Subset control matrix
-ints <- mat1[crc$Cncr_Caco_Clrt == 0, ]
+ints <- log2(mat1[crc$Cncr_Caco_Clrt == 0, ])
 meta1 <- crc1[crc1$Cncr_Caco_Clrt == 0, ]
 
-
+# Different colour palettes for plot
+library(RColorBrewer)
+set2 <- rep(brewer.pal(8, "Set2"), each = 112, length.out = nrow(all))
 
 lm1 <- function(x) lm(as.numeric(Fasting_C) ~ x + Sex + lab, data = meta1)
 lm2 <- function(x) lm(as.numeric(Sex) ~ x + Fasting_C + lab, data = meta1)
@@ -143,6 +144,17 @@ lm9 <- function(x) lm(Waist_C ~ x + Fasting_C + Sex + lab, data = meta1)
 lm10 <- function(x) lm(Qge0701 ~ x + Fasting_C + Sex + lab, data = meta1)
 lm11 <- function(x) lm(Qge0704 ~ x + Fasting_C + Sex + lab, data = meta1)
 lm12 <- function(x) lm(GRS ~ x + Fasting_C + Sex + lab, data = meta1)
+
+# 2nd group: iron, crp, il8, TNFa, adiponectin,leptin, igf1, C-peptide
+lm4 <- function(x) lm(Qe_Alc ~ x + Fasting_C + Sex + lab, data = meta1)
+lm5 <- function(x) lm(Iron ~ x + Fasting_C + Sex + lab, data = meta1)
+lm6 <- function(x) lm(Crp_CLRT_05 ~ x + Fasting_C + Sex + lab, data = meta1)
+lm7 <- function(x) lm(Il8_CLRT_03 ~ x + Fasting_C + Sex + lab, data = meta1)
+lm8 <- function(x) lm(Tnfa_CLRT_03 ~ x + Fasting_C + Sex + lab, data = meta1)
+lm9 <- function(x) lm(Adipo_CLRT_04 ~ x + Fasting_C + Sex + lab, data = meta1)
+lm10 <- function(x) lm(Leptin_CLRT_04 ~ x + Fasting_C + Sex + lab, data = meta1)
+lm11 <- function(x) lm(Igf1_CLRT_02 ~ x + Fasting_C + Sex + lab, data = meta1)
+lm12 <- function(x) lm(Cpeptide_CLRT_02 ~ x + Fasting_C + Sex + lab, data = meta1)
 
 library(broom)
 fits1 <- apply(ints, 2, lm1) %>% map_df(tidy) #%>% filter(str_detect(term, "x"))
@@ -160,19 +172,10 @@ fits12 <- apply(ints, 2, lm12) %>% map_df(tidy) #%>% filter(str_detect(term, "x"
 
 all <- bind_rows(
                  #fits1, fits2, fits3, 
-                 fits4, fits5, fits6, fits7, fits8, fits9, fits10,
-                 fits11, fits12) %>% filter(term == "x") %>%
+                 fits4, fits5, fits6, fits7, fits8, fits9, fits10, fits11, fits12) %>% 
+  filter(term == "x") %>%
   mutate(p.adj = p.adjust(p.value, method = "fdr")) %>%
   bind_cols(cmpd = rep(colnames(ints), 9))
-
-library(RColorBrewer)
-# Different colour palettes
-set2 <- rep(brewer.pal(8, "Set2"), each = 112, length.out = nrow(all))
-accent <- rep(brewer.pal(8, "Accent") , each = 112, length.out = nrow(all))
-rain <- rep(rainbow(12), each = 112, length.out = nrow(all))
-
-# Plot (add col palette as necessary)
-#plot(-log10(all$p.value), col = set2, pch = 19, cex = 0.6)
 
 # x axis width
 x = 1:nrow(all)
@@ -185,10 +188,18 @@ points(x, -log10(all$p.value), pch=19, col=set2, cex = 0.6)
 # axis labels
 labs <- c("Alc", "Smoke", "Smoke", "Age", "BMI", "Waist", "Red meat", "Proc meat", 
           "Genetic risk")
+labs2 <- c("Alc", "iron", "crp", "il8", "TNFa", "adiponectin","leptin", "igf1", "C-peptide")
+
+midpoint <- ncol(mat1)/2
+at.labs <- seq(midpoint, 2*midpoint*length(labs), 2*midpoint)
+
+axis(1, at = at.labs, labels = labs2, las=1, cex.axis = 0.7)
+
+all1 <- all %>% mutate(p.low = ifelse(-log10(p.value) > 20, p.value, NA))
+text(1:nrow(all), -log10(all1$p.low), all$cmpd, pos = 4, cex = 0.7)
+
+# Get FDR p-value cutpoint
+fdrP <- all %>% filter(p.adj < 0.05) %>% select(p.value) %>% max
 abline(h = -log(0.05), col = "grey")
-abline(h = -log(0.016), col = "red")
-axis(1, at = c(21, 64, 107, 150, 193, 236, 279, 322, 365, 408, 451, 494), labels = labs, 
-     las=1, cex.axis = 0.7)
-text(350, 22.5, "Choline", pos = 2, cex = 0.7)
-text(360, 21.5, "Glycerophosphocholine", pos = 2, cex = 0.7)
+abline(h = -log(fdrP), col = "red")
 
