@@ -51,10 +51,16 @@ multiclr <- function(x, dat) {
 
 library(broom)
 # Apply models by subsite (use 2nd fn parameter as an option)
+# CRC
 mods1 <- apply(scalemat1, 2, multiclr, dat = crc) %>% map_df( ~ tidy(., exponentiate = T)) %>% 
-  filter(grepl("x", term)) %>% mutate(p.adj = p.adjust(p.value, method = "fdr")) #%>%
-  #mutate(cmpd.lab = ifelse(-log10(p.value) > 2, compound, NA))
+  filter(grepl("x", term)) %>% mutate(p.adj = p.adjust(p.value, method = "fdr")) 
+# Add compound names and col for annotated lipids
+mods1a <- mods1 %>% mutate(compound = colnames(mat1), 
+                           cmpd.lab = ifelse(-log10(p.value) > 1.8, compound, NA))
+pFDR <- mods1 %>% filter(p.adj <= 0.05) %>% select(p.value) %>% max
 
+
+# Colon, prox colon, dist colon, rectal
 mods2 <- apply(scalemat2, 2, multiclr, dat = colon) %>% map_df( ~ tidy(., exponentiate = T)) %>% 
   filter(grepl("x", term)) %>% mutate(p.adj = p.adjust(p.value, method = "fdr"))
 
@@ -86,9 +92,16 @@ mat9 <- mat4 %>% mutate_all(~cut_number(., n = 4, labels = 1:4))
 mat10 <- mat5 %>% mutate_all(~cut_number(., n = 4, labels = 1:4))
 
 
-fits1a <- apply(mat6, 2, multiclr, dat = crc) %>% map_df( ~tidy(., exponentiate = T)) %>% 
-  filter(grepl("x", term)) %>% mutate(p.adj = p.adjust(p.value, method = "fdr")) %>%
-  mutate_if(is.numeric, ~round(., 3)) #%>%
+fits1 <- apply(mat6, 2, multiclr, dat = crc) %>% map_df( ~tidy(., exponentiate = T)) %>% 
+  filter(grepl("x4", term)) %>% mutate(p.adj = p.adjust(p.value, method = "fdr"))
+
+fits1a <- fits1 %>% mutate(compound = colnames(mat1), 
+                           cmpd.lab = ifelse(-log10(p.value) > 1.4, compound, NA))
+
+pFDR1 <- fits1a %>% filter(p.adj <= 0.05) %>% select(p.value) %>% max
+
+#%>%
+  #mutate_if(is.numeric, ~round(., 3)) #%>%
   #unite(OR.CI, estimate, conf.low, conf.high, sep = "-") %>%
   #cbind(cmpd = colnames(df3)) %>% group_by(cmpd) %>% filter(min(p.value) < 0.05)
   
@@ -108,11 +121,19 @@ fits5 <- apply(mat10, 2, multiclr, dat = rectal) %>% map_df( ~tidy(., exponentia
   filter(grepl("x4", term)) %>% mutate(p.adj = p.adjust(p.value, method = "fdr")) %>%
   mutate_if(is.numeric, ~round(., 3))
 
-# Smile plots for manuscript. Colorectal:
-ggplot(mods1, aes(x = estimate, y = -log10(p.value))) + geom_point(shape = 1) +
-  #facet_wrap(subsite ~ .) + 
-  theme_bw() + geom_vline(xintercept = 1, colour = "grey60") +
-  geom_hline(yintercept = -log10(0.05), size = 0.2, colour = "grey60")
+# Smile plots for manuscript. Build plot from background to foregroun. Colorectal:
+library(ggrepel)
+ggplot(mods1a, aes(x = estimate, y = -log10(p.value))) + 
+  geom_vline(xintercept = 1, colour = "grey60") +
+  geom_hline(yintercept = -log10(0.05), size = 0.2, colour = "grey60") +
+  geom_hline(yintercept = 3.7, size = 0.2, colour = "grey60") +
+  geom_text_repel(aes(label = cmpd.lab), size = 3, segment.color = "grey") +
+  geom_point(shape = 21, fill = "dodgerblue") +
+  theme_bw() + ggtitle("Continuous models") + xlab("OR per SD increase conc") +
+  geom_text(aes(x = 0.98, y = 1.2, label = "Raw P threshold"), hjust = 0, size = 3) +
+  geom_text(aes(x = 0.98, y = 3.6, label = "FDR P threshold"), hjust = 0, size = 3) +
+  theme(panel.grid.major = element_blank())
+  
 
 # Subsites:
 all <- bind_rows(colon = mods2, prox = mods3, dist = mods4, rectal = mods5, .id = "subsite") %>%
@@ -124,8 +145,23 @@ ggplot(all, aes(x = estimate, y = -log10(p.value))) + geom_point(shape = 1) +
   geom_hline(yintercept = -log10(0.05), size = 0.2, colour = "grey60") +
   theme(panel.grid.major = element_blank()) +
   geom_text(aes(label = cmpd.lab), size = 3, hjust = 0)
+
+# Categorical
+ggplot(fits1a, aes(x = estimate, y = -log10(p.value))) + 
+  geom_vline(xintercept = 1, colour = "grey60") +
+  geom_hline(yintercept = -log10(0.05), size = 0.2, colour = "grey60") +
+  geom_hline(yintercept = 3.8, size = 0.2, colour = "grey60") +
+  geom_text_repel(aes(label = cmpd.lab), size = 3, segment.color = "grey") +
+  geom_point(shape = 21, fill = "limegreen") +
+  theme_bw() + ggtitle("Categorical models") + xlab("OR for Q4 vs Q1 conc") +
+  #geom_text_repel(aes(label = cmpd.lab), size = 3, segment.color = "grey") +
+  geom_text(aes(x = 1.02, y = 1.2, label = "Raw P threshold"), hjust = 0, size = 3) +
+  geom_text(aes(x = 1.02, y = 3.7, label = "FDR P threshold"), hjust = 0, size = 3) +
+  theme(panel.grid.major = element_blank())
   
-# Polygenic risk scores
+
+
+### Polygenic risk scores
 snps <- read_dta("clrt_gwas_gecco_snps_GRS.dta")
 csnp <- inner_join(crc, snps, by = "Idepic")
 table(CT = csnp$Cncr_Caco_Clrt, lab = csnp$lab)
