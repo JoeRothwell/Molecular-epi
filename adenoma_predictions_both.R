@@ -2,6 +2,7 @@
 library(tidyverse)
 library(haven)
 source("adenoma_crc.R")
+source("CRC_prep_data.R")
 
 # Remove duplicated Idepics (with dplyr or base). Also get follow up time and colorectal site
 var.list <- c("Country", "Center", "Sex", "Match_Caseset", "L_School", #"Smoke_Int", 
