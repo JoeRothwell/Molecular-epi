@@ -1,10 +1,7 @@
-# Preparation of CRC case-control datasets, and control only datasets 
-# stored at \\inti\NME\EPIC_Projects\Epic_Colonrectum\Nested_CaCo_Study\2016
-# Missings are already imputed
+# First part of CRC_prep_data_rev.R that prepares case-control studies
 library(tidyverse)
 library(haven)
-
-# Metadata setup ----------
+library(lubridate)
 
 # Read metadata for whole CRC case-control 
 # WARNING: do not use case-control status from this dataset. Use metabolomics datasets only.
@@ -13,47 +10,40 @@ var.list <- c("Country", "Center", "Sex", "Match_Caseset", "L_School", #"Smoke_I
               "Smoke_Stat", "Smoke_Intensity", "Fasting_C", "Menopause", "Phase_Mnscycle")
 
 # set D_Dgclrt of controls to that of corresponding cases, calculate followup time and 
-# and get cancer site variables
+# and get colorectal subsite variables
 meta <- read_dta("clrt_caco.dta") %>% 
   mutate(Tfollowup.days = D_Dgclrt - D_Bld_Coll, Tfollowup = Tfollowup.days/365.25, 
          location = case_when(
-    Case_Mal_Colon_Prox == 1 ~ 1, Case_Mal_Colon_Dist == 1 ~ 2,
-    Case_Mal_Colon_Nos  == 1 ~ 4, Case_Mal_Rectum     == 1 ~ 3)) %>%
+           Case_Mal_Colon_Prox == 1 ~ 1, Case_Mal_Colon_Dist == 1 ~ 2,
+           Case_Mal_Colon_Nos  == 1 ~ 4, Case_Mal_Rectum     == 1 ~ 3)) %>%
   group_by(Match_Caseset) %>% fill(c(D_Dgclrt, location), .direction = "downup") %>% ungroup() %>%
   select(-Match_Caseset, -Cncr_Caco_Clrt) %>%
   distinct(Idepic, .keep_all = T)
 
-# Combine smoking intensity factor levels
-#meta$Smoke_Int <- fct_collapse(meta$Smoke_Intensity, Other = c("8", "9", "10"))
-
-
-# Small case-control subset----------
-# Use glutamate to correctly subset biocrates data, join metadata. Update 3/3/2020: remove Greece
-
+# Small case-control subset. Use glutamate to correctly subset biocrates data, join metadata. 
 crc1 <- read_sas("clrt_caco_metabo.sas7bdat") %>% filter(!is.na(Aminoacid_Glu)) %>%
-        left_join(meta, by = "Idepic", suffix = c("_1", "")) %>%
-        mutate_at(vars(var.list), as.factor) %>% 
-        mutate(Smoke_Int = fct_collapse(Smoke_Intensity, Other = c("8", "9", "10"))) %>% 
-        filter(Country != 6)
+  left_join(meta, by = "Idepic", suffix = c("_1", "")) %>%
+  mutate_at(vars(var.list), as.factor) %>% 
+  mutate(Smoke_Int = fct_collapse(Smoke_Intensity, Other = c("8", "9", "10"))) %>% 
+  filter(Country != 6) # Greece removed
 
 # Get colon cancer only (ungroup to stop Match_Caseset from being readded later)
-colon1 <- crc1 %>% group_by(Match_Caseset) %>% 
-  filter(max(location, na.rm = T) == 1 | max(location, na.rm = T) == 2) %>% ungroup(Match_Caseset)
+colon1 <- crc1 %>% filter(location == 1 | location  == 2)
 
-# Get cases diagnosed after 2 years only
-crc1t <- crc1 %>% group_by(Match_Caseset) %>% filter(max(Tfollowup, na.rm = T) > 2) %>% ungroup()
+# Subsites
+rectal1 <- crc1 %>% group_by(Match_Caseset) %>% filter(max(location, na.rm = T) == 3) %>% ungroup(Match_Caseset)
+prox1 <- crc1 %>% group_by(Match_Caseset) %>% filter(max(location, na.rm = T) == 1) %>% ungroup(Match_Caseset)
+dist1 <- crc1 %>% group_by(Match_Caseset) %>% filter(max(location, na.rm = T) == 2) %>% ungroup(Match_Caseset)
 
-# Subset male or female
+# Subset male, female, cases diagnosed after 2 years only
 crc1m <- crc1 %>% filter(Sex == 1)
 crc1f <- crc1 %>% filter(Sex == 2)
+crc1t <- crc1 %>% group_by(Match_Caseset) %>% filter(max(Tfollowup, na.rm = T) > 2) %>% ungroup()
 
-
-# Large case-control subset (from Jelena)------------
-
-library(lubridate)
+# Large case-control subset (from Jelena)
 crc2 <- read_csv("biocrates_p150.csv") %>% 
-  select(Match_Caseset, Cncr_Caco_Clrt, ends_with("Idepic"), 
-         matches("(carn|oacid|genic|roph|ingo|Sugars)[_]"), -contains("tdq")) %>%
+  select(Match_Caseset, Cncr_Caco_Clrt, 
+         ends_with("Idepic"), matches("(carn|oacid|genic|roph|ingo|Sugars)[_]"), -contains("tdq")) %>%
   inner_join(meta, by = "Idepic") %>% mutate_at(vars(var.list), as.factor) %>% 
   mutate(Smoke_Int = fct_collapse(Smoke_Intensity, Other = c("8", "9", "10"))) %>%
   filter(Country != 6)
@@ -62,86 +52,31 @@ crc2 <- read_csv("biocrates_p150.csv") %>%
 colon2 <- crc2 %>% group_by(Match_Caseset) %>% 
   filter(max(location, na.rm = T) == 1 | max(location, na.rm = T) == 2) %>% ungroup(Match_Caseset)
 
-rectal2 <- crc2 %>% group_by(Match_Caseset) %>% 
-  filter(max(location, na.rm = T) == 3) %>% ungroup(Match_Caseset)
+rectal2 <- crc2 %>% group_by(Match_Caseset) %>% filter(max(location, na.rm = T) == 3) %>% ungroup(Match_Caseset)
+prox2 <- crc2 %>% group_by(Match_Caseset) %>% filter(max(location, na.rm = T) == 1) %>% ungroup(Match_Caseset)
+dist2 <- crc2 %>% group_by(Match_Caseset) %>% filter( max(location, na.rm = T) == 2) %>% ungroup(Match_Caseset)
 
 # Get cases diagnosed after 2 years only
-crc2t <- crc2 %>% group_by(Match_Caseset) %>% filter(max(Tfollowup, na.rm = T) > 2) %>% ungroup()
+crc2t <- crc2 %>% group_by(Match_Caseset) %>% filter(mean(Tfollowup, na.rm = T) > 2) %>% ungroup()
 
 # Subset male or female
 crc2m <- crc2 %>% filter(Sex == 1)
 crc2f <- crc2 %>% filter(Sex == 2)
 
+### 11 september 2020, reviewers revisions for CGH ###
+# Merge crc1 and crc2 to make complete dataset
+crc <- bind_rows(crc1, crc2, .id = "lab")
+crc$lab <- as.factor(crc$lab)
 
-# EPIC pooled controls--------
-# First dataset, 3771 obs; updated November 2018 7191 obs
-# Rename factor levels, split Batch_MetBio into 2 cols, extract numeric variable,
-# Remove 1694 CRC controls
+colon <- bind_rows(colon1, colon2, .id = "lab")
+colon$lab <- as.factor(colon$lab)
 
-ctrl <- read_dta("obes_metabo.dta") %>% mutate(Study = 
-  fct_recode(Study, Colonrectum_S = "Colonrectum", Colonrectum_L = "Colonrectum (bbmri)")) %>%
-  separate(Batch_MetBio, into = c("batch", "rest")) %>%
-  mutate(batch_no = as.numeric(flatten(str_extract_all(batch, "[0-9]+")))) %>% 
-  filter(!(Study %in% c("Colonrectum_L", "Colonrectum_S")), Fasting_C == 2) %>%
-  filter(Country != 6)
+rectal <- bind_rows(rectal1, rectal2, .id = "lab")
+rectal$lab <- as.factor(rectal$lab)
 
-# 1799 fasted subjects left, 1741 after removal of Greece
+prox <- bind_rows(prox1, prox2, .id = "lab")
+prox$lab <- as.factor(prox$lab)
 
-# Get controls dataset for crc1 and crc2 compounds only, and put in same order
-# First subset compounds only from whole data and remove zero cols
-expr <- "(carn|oacid|genic|roph|ingo|Sugars)[_]"
-
-ctrls <- ctrl %>% select(matches(expr), -contains("tdq")) %>% select_if(~ sum(., na.rm = T) != 0)
-crc1p <- crc1 %>% select(matches(expr), -contains("tdq")) %>% select_if(~ sum(., na.rm = T) != 0)
-crc2p <- crc2 %>% select(matches(expr), -contains("tdq")) %>% select_if(~ sum(., na.rm = T) != 0)
-
-ctrlA <- ctrls[, intersect(colnames(ctrls), colnames(crc1p))]
-ctrlB <- ctrls[, intersect(colnames(ctrls), colnames(crc2p))]
-
-# Get compounds common to all 3 sets for comparison and subset df
-ctrls0 <- ctrls[, intersect(colnames(ctrlA), colnames(ctrlB))]
-
-# Fatty acids CRC dataset (from Elom)---------------
-
-# Gets common compounds between CC and EPIC controls and puts them in the same order.
-
-# Get CRC dataset from Elom and join WCRF scores. Convert categorical co-variates to factors
-crc3 <- read_dta("Database_Fatty acids.dta") %>% 
-  left_join(meta, by = "Idepic", suffix = c("", "_1")) %>%
-  mutate_at(vars(var.list), as.factor) %>%
-  mutate(Smoke_Int = fct_collapse(Smoke_Intensity, Other = c("8", "9", "10"))) %>%
-  filter(Country != 6)
-
-# Get male and female subsets
-crc3m <- crc3 %>% filter(Sex == 1)
-crc3f <- crc3 %>% filter(Sex == 2)
-
-# Get cases diagnosed after 2 years only
-crc3t <- crc3 %>% group_by(Match_Caseset) %>% filter(max(Tfollowup, na.rm = T) > 2) %>% ungroup()
-
-# Get dataset for PLS modelling (all EPIC controls). Exclude compounds with many missings
-# Note: new version from Carine received 18/11/2018 with technical covariates
-fa.ctrl <- readRDS("FA_WCRF_scores1.rds") %>% filter(STUDY != "Colorectum") %>% filter(Country != 6)
-fa.ctrl$N_Serie <- as.numeric(fa.ctrl$N_Serie)
-
-# Get sex of participants
-epic.vars <- read.csv("full_epic_sex.csv")
-fa.ctrl <- left_join(fa.ctrl, epic.vars, by = "Idepic")
-
-# Convert variables to factors
-var.list <- c("Country", "Center", "STUDY", "LABO")
-fa.ctrl <- fa.ctrl %>% mutate_at(vars(var.list), as.factor)
-
-# Subset concentrations for CRC and controls
-crcfa <- crc3  %>% select(P14_0 : PCLA_9t_11c) 
-concs <- fa.ctrl %>% select(P14_0 : PCLA_9t_11c, -P24_0, -P20_0)
-ctrlC <- fa.ctrl[, intersect(colnames(concs), colnames(crcfa))]
-
-# Number of control profiles for biocrates and fatty acids
-nrow(ctrl)
-nrow(fa.ctrl)
-
-# Number of control subjects , biocrates and fatty acids combined
-length(intersect(ctrl$Idepic, fa.ctrl$Idepic))
-#intersect(ctrl$Idepic, fa.ctrl$Idepic)
+dist <- bind_rows(dist1, dist2, .id = "lab")
+dist$lab <- as.factor(dist$lab)
 
