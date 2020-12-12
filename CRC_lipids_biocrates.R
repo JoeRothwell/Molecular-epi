@@ -2,7 +2,7 @@
 # 112 lipids in 3223 participants, no missing values
 
 # Get data from CRC_prep_data_rev and remove unneeded objects
-source("CRC_prep_data_rev.R")
+source("CRC_prep_data.R")
 rm(list = ls(pattern = "1|2|bmi"))
 
 # Join GRS data
@@ -130,21 +130,24 @@ ggplot(mods1a, aes(x = estimate, y = -log10(p.value))) +
   geom_text_repel(aes(label = cmpd.lab), size = 3, segment.color = "grey") +
   geom_point(shape = 21, fill = "dodgerblue") +
   theme_bw() + ggtitle("Continuous models") + xlab("OR per SD increase conc") +
-  geom_text(aes(x = 0.98, y = 1.2, label = "Raw P threshold"), hjust = 0, size = 3) +
-  geom_text(aes(x = 0.98, y = 3.6, label = "FDR P threshold"), hjust = 0, size = 3) +
+  annotate("text", x = 0.98, y=c(1.2, 3.6), size = 3, hjust = 0,
+           label = c("Raw P threshold", "FDR P threshold")) +
   theme(panel.grid.major = element_blank())
   
 
 # Subsites:
 all <- bind_rows(colon = mods2, prox = mods3, dist = mods4, rectal = mods5, .id = "subsite") %>%
   bind_cols(compound = rep(colnames(mat1), 4)) %>%
-  mutate(cmpd.lab = ifelse(-log10(p.value) > 2, compound, NA))
+  mutate(cmpd.lab = ifelse(-log10(p.value) > 1.7, compound, NA))
+
+labs <- c(Colon = "colon", `Distal colon` = "dist", `Proximal colon` = "prox", Rectum = "rectal")
 
 ggplot(all, aes(x = estimate, y = -log10(p.value))) + geom_point(shape = 1) +
   facet_wrap(subsite ~ .) + theme_bw() + geom_vline(xintercept = 1, colour = "grey60") +
   geom_hline(yintercept = -log10(0.05), size = 0.2, colour = "grey60") +
   theme(panel.grid.major = element_blank()) +
-  geom_text(aes(label = cmpd.lab), size = 3, hjust = 0)
+  geom_text(aes(label = cmpd.lab), size = 3, vjust = 1) +
+  xlab("OR per SD increase") 
 
 # Categorical
 ggplot(fits1a, aes(x = estimate, y = -log10(p.value))) + 
@@ -154,9 +157,8 @@ ggplot(fits1a, aes(x = estimate, y = -log10(p.value))) +
   geom_text_repel(aes(label = cmpd.lab), size = 3, segment.color = "grey") +
   geom_point(shape = 21, fill = "limegreen") +
   theme_bw() + ggtitle("Categorical models") + xlab("OR for Q4 vs Q1 conc") +
-  #geom_text_repel(aes(label = cmpd.lab), size = 3, segment.color = "grey") +
-  geom_text(aes(x = 1.02, y = 1.2, label = "Raw P threshold"), hjust = 0, size = 3) +
-  geom_text(aes(x = 1.02, y = 3.7, label = "FDR P threshold"), hjust = 0, size = 3) +
+  annotate("text", x = 1.02, y=c(1.2, 3.7), size = 3, hjust = 0,
+           label = c("Raw P threshold", "FDR P threshold")) +
   theme(panel.grid.major = element_blank())
   
 
@@ -197,8 +199,56 @@ lm10 <- function(x) lm(Qge0701 ~ x + Fasting_C + Sex + lab, data = meta1)
 lm11 <- function(x) lm(Qge0704 ~ x + Fasting_C + Sex + lab, data = meta1)
 lm12 <- function(x) lm(GRS ~ x + Fasting_C + Sex + lab, data = meta1)
 
+library(broom)
+fits1 <- apply(ints, 2, lm1) %>% map_df(tidy) #%>% filter(str_detect(term, "x"))
+fits2 <- apply(ints, 2, lm2) %>% map_df(tidy) 
+fits3 <- apply(ints, 2, lm3) %>% map_df(tidy) 
+fits4 <- apply(ints, 2, lm4) %>% map_df(tidy) 
+fits5 <- apply(ints, 2, lm5) %>% map_df(tidy) 
+fits6 <- apply(ints, 2, lm6) %>% map_df(tidy)
+fits7 <- apply(ints, 2, lm7) %>% map_df(tidy)
+fits8 <- apply(ints, 2, lm8) %>% map_df(tidy) 
+fits9 <- apply(ints, 2, lm9) %>% map_df(tidy) 
+fits10 <- apply(ints, 2, lm10) %>% map_df(tidy) 
+fits11 <- apply(ints, 2, lm11) %>% map_df(tidy) 
+fits12 <- apply(ints, 2, lm12) %>% map_df(tidy)
+
+# Bind covariates of interest (1-3 are just for adjustment)
+all <- bind_rows(fits4, fits5, fits6, fits7, fits8, fits9, fits10, fits11, fits12) %>% 
+  filter(term == "x") %>% mutate(p.adj = p.adjust(p.value, method = "fdr")) %>%
+  bind_cols(cmpd = rep(colnames(ints), 9))
+
+# Get FDR p-value cutpoint
+fdrP <- all %>% filter(p.adj < 0.05) %>% select(p.value) %>% max
+
+# x axis width
+x <- 1:nrow(all)
+
+# draw empty plot
+plot(NULL, xlim=c(0, nrow(all)), ylim=c(0, max(-log10(all$p.value))), xaxt='n',
+     ylab='-log10(p-value)', xlab='')
+points(x, -log10(all$p.value), pch=19, col=set2, cex = 0.6)
+
+# Make and plot axis labels
+labs <- c("Alc", "Smoke St", "Smoke Int", "Age", "BMI", "Waist", "Red meat", "Proc meat", 
+          "Genetic risk")
+midpoint <- ncol(mat1)/2
+at.labs <- seq(midpoint, 2*midpoint*length(labs), 2*midpoint)
+axis(1, at = at.labs, labels = labs, las=1, cex.axis = 0.7)
+
+# Add annotations
+all1 <- all %>% mutate(p.low = ifelse(-log10(p.value) > 20, p.value, NA))
+text(1:nrow(all), -log10(all1$p.low), all$cmpd, pos = 4, cex = 0.7)
+title("Manhattan risk factors 1")
+
+# Add p thresholds
+abline(h = -log(0.05), col = "grey")
+abline(h = -log(fdrP), col = "red")
+
+
 # 2nd group: iron, crp, il8, TNFa, adiponectin,leptin, igf1, C-peptide
-lm4 <- function(x) lm(Qe_Alc ~ x + Fasting_C + Sex + lab, data = meta1)
+
+# Bind covariates of interest (1-3 are just for adjustment)
 lm5 <- function(x) lm(Iron ~ x + Fasting_C + Sex + lab, data = meta1)
 lm6 <- function(x) lm(Crp_CLRT_05 ~ x + Fasting_C + Sex + lab, data = meta1)
 lm7 <- function(x) lm(Il8_CLRT_03 ~ x + Fasting_C + Sex + lab, data = meta1)
@@ -208,50 +258,35 @@ lm10 <- function(x) lm(Leptin_CLRT_04 ~ x + Fasting_C + Sex + lab, data = meta1)
 lm11 <- function(x) lm(Igf1_CLRT_02 ~ x + Fasting_C + Sex + lab, data = meta1)
 lm12 <- function(x) lm(Cpeptide_CLRT_02 ~ x + Fasting_C + Sex + lab, data = meta1)
 
-library(broom)
-fits1 <- apply(ints, 2, lm1) %>% map_df(tidy) #%>% filter(str_detect(term, "x"))
-fits2 <- apply(ints, 2, lm2) %>% map_df(tidy) #%>% filter(str_detect(term, "x"))
-fits3 <- apply(ints, 2, lm3) %>% map_df(tidy) #%>% filter(str_detect(term, "x"))
-fits4 <- apply(ints, 2, lm4) %>% map_df(tidy) #%>% filter(str_detect(term, "x"))
-fits5 <- apply(ints, 2, lm5) %>% map_df(tidy) #%>% filter(str_detect(term, "x"))
-fits6 <- apply(ints, 2, lm6) %>% map_df(tidy) #%>% filter(str_detect(term, "x"))
-fits7 <- apply(ints, 2, lm7) %>% map_df(tidy) #%>% filter(str_detect(term, "x"))
-fits8 <- apply(ints, 2, lm8) %>% map_df(tidy) #%>% filter(str_detect(term, "x"))
-fits9 <- apply(ints, 2, lm9) %>% map_df(tidy) #%>% filter(str_detect(term, "x"))
-fits10 <- apply(ints, 2, lm10) %>% map_df(tidy) #%>% filter(str_detect(term, "x"))
-fits11 <- apply(ints, 2, lm11) %>% map_df(tidy) #%>% filter(str_detect(term, "x"))
-fits12 <- apply(ints, 2, lm12) %>% map_df(tidy) #%>% filter(str_detect(term, "x"))
+fits5 <- apply(ints, 2, lm5) %>% map_df(tidy)
+fits6 <- apply(ints, 2, lm6) %>% map_df(tidy)
+fits7 <- apply(ints, 2, lm7) %>% map_df(tidy)
+fits8 <- apply(ints, 2, lm8) %>% map_df(tidy)
+fits9 <- apply(ints, 2, lm9) %>% map_df(tidy)
+fits10 <- apply(ints, 2, lm10) %>% map_df(tidy)
+fits11 <- apply(ints, 2, lm11) %>% map_df(tidy)
+fits12 <- apply(ints, 2, lm12) %>% map_df(tidy)
 
-all <- bind_rows(
-                 #fits1, fits2, fits3, 
-                 fits4, fits5, fits6, fits7, fits8, fits9, fits10, fits11, fits12) %>% 
-  filter(term == "x") %>%
-  mutate(p.adj = p.adjust(p.value, method = "fdr")) %>%
+# Bind covariates of interest (1-3 are just for adjustment)
+all <- bind_rows(fits4, fits5, fits6, fits7, fits8, fits9, fits10, fits11, fits12) %>% 
+  filter(term == "x") %>% mutate(p.adj = p.adjust(p.value, method = "fdr")) %>%
   bind_cols(cmpd = rep(colnames(ints), 9))
-
-# x axis width
-x = 1:nrow(all)
 
 # draw empty plot
 plot(NULL, xlim=c(0, nrow(all)), ylim=c(0, max(-log10(all$p.value))), xaxt='n',
      ylab='-log10(p-value)', xlab='')
 points(x, -log10(all$p.value), pch=19, col=set2, cex = 0.6)
 
-# axis labels
-labs <- c("Alc", "Smoke", "Smoke", "Age", "BMI", "Waist", "Red meat", "Proc meat", 
-          "Genetic risk")
 labs2 <- c("Alc", "iron", "crp", "il8", "TNFa", "adiponectin","leptin", "igf1", "C-peptide")
 
-midpoint <- ncol(mat1)/2
-at.labs <- seq(midpoint, 2*midpoint*length(labs), 2*midpoint)
-
+# Create plot
 axis(1, at = at.labs, labels = labs2, las=1, cex.axis = 0.7)
 
-all1 <- all %>% mutate(p.low = ifelse(-log10(p.value) > 20, p.value, NA))
+all1 <- all %>% mutate(p.low = ifelse(-log10(p.value) > 15, p.value, NA))
 text(1:nrow(all), -log10(all1$p.low), all$cmpd, pos = 4, cex = 0.7)
+title("Manhattan risk factors 2")
 
-# Get FDR p-value cutpoint
-fdrP <- all %>% filter(p.adj < 0.05) %>% select(p.value) %>% max
+# Add p thresholds
 abline(h = -log(0.05), col = "grey")
 abline(h = -log(fdrP), col = "red")
 
