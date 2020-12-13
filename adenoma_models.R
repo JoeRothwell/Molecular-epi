@@ -1,27 +1,27 @@
 source("adenoma_crc.R")
 
 # Logistic regression to find discriminants
-mod <- function(x) glm(ct ~ x + country + sex + age, data = adenoma.meta)
-mod2 <- function(x) glm(ct ~ x + country + sex + age, data = crc.meta)
-mod1 <- function(x) glm(ct ~ x + country + sex + age, data = polyp.meta)
+mod1 <- function(x) glm(ct ~ x + country + sex + age + batch, data = adenoma.meta)
+mod2 <- function(x) glm(ct ~ x + country + sex + age + batch, data = crc.meta)
+mod3 <- function(x) glm(ct ~ x + country + sex + age + batch, data = polyp.meta)
 
-fits <- apply(adenoma, 2, mod)
+fits1 <- apply(adenoma, 2, mod1)
 fits2 <- apply(crc, 2, mod2)
-fits1 <- apply(polyp, 2, mod1)
+fits3 <- apply(polyp, 2, mod3)
 
 library(broom)
-mods.adenoma <- map_df(fits, tidy) %>% filter(term == "x") %>%
+mods.adenoma <- map_df(fits1, tidy) %>% filter(term == "x") %>%
   mutate(p.fdr = p.adjust(p.value, method = "fdr")) %>% add_column(compound = colnames(mat2)) %>%
-  select(compound, estimate, p.fdr) %>% arrange(p.fdr) %>% filter(p.fdr < 0.05)
+  select(compound, estimate:p.fdr) #%>% arrange(p.fdr) %>% filter(p.fdr < 0.05)
 # Copy and paste console output into Excel, then into powerpoint
 
 mods.crc <- map_df(fits2, tidy) %>% filter(term == "x") %>% 
   mutate(p.fdr = p.adjust(p.value, method = "fdr")) %>% add_column(compound = colnames(mat2)) %>%
-  select(compound, estimate, p.fdr) %>% arrange(p.fdr) %>% filter(p.fdr < 0.05)
+  select(compound, estimate:p.fdr) #%>% arrange(p.fdr) %>% filter(p.fdr < 0.05)
 
-mods.polyp <- map_df(fits1, tidy) %>% filter(term == "x") %>% 
+mods.polyp <- map_df(fits3, tidy) %>% filter(term == "x") %>% 
   mutate(p.fdr = p.adjust(p.value, method = "fdr")) %>% add_column(compound = colnames(mat2)) %>%
-  select(compound, estimate, p.fdr) %>% arrange(p.fdr) %>% filter(p.fdr < 0.05)
+  select(compound, estimate:p.fdr) #%>% arrange(p.fdr) %>% filter(p.fdr < 0.05)
 
 library(ggplot2)
 ggplot() + geom_point(data=mods.adenoma, aes(compound, log10(p.value)), colour = "red") +
