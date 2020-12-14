@@ -32,12 +32,12 @@ ggplot() + geom_point(data=mods.adenoma, aes(compound, log10(p.value)), colour =
 
 # Model for transformation to residuals
 # Warning, better predictions without this adjustment for country!!!
-adj   <- function(x) residuals(lm(x ~ country, data = adenoma.meta))
-adj2   <- function(x) residuals(lm(x ~ country, data = crc.meta))
-adj1   <- function(x) residuals(lm(x ~ country, data = polyp.meta))
-adjmat1 <- apply(adenoma, 2, adj)
+adj1   <- function(x) residuals(lm(x ~ batch, data = adenoma.meta))
+adj2   <- function(x) residuals(lm(x ~ batch, data = crc.meta))
+adj3   <- function(x) residuals(lm(x ~ batch, data = polyp.meta))
+adjmat1 <- apply(adenoma, 2, adj1)
 adjmat2 <- apply(crc, 2, adj2)
-adjmat3 <- apply(polyp, 2, adj1)
+adjmat3 <- apply(polyp, 2, adj3)
 
 # Bind case-control status to adjusted (or unadjusted) matrix
 plsdat1 <- data.frame(adenoma)
@@ -112,4 +112,6 @@ plot(mod3)
 confusionMatrix(mod3)
 predictions3 <- predict(mod3, newdata = testing)
 confusionMatrix(predictions3, reference = testing$path.group)
+
+
 

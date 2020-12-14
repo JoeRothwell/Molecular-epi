@@ -39,10 +39,10 @@ table(dat$path.group)
 #60      153     103      73
 
 # Remove the normals with inflammatory conditions
-dat <- dat %>% filter(pathsum %in% c(1,2,3,4,6) | norm.class == 1)
+#dat <- dat %>% filter(pathsum %in% c(1,2,3,4,6) | norm.class == 1)
 
 # Remove the polyps that are not hyperplastic polyps
-dat <- dat %>% filter(pathsum %in% c(1,2,3,5,6) | histology_of_adenoma %in% 7)
+#dat <- dat %>% filter(pathsum %in% c(1,2,3,5,6) | histology_of_adenoma %in% 7)
 
 # Binary variable for adenoma
 dat <- dat %>% mutate(ct = case_when(pathsum %in% 2:3 ~ 1, pathsum %in% 5:6 ~ 0))
