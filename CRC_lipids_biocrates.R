@@ -24,8 +24,13 @@ mat3 <- prox %>% select(Acylcarn_C10:Acylcarn_C8, Glyceroph_Lysopc_A_C16_0:Sphin
 mat4 <- dist %>% select(Acylcarn_C10:Acylcarn_C8, Glyceroph_Lysopc_A_C16_0:Sphingo_Sm_C26_1) %>% na_if(0)
 mat5 <- rectal %>% select(Acylcarn_C10:Acylcarn_C8, Glyceroph_Lysopc_A_C16_0:Sphingo_Sm_C26_1) %>% na_if(0)
 
+# Amino acids
+mat1 <- crc %>% select(contains("Aminoacid_")) %>% na_if(0)
+mat1a <- mat1 %>% select_if(~ sum(is.na(.)) < 1000)
+
+
 # Check for missings
-hist(colSums(is.na(mat)), breaks = 30)
+hist(colSums(is.na(mat1)), breaks = 30)
 library(zoo)
 scalemat1 <- mat1 %>% na.aggregate(FUN = function(x) min(x)/2) %>% log2 %>% scale
 scalemat2 <- mat2 %>% na.aggregate(FUN = function(x) min(x)/2) %>% log2 %>% scale
@@ -34,7 +39,7 @@ scalemat4 <- mat4 %>% na.aggregate(FUN = function(x) min(x)/2) %>% log2 %>% scal
 scalemat5 <- mat5 %>% na.aggregate(FUN = function(x) min(x)/2) %>% log2 %>% scale
 
 library(Amelia)
-missmap(as_tibble(scalemat))
+missmap(as_tibble(scalemat1), rank.order = F)
 heatmap.2(scalemat1, trace = "none", col = colpalette1)
 
 library(corrplot)
@@ -52,7 +57,8 @@ multiclr <- function(x, dat) {
 library(broom)
 # Apply models by subsite (use 2nd fn parameter as an option)
 # CRC
-mods1 <- apply(scalemat1, 2, multiclr, dat = crc) %>% map_df( ~ tidy(., exponentiate = T)) %>% 
+mods1 <- apply(scalemat1, 2, multiclr, dat = crc) %>% 
+  map_df( ~ tidy(., exponentiate = T, conf.int = T)) %>% 
   filter(grepl("x", term)) %>% mutate(p.adj = p.adjust(p.value, method = "fdr")) 
 # Add compound names and col for annotated lipids
 mods1a <- mods1 %>% mutate(compound = colnames(mat1), 
@@ -61,7 +67,8 @@ pFDR <- mods1 %>% filter(p.adj <= 0.05) %>% select(p.value) %>% max
 
 
 # Colon, prox colon, dist colon, rectal
-mods2 <- apply(scalemat2, 2, multiclr, dat = colon) %>% map_df( ~ tidy(., exponentiate = T)) %>% 
+mods2 <- apply(scalemat2, 2, multiclr, dat = colon) %>% 
+  map_df( ~ tidy(., exponentiate = T, conf.int = T)) %>% 
   filter(grepl("x", term)) %>% mutate(p.adj = p.adjust(p.value, method = "fdr"))
 
 mods3 <- apply(scalemat3, 2, multiclr, dat = prox) %>% map_df( ~ tidy(., exponentiate = T)) %>% 
