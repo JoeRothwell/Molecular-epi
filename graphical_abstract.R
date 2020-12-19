@@ -1,8 +1,8 @@
 # Graphical abstract for gastrotenterology submission
 
-estimate <- c(0.68, 0.53, 0.93)
-conf.low <- c(0.56, 0.3, 0.86)
-conf.high <- c(0.86, 0.95, 1)
+estimate <- c(0.62, 0.51, 0.93)
+conf.low <- c(0.50, 0.29, 0.86)
+conf.high <- c(0.78, 0.90, 1)
 
 labs <- c("      Endogenous metabolites", 
           "      Fatty acids", 
@@ -31,7 +31,7 @@ library(metafor)
 forest(estimate, ci.lb = conf.low, ci.ub = conf.high, refline = 1, 
        efac = c(0,0), psize = 1.5,
        rows = c(1,2,5), ylim = c(0,6), alim = c(0.2, 1.2),
-       xlim = c(-0.54, 2),
+       xlim = c(-0.54, 1.8),
        steps = 6,
        slab = NA,
        header = F,
