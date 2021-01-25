@@ -16,6 +16,10 @@ table(CT = csnp$Cncr_Caco_Clrt)
 # Remove non-matched subjects
 #crc1 <- crc %>% group_by(Match_Caseset) %>% filter(n() == 2) %>% ungroup()
 
+# Filter by fasting status. Fasting is 2 cf email Jelena 16 Oct 2018 
+table(crc$Fasting_C) # 1315, 656 controls 659 cases 
+crc <- crc %>% filter(Fasting_C == 2)
+
 
 # Select the lipids only (112) and convert zeros to NA
 mat1 <- crc %>% select(Acylcarn_C10:Acylcarn_C8, Glyceroph_Lysopc_A_C16_0:Sphingo_Sm_C26_1) %>% na_if(0)
@@ -59,11 +63,17 @@ library(broom)
 # CRC
 mods1 <- apply(scalemat1, 2, multiclr, dat = crc) %>% 
   map_df( ~ tidy(., exponentiate = T, conf.int = T)) %>% 
-  filter(grepl("x", term)) %>% mutate(p.adj = p.adjust(p.value, method = "fdr")) 
+  filter(grepl("x", term)) %>% mutate(p.adj = p.adjust(p.value, method = "fdr"))
+
 # Add compound names and col for annotated lipids
-mods1a <- mods1 %>% mutate(compound = colnames(mat1), 
-                           cmpd.lab = ifelse(-log10(p.value) > 1.8, compound, NA))
+mods1a <- mods1 %>% 
+  mutate(compound = colnames(mat1), cmpd.lab = ifelse(-log10(p.value) > 1.8, compound, NA))
+
 pFDR <- mods1 %>% filter(p.adj <= 0.05) %>% select(p.value) %>% max
+
+# Fasting (nothing under PFDR)
+mods1a <- mods1 %>% 
+  mutate(compound = colnames(mat1), cmpd.lab = ifelse(-log10(p.value) > 1.3, compound, NA))
 
 
 # Colon, prox colon, dist colon, rectal
@@ -98,12 +108,17 @@ mat8 <- mat3 %>% mutate_all(~cut_number(., n = 4, labels = 1:4))
 mat9 <- mat4 %>% mutate_all(~cut_number(., n = 4, labels = 1:4))
 mat10 <- mat5 %>% mutate_all(~cut_number(., n = 4, labels = 1:4))
 
-
+# All subjects
 fits1 <- apply(mat6, 2, multiclr, dat = crc) %>% map_df( ~tidy(., exponentiate = T)) %>% 
   filter(grepl("x4", term)) %>% mutate(p.adj = p.adjust(p.value, method = "fdr"))
 
+
 fits1a <- fits1 %>% mutate(compound = colnames(mat1), 
                            cmpd.lab = ifelse(-log10(p.value) > 1.4, compound, NA))
+
+# Fasting only
+fits1a <- fits1 %>% mutate(compound = colnames(mat1), 
+                           cmpd.lab = ifelse(-log10(p.value) > 1.3, compound, NA))
 
 pFDR1 <- fits1a %>% filter(p.adj <= 0.05) %>% select(p.value) %>% max
 
@@ -128,17 +143,20 @@ fits5 <- apply(mat10, 2, multiclr, dat = rectal) %>% map_df( ~tidy(., exponentia
   filter(grepl("x4", term)) %>% mutate(p.adj = p.adjust(p.value, method = "fdr")) %>%
   mutate_if(is.numeric, ~round(., 3))
 
-# Smile plots for manuscript. Build plot from background to foregroun. Colorectal:
+# Smile plots for manuscript. Build plot from background to foreground. Colorectal:
 library(ggrepel)
 ggplot(mods1a, aes(x = estimate, y = -log10(p.value))) + 
   geom_vline(xintercept = 1, colour = "grey60") +
   geom_hline(yintercept = -log10(0.05), size = 0.2, colour = "grey60") +
-  geom_hline(yintercept = 3.7, size = 0.2, colour = "grey60") +
+  #geom_hline(yintercept = 3.7, size = 0.2, colour = "grey60") +
   geom_text_repel(aes(label = cmpd.lab), size = 3, segment.color = "grey") +
   geom_point(shape = 21, fill = "dodgerblue") +
-  theme_bw() + ggtitle("Continuous models") + xlab("OR per SD increase conc") +
-  annotate("text", x = 0.98, y=c(1.2, 3.6), size = 3, hjust = 0,
-           label = c("Raw P threshold", "FDR P threshold")) +
+  theme_bw() + #ggtitle("Continuous models") + 
+  ggtitle("Continuous models, fasted") + 
+  xlab("OR per SD increase conc") +
+  #annotate("text", x = 0.98, y=c(1.2, 3.6), size = 3, hjust = 0,
+           #label = c("Raw P threshold", "FDR P threshold")) +
+  annotate("text", x = 1.05, y=1.35, size = 3, hjust = 0, label = "Raw P threshold") +
   theme(panel.grid.major = element_blank())
   
 
@@ -160,12 +178,15 @@ ggplot(all, aes(x = estimate, y = -log10(p.value))) + geom_point(shape = 1) +
 ggplot(fits1a, aes(x = estimate, y = -log10(p.value))) + 
   geom_vline(xintercept = 1, colour = "grey60") +
   geom_hline(yintercept = -log10(0.05), size = 0.2, colour = "grey60") +
-  geom_hline(yintercept = 3.8, size = 0.2, colour = "grey60") +
+  #geom_hline(yintercept = 3.8, size = 0.2, colour = "grey60") +
   geom_text_repel(aes(label = cmpd.lab), size = 3, segment.color = "grey") +
   geom_point(shape = 21, fill = "limegreen") +
-  theme_bw() + ggtitle("Categorical models") + xlab("OR for Q4 vs Q1 conc") +
-  annotate("text", x = 1.02, y=c(1.2, 3.7), size = 3, hjust = 0,
-           label = c("Raw P threshold", "FDR P threshold")) +
+  theme_bw() + #ggtitle("Categorical models") + 
+  ggtitle("Categorical models, fasted") + 
+  xlab("OR for Q4 vs Q1 conc") +
+  #annotate("text", x = 1.02, y=c(1.2, 3.7), size = 3, hjust = 0,
+           #label = c("Raw P threshold", "FDR P threshold")) +
+  annotate("text", x = 1.02, y= 1.35, size = 3, hjust = 0, label = "Raw P threshold") +
   theme(panel.grid.major = element_blank())
   
 
