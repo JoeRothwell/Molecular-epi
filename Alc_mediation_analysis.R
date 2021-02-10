@@ -26,6 +26,7 @@ fit6 <- clogit(update(base, ~. + I(Qe_Alc/12) + Qe_Alc_cat), data = crc3.ph) #1.
 
 modlist <- list(fit1, fit2, fit3, fit4, fit5, fit6)
 
+# Summarise OR (CI)
 library(broom)
 scomods <- map_df(modlist, ~tidy(., exponentiate = T)) %>% filter(str_detect(term, "Alc/12")) %>%
   mutate_if(is.numeric, ~round(., 2)) %>% unite(OR.CI, estimate, conf.low, conf.high, sep = "-")
@@ -34,9 +35,8 @@ scomods <- map_df(modlist, ~tidy(., exponentiate = T)) %>% filter(str_detect(ter
 #fit2 <- clogit(update(base, ~. + lab + scale(Qe_Alc)), data = crc.ph)
 #fit3 <- clogit(update(base, ~. + lab + cut_number(Qe_Alc, n = 4)), data = crc.ph)
 
-# (PLSR creation of first mediator using CRC1 controls was previously here)
-
 ### Calculation of NDE, NIE and RD ratio from Van Steenland 2010 (pg 1342)
+# Run Make_alc_mediators.R
 
 # Mediator 1 - controls from small case-control (as Laura did)
 # Logistic model adjusting for mediator. Need theta1 (exposure coef) and theta2 
@@ -48,13 +48,13 @@ modM <- lm(M.alc ~ Bmi_C + Qe_Energy + L_School + Smoke_Stat + Smoke_Int + Heigh
               Qge0701 + I(Qe_Alc/12), data = crc1)
 
 # Natural direct effect is given as exp(coeff for 1 unit change in exposure) theta1
-theta1s <- tidy(modY, exponentiate = T)[20, -1] #NDE = 1.08 (0.95-1.22)
+theta1s <- tidy(modY, exponentiate = T, conf.int = T)[20, -1] #NDE = 1.08 (0.95-1.22)
 
 # Natural indirect effect is given as exp(coeff of theta for mediator x beta for exposure)
-theta2s <- tidy(modY)[21, -1]
+theta2s <- tidy(modY, conf.int = T)[21, -1]
 
 # For betas need to get CI separately
-beta1s <- tidy(modM)[21, -1] %>% as.numeric
+beta1s <- tidy(modM, conf.int = T)[21, -1] %>% as.numeric
 ci     <- confint(modM, "I(Qe_Alc/12)")
 beta1s <- c(beta1s, ci)
 exp(theta2s*beta1s)
@@ -71,9 +71,18 @@ logNDE <- coef(modY)[20]
 RDR <- 100 * (logTE - logNDE) / logNDE # 73.2%
 
 
-# (PLSR creation of second mediator using discovery set of controls was here)
+### Mediator 1 with gate variable
 
-# Same calculation for mediator 2 - EPIC pooled controls
+modY <- clogit(update(base, ~. + I(Qe_Alc/12) + + Qe_Alc_cat + M.alc), data = crc1) 
+
+# Linear model of outcome and mediator (OR from beta coefficients). Need beta1 (exposure coef)
+modM <- lm(M.alc ~ Bmi_C + Qe_Energy + L_School + Smoke_Stat + Smoke_Int + Height_C + 
+             Qge0701 + I(Qe_Alc/12) + Qe_Alc_cat, data = crc1)
+
+# Now rerun lines 51 to 71 above
+
+
+### Mediator 2 - EPIC pooled controls
 modY <- clogit(update(base, ~. + I(Qe_Alc/12) + M.alc1), data = crc1) 
 
 # Linear model of outcome and mediator (OR from beta coefficients). Need beta1 (exposure coef)
@@ -81,7 +90,6 @@ modM <- lm(M.alc1 ~ Bmi_C + Qe_Energy + L_School + Smoke_Stat + Smoke_Int + Heig
              Qge0701 + I(Qe_Alc/12), data = crc1)
 
 # Natural direct effect is given as exp(coeff for 1 unit change in exposure) theta1
-library(broom)
 theta1s <- tidy(modY, exponentiate = T)[20, -1] #NDE = 1.16 (1.02-1.31)
 
 # Natural indirect effect is given as exp(coeff of theta for mediator x beta for exposure)

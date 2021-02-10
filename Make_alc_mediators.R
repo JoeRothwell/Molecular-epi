@@ -1,4 +1,5 @@
 # Make mediator variables and bind to small case control (CRC1)
+# Load the 3 CRC studies with all variables
 load("alc_mediation.Rdata")
 library(tidyverse)
 
@@ -108,3 +109,4 @@ coeff <- data.frame(value = round(coef(mod)[ , 1, 1], 3))
 
 # Get cases for prediction, log2 and scale as for discovery matrix
 crc1$M.alc1 <- exp(predict(mod1, data.frame(ctlmat))[,,1])
+# OR for mediator
