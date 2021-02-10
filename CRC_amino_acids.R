@@ -11,8 +11,10 @@ mat1 <- colon1 %>% select(colnames(mat0)) %>% na_if(0) #738, 698 w/o Greece
 mat2 <- colon2 %>% select(colnames(mat0)) %>% na_if(0) #564, 556 w/o Greece
 
 library(zoo)
-scalemat1 <- mat1 %>% na.aggregate(FUN = function(x) min(x)/2) %>% log2 #%>% scale
-scalemat2 <- mat2 %>% na.aggregate(FUN = function(x) min(x)/2) %>% log2 #%>% scale
+scalemat1 <- mat1 %>% na.aggregate(FUN = function(x) min(x)/2) %>% #log2 %>% 
+  scale
+scalemat2 <- mat2 %>% na.aggregate(FUN = function(x) min(x)/2) %>% #log2 %>% 
+  scale
 
 
 ### Continuous models per SD increase
@@ -33,7 +35,6 @@ multiclr <- function(x, dat) {
 
 
 library(broom)
-# create categorical BMI to replicate Jelena's covariates
 mods1 <- apply(scalemat1, 2, multiclr, dat = colon1) %>% 
   map_df( ~ tidy(., exponentiate = T, conf.int = T)) %>% filter(grepl("x", term)) %>% 
   mutate(p.adj = p.adjust(p.value, method = "fdr"), compound = colnames(mat1))
@@ -46,29 +47,48 @@ mods2 <- apply(scalemat2, 2, multiclr, dat = colon2) %>%
 #pFDR <- mods1 %>% filter(p.adj <= 0.05) %>% select(p.value) %>% max
 
 # Vector of ORs to paste into Excel sheet
-
 paste(round(mods1$estimate, 2), " (", round(mods1$conf.low, 2), "-", 
       round(mods1$conf.high, 2), ")", sep = "") %>% as.tibble()
-#writeClipboard(results1)
 
 paste(round(mods2$estimate, 2), " (", round(mods2$conf.low, 2), "-", 
       round(mods2$conf.high, 2), ")", sep = "") %>% as.tibble()
 
 
 ### Categorical analysis. Replace concentrations with quartile categories
-mat3 <- mat1 %>% mutate_all(~cut_number(., n = 4, labels = 1:4))
+#mat3 <- mat1 %>% mutate_all(~cut_number(., n = 4))
+#mat3a <- apply(mat1, 2, function(x) cut(x, breaks = quantile(x, include.lowest = T), labels = 1:4))
+
+# Need to alter function to get categories with cutpoints based on controls
+cutct <- function(x) cut(x, breaks = quantile(x[colon1$Cncr_Caco_Clrt == 0]), include.lowest = T, labels = 1:4)
+mat3 <- apply(mat1, 2, cutct)
 
 fits1 <- apply(mat3, 2, multiclr, dat = colon1) %>% 
   map_df( ~tidy(., exponentiate = T, conf.int = T)) %>%
-  #filter(grepl("x4", term)) %>% 
-  mutate(p.adj = p.adjust(p.value, method = "fdr"), compound = colnames(mat1))
+  filter(grepl("x", term)) %>% 
+  mutate(compound = rep(colnames(mat1), each = 3))
+# mutate(p.adj = p.adjust(p.value, method = "fdr"), compound = colnames(mat1))
 
-mat4 <- mat2 %>% mutate_all(~cut_number(., n = 4, labels = 1:4))
+hrci <- paste(round(fits1$estimate, 2), " (", round(fits1$conf.low, 2), "-", 
+        round(fits1$conf.high, 2), ")", sep = "") %>% as.tibble()
+
+# Get p-trend by entering quartile cutoffs into the model as continuous variables
+cutpts <- function(x) cut(x, breaks = quantile(x[colon1$Cncr_Caco_Clrt == 0]), include.lowest = T)
+mat3a <- apply(mat1, 2, cutpts)
+
+#mat4 <- mat2 %>% mutate_all(~cut_number(., n = 4, labels = 1:4))
+cutct <- function(x) cut(x, breaks = quantile(x[colon2$Cncr_Caco_Clrt == 0]), include.lowest = T, labels = 1:4)
+mat4 <- apply(mat2, 2, cutct)
 
 fits2 <- apply(mat4, 2, multiclr, dat = colon2) %>% 
   map_df( ~tidy(., exponentiate = T, conf.int = T)) %>%
-  filter(grepl("x4", term)) %>% 
+  filter(grepl("x", term)) %>% 
+  mutate(compound = rep(colnames(mat1), each = 3))
   mutate(p.adj = p.adjust(p.value, method = "fdr"), compound = colnames(mat2))
+  
+hrci <- paste(round(fits1$estimate, 2), " (", round(fits1$conf.low, 2), "-", 
+        round(fits1$conf.high, 2), ")", sep = "") %>% as.tibble() #%>%
+        #mutate(quartile = rep(c("X2", "X3", "X4"), 13)) %>%
+        #pivot_wider(names_from = quartile, values_from = value)
 
 # Bind continuous and categorical results together
 p180 <- bind_rows(Continuous = mods1, Categorical = fits1, .id = "Analysis")

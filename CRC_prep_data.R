@@ -22,21 +22,28 @@ meta <- read_dta("clrt_caco.dta") %>%
   distinct(Idepic, .keep_all = T)
 
 # Small case-control subset (p180)
-# Use Batch_MetBio to correctly subset biocrates data, join metadata. 
+# Use Batch_MetBio to correctly subset biocrates data, join metadata.
+# 496 cases, 492 controls in this dataset. Delete if only 1 in the caseset.
 crc1 <- read_sas("clrt_caco_metabo.sas7bdat") %>% 
   filter(!is.na(Batch_MetBio)) %>%
   left_join(meta, by = "Idepic", suffix = c("_1", "")) %>%
   mutate_at(vars(var.list), as.factor) %>% 
   mutate(Smoke_Int = fct_collapse(Smoke_Intensity, Other = c("8", "9", "10"))) %>% 
-  filter(Country != 6) # Greece removed
+  group_by(Match_Caseset) %>% filter(n() == 2) %>% ungroup()
+  #filter(Country != 6) # Greece removed
+
+# 980 subjects left, checked 490 cases 490 controls
 
 # Add categorical BMI
 crc1$Bmi_Cat<- as.factor(cut(crc1$Bmi_C, c(0,25,30,99), labels=FALSE, right=FALSE))
 
-# Get colon cancer only (ungroup to stop Match_Caseset from being readded later)
 # Amino acids study
-colon1 <- crc1 %>% filter(!location %in% 3 & Fasting_C == 2) %>% 
-  group_by(Match_Caseset) %>% filter(n() == 2) %>% ungroup()
+# Get colon cancer only, fasting status (2) only
+#colon1 <- crc1 %>% filter(!location %in% 3 & Fasting_C == 2)
+
+# Get colon cancer by Jelena's list of IDs and join to data to leave 740 subjects
+p180ids <- read.csv("p180_ids.csv")
+colon1 <- crc1 %>% inner_join(p180ids, by = c("Idepic" = "ids_p180")) %>% filter(Country != 6)
 
 # Subsites
 rectal1 <- crc1 %>% group_by(Match_Caseset) %>% filter(max(location, na.rm = T) == 3) %>% ungroup(Match_Caseset)
@@ -49,19 +56,30 @@ crc1f <- crc1 %>% filter(Sex == 2)
 crc1t <- crc1 %>% group_by(Match_Caseset) %>% filter(max(Tfollowup, na.rm = T) > 2) %>% ungroup()
 
 # Large case-control subset (p150 from Jelena)
+# 1185 cases, 1185 controls
 crc2 <- read_csv("biocrates_p150.csv") %>% 
   select(Match_Caseset, Cncr_Caco_Clrt, 
          ends_with("Idepic"), matches("(carn|oacid|genic|roph|ingo|Sugars)[_]"), -contains("tdq")) %>%
   inner_join(meta, by = "Idepic") %>% 
   mutate_at(vars(var.list), as.factor) %>% 
   mutate(Smoke_Int = fct_collapse(Smoke_Intensity, Other = c("8", "9", "10"))) %>%
-  filter(Country != 6)
+  group_by(Match_Caseset) %>% filter(n() == 2) %>% ungroup()
+  #filter(Country != 6)
 
 crc2$Bmi_Cat<- as.factor(cut(crc2$Bmi_C, c(0,25,30,99), labels=FALSE, right=FALSE))
 
 # Get colon cancer for amino acids study
-colon2 <- crc2 %>% filter(!location %in% 3 & Fasting_C == 2) %>% 
-  group_by(Match_Caseset) %>% filter(n() == 2) %>% ungroup()
+#colon2 <- crc2 %>% filter(!location %in% 3 & Fasting_C == 2) #%>% 
+  #group_by(Match_Caseset) %>% filter(n() == 2) %>% ungroup()
+
+# Get colon cancer by Jelena's list of IDs
+p150ids <- read.csv("p150_ids.csv")
+colon2 <- crc2 %>% inner_join(p150ids, by = c("Idepic" = "ids_p150")) %>% filter(Country != 6)
+
+#Checks
+#table(colon2$Cncr_Caco_Clrt)
+#intersect(colon2$Idepic, as.character(p150ids$ids_p150))
+#unique(droplevels(colon2$Match_Caseset))
 
 rectal2 <- crc2 %>% group_by(Match_Caseset) %>% filter(max(location, na.rm = T) == 3) %>% ungroup(Match_Caseset)
 prox2 <- crc2 %>% group_by(Match_Caseset) %>% filter(max(location, na.rm = T) == 1) %>% ungroup(Match_Caseset)
