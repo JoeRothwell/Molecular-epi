@@ -1,5 +1,6 @@
 # CRC amino acids study. Get data from CRC_prep_data and remove unneeded objects
 source("CRC_prep_data.R")
+source("functions_misc.R")
 rm(list = ls(pattern = "crc|dist|prox|rect"))
 
 # Subset whole colon study. Get compounds and filter those with more than 31% NAs
@@ -47,12 +48,9 @@ mods2 <- apply(scalemat2, 2, multiclr, dat = colon2) %>%
 #pFDR <- mods1 %>% filter(p.adj <= 0.05) %>% select(p.value) %>% max
 #pFDR <- mods1 %>% filter(p.adj <= 0.05) %>% select(p.value) %>% max
 
-# Vector of ORs to paste into Excel sheet
-paste(round(mods1$estimate, 2), " (", round(mods1$conf.low, 2), "-", 
-      round(mods1$conf.high, 2), ")", sep = "") %>% as.tibble()
-
-paste(round(mods2$estimate, 2), " (", round(mods2$conf.low, 2), "-", 
-      round(mods2$conf.high, 2), ")", sep = "") %>% as.tibble()
+# Table of ORs to paste into Excel sheet
+RR.ci(data = mods1)
+RR.ci(data = mods2)
 
 # Meta analysis by nesting
 library(metafor)
@@ -92,11 +90,10 @@ fits2 <- apply(mat4, 2, multiclr, dat = colon2) %>%
   mutate(compound = rep(colnames(mat1), each = 3))
   mutate(p.adj = p.adjust(p.value, method = "fdr"), compound = colnames(mat2))
   
-hrci <- paste(round(fits1$estimate, 2), " (", round(fits1$conf.low, 2), "-", 
-        round(fits1$conf.high, 2), ")", sep = "") %>% as.tibble() #%>%
-        #mutate(quartile = rep(c("X2", "X3", "X4"), 13)) %>%
-        #pivot_wider(names_from = quartile, values_from = value)
+# ORs to copy into Excel sheet  
+Q2 <- RR.ci(data = fits2)
 
+# P-trends
 ctrl <- colon2$Cncr_Caco_Clrt == 0
 cutpts <- function(x) as.numeric(as.character(cut2(x, cuts = quantile(x[ctrl]), levels.mean = T)))
 mat4b <- map_df(mat2, cutpts)
