@@ -1,27 +1,33 @@
 source("adenoma_crc.R")
 
-# Logistic regression to find discriminants
-mod1 <- function(x) glm(ct ~ x + country + sex + age + batch, data = adenoma.meta)
-mod2 <- function(x) glm(ct ~ x + country + sex + age + batch, data = crc.meta)
-mod3 <- function(x) glm(ct ~ x + country + sex + age + batch, data = polyp.meta)
+# Logistic regression to find discriminants. Make functions for models
 
-fits1 <- apply(adenoma, 2, mod1)
-fits2 <- apply(crc, 2, mod2)
-fits3 <- apply(polyp, 2, mod3)
+mod1 <- function(x, dat) glm(ct ~ x + country + sex + age + batch, data = dat)
+# CRC with only CR subjects adjusted for bmi
+mod2 <- function(x, dat) glm(ct ~ x + bmi + diabetes + sex + age + smoke + 
+                               alcohol_drinks_week + batch, data = dat)
 
 library(broom)
-mods.adenoma <- map_df(fits1, tidy) %>% filter(term == "x") %>%
-  mutate(p.fdr = p.adjust(p.value, method = "fdr")) %>% add_column(compound = colnames(mat2)) %>%
-  select(compound, estimate:p.fdr) #%>% arrange(p.fdr) %>% filter(p.fdr < 0.05)
-# Copy and paste console output into Excel, then into powerpoint
+# Adenoma both countries
+fits1 <- apply(mat2a[adenoma, ], 2, mod1, mat1[adenoma, ]) %>% map_df(tidy) %>% 
+  filter(term == "x") %>% mutate(p.fdr = p.adjust(p.value, method = "fdr")) %>% 
+  add_column(compound = colnames(mat2)) %>% select(compound, estimate:p.fdr)
 
-mods.crc <- map_df(fits2, tidy) %>% filter(term == "x") %>% 
-  mutate(p.fdr = p.adjust(p.value, method = "fdr")) %>% add_column(compound = colnames(mat2)) %>%
-  select(compound, estimate:p.fdr) #%>% arrange(p.fdr) %>% filter(p.fdr < 0.05)
+# CRC all samples (no BMI adjustment etc)
+fits2 <- apply(mat2a[crc, ], 2, mod1, mat1[crc, ]) %>% map_df(tidy) %>% 
+  filter(term == "x") %>% mutate(p.fdr = p.adjust(p.value, method = "fdr")) %>% 
+  add_column(compound = colnames(mat2)) %>% select(compound, estimate:p.fdr)
 
-mods.polyp <- map_df(fits3, tidy) %>% filter(term == "x") %>% 
-  mutate(p.fdr = p.adjust(p.value, method = "fdr")) %>% add_column(compound = colnames(mat2)) %>%
-  select(compound, estimate:p.fdr) #%>% arrange(p.fdr) %>% filter(p.fdr < 0.05)
+# CRC CR samples only (adjusted BMI and other covariates)
+fits2a <- apply(mat2a[crc, ], 2, mod2, mat1[crc, ]) %>% map_df(tidy) %>% 
+  filter(term == "x") %>% mutate(p.fdr = p.adjust(p.value, method = "fdr")) %>% 
+  add_column(compound = colnames(mat2)) %>% select(compound, estimate:p.fdr)
+
+# Polyp both countries 
+fits3 <- apply(mat2a[polyp, ], 2, mod1, mat1[polyp, ]) %>% map_df(tidy) %>% 
+  filter(term == "x") %>% mutate(p.fdr = p.adjust(p.value, method = "fdr")) %>% 
+  add_column(compound = colnames(mat2)) %>% select(compound, estimate:p.fdr)
+
 
 library(ggplot2)
 ggplot() + geom_point(data=mods.adenoma, aes(compound, log10(p.value)), colour = "red") +
@@ -30,22 +36,18 @@ ggplot() + geom_point(data=mods.adenoma, aes(compound, log10(p.value)), colour =
   geom_hline(yintercept = log10(0.00424), linetype = "dotted") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
 
-# Model for transformation to residuals
+# Model function for transformation to residuals
 # Warning, better predictions without this adjustment for country!!!
-adj1   <- function(x) residuals(lm(x ~ batch, data = adenoma.meta))
-adj2   <- function(x) residuals(lm(x ~ batch, data = crc.meta))
-adj3   <- function(x) residuals(lm(x ~ batch, data = polyp.meta))
-adjmat1 <- apply(adenoma, 2, adj1)
-adjmat2 <- apply(crc, 2, adj2)
-adjmat3 <- apply(polyp, 2, adj3)
+adj1   <- function(x, dat) residuals(lm(x ~ batch, data = dat))
+
+adjmat1 <- apply(mat2a[adenoma, ], 2, adj1, mat1[adenoma, ])
+adjmat2 <- apply(mat2a[crc, ], 2, adj1, mat1[crc, ])
+adjmat3 <- apply(mat2a[polyp, ], 2, adj1, mat1[polyp, ])
 
 # Bind case-control status to adjusted (or unadjusted) matrix
-plsdat1 <- data.frame(adenoma)
-plsdat2 <- data.frame(crc)
-plsdat3 <- data.frame(polyp)
-plsdat1$path.group <- as.factor(adenoma.meta$path.group)
-plsdat2$path.group <- as.factor(crc.meta$path.group)
-plsdat3$path.group <- as.factor(polyp.meta$path.group)
+plsdat1 <- bind_cols(path.group = as.factor(mat1$ct), mat2a)[adenoma, ]
+plsdat2 <- bind_cols(path.group = as.factor(mat1$ct), mat2a)[crc, ]
+plsdat3 <- bind_cols(path.group = as.factor(mat1$ct), mat2a)[polyp, ]
 
 # Predictive model by PLS
 # Start with a sensible number of components eg 10
