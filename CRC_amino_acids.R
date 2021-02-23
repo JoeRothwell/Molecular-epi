@@ -4,7 +4,25 @@ source("functions_misc.R")
 rm(list = ls(pattern = "crc|dist|prox|rect"))
 
 # Subset whole colon study. Get compounds and filter those with more than 31% NAs
-mat0 <- colon %>% select(contains("Aminoacid_")) %>% select_if(~ sum(is.na(.)) < (nrow(colon)*0.31)) 
+mat0 <- colon %>% select(contains("Aminoacid_")) %>% select_if(~ sum(is.na(.)) < (nrow(colon)*0.31))
+
+# Subset follow up range if necessary: 2 years
+colon1 <- colon1 %>% filter(Tfollowup >= 2)
+colon2 <- colon2 %>% filter(Tfollowup >= 2)
+# 5 years
+colon1 <- colon1 %>% filter(Tfollowup >= 5)
+colon2 <- colon2 %>% filter(Tfollowup >= 5)
+# 10 years
+colon1 <- colon1 %>% filter(Tfollowup >= 10)
+colon2 <- colon2 %>% filter(Tfollowup >= 10)
+
+# Subset local and metastatic disease. Variable name is Stagclrt
+# Localised, 1 and 2
+colon1 <- colon1 %>% filter(Stagclrt %in% 1:2)
+colon2 <- colon2 %>% filter(Stagclrt %in% 1:2)
+# Metastatic groups 3,4,5
+colon1 <- colon1 %>% filter(Stagclrt %in% 3:5)
+colon2 <- colon2 %>% filter(Stagclrt %in% 3:5)
 
 # Separate studies for Jelena's paper
 # p180 (small) had 740 subjects, p150 (large) had 556
@@ -16,25 +34,30 @@ scalemat1 <- mat1 %>% na.aggregate(FUN = function(x) min(x)/2) %>% scale
 scalemat2 <- mat2 %>% na.aggregate(FUN = function(x) min(x)/2) %>% scale
 
 # Plot distributions
-plot.ts(mat1[, 1:6], type = "p", main = "Arg to Orn")
-plot.ts(mat1[, 7:13], type = "p", main = "Phe to Val")
+#plot.ts(mat1[, 1:6], type = "p", main = "Arg to Orn")
+#plot.ts(mat1[, 7:13], type = "p", main = "Phe to Val")
+# No far outliers
 
 ### Continuous models per SD increase
 # Define function to apply across quartiles (already matched by lab)
 
 library(survival)
+# Original co-variates
 multiclr <- function(x, dat) { 
-  clogit(Cncr_Caco_Clrt ~ x + Bmi_C + Qe_Energy + L_School + Smoke_Stat + Smoke_Int + Height_C +
-           Qe_Alc + Qge0701 + Qge0704 + strata(Match_Caseset), data = dat) 
+  clogit(Cncr_Caco_Clrt ~ x + Bmi_Cat + 
+           Smoke_Stat + 
+           Alc_Drinker + 
+           Pa_Total + 
+           strata(Match_Caseset), method = "breslow", data = dat) 
 }
 
-# Original co-variates
-
+# Extra covariates for sensitivity analysis
+library(survival)
 multiclr <- function(x, dat) { 
-  clogit(Cncr_Caco_Clrt ~ x + Bmi_Cat + Smoke_Stat + Alc_Drinker + Pa_Total + 
+  clogit(Cncr_Caco_Clrt ~ x + Bmi_Cat + Smoke_Stat + Alc_Drinker + Pa_Total + Qe_Energy + 
+           L_School + Smoke_Int + Height_C + Qe_Alc + Qge0701 + Qge0704 + Qge05 +
            strata(Match_Caseset), data = dat) 
 }
-
 
 library(broom)
 mods1 <- apply(scalemat1, 2, multiclr, dat = colon1) %>% 
@@ -49,7 +72,7 @@ mods2 <- apply(scalemat2, 2, multiclr, dat = colon2) %>%
 #pFDR <- mods1 %>% filter(p.adj <= 0.05) %>% select(p.value) %>% max
 
 # Table of ORs to paste into Excel sheet
-RR.ci(data = mods1)
+results1 <- RR.ci(data = mods1)
 RR.ci(data = mods2)
 
 # Meta analysis by nesting
@@ -57,7 +80,12 @@ library(metafor)
 cont <- bind_rows(mods1, mods2) %>% group_by(compound) %>% nest() %>% 
   mutate(mods = lapply(data, function(df) rma(estimate, sei = std.error, data=df, method="REML")))
 ma.cont <- lapply(cont$mods, "[", c("b", "ci.lb", "ci.ub", "se", "I2", "QEp"))
-results1 <- map_df(ma.cont, bind_rows) %>% mutate_all(~round(., 2))
+results1 <- map_df(ma.cont, bind_rows)
+
+#RR.ci(ba, ci.lb, ci.ub, data = results1)
+
+paste(round(results1$b, 2), " (", round(results1$ci.lb, 2), "-", 
+      round(results1$ci.ub, 2), ")", sep = "") %>% as.tibble()
 
 
 ### Categorical analysis. Need to alter function to get categories with cutpoints based on controls
@@ -105,6 +133,7 @@ cats <- bind_rows(fits1, fits2) %>% group_by(compound, term) %>% nest() %>%
 ma.cat <- lapply(cats$mods, "[", c("b", "ci.lb", "ci.ub", "se", "I2", "QEp"))
 results2 <- map_df(ma.cat, bind_rows) %>% mutate_all(~round(., 2)) %>% 
   mutate(quartile = cats$term) %>% arrange(quartile)
+
 
 # Bind continuous and categorical results together
 p180 <- bind_rows(Continuous = mods1, Categorical = fits1, .id = "Analysis")

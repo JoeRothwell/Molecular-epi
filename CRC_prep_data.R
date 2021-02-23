@@ -17,8 +17,13 @@ meta <- read_dta("clrt_caco.dta") %>%
          location = case_when(
            Case_Mal_Colon_Prox == 1 ~ 1, Case_Mal_Colon_Dist == 1 ~ 2,
            Case_Mal_Colon_Nos  == 1 ~ 4, Case_Mal_Rectum     == 1 ~ 3)) %>%
-  group_by(Match_Caseset) %>% fill(c(D_Dgclrt, location), .direction = "downup") %>% 
-  ungroup() %>% select(-Match_Caseset, -Cncr_Caco_Clrt) %>%
+  
+  # Assign controls the same pathology value as corresponding case
+  group_by(Match_Caseset) %>% 
+  fill(c(D_Dgclrt, location, Tfollowup, Stagclrt), .direction = "downup") %>% 
+  ungroup() %>% 
+  
+  select(-Match_Caseset, -Cncr_Caco_Clrt) %>%
   distinct(Idepic, .keep_all = T)
 
 # Small case-control subset (p180)
