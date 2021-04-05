@@ -1,7 +1,7 @@
 # CRC amino acids study. Get data from CRC_prep_data and remove unneeded objects
 # Objective is to make four tables of ORs and MAs: continuous, Q2, Q3, Q4 (vs Q1)
 source("CRC_prep_data.R")
-source("functions_misc.R")
+#source("functions_misc.R")
 rm(list = ls(pattern = "crc|dist|prox|rect"))
 
 # Subset whole colon study. Get compounds and filter those with more than 31% NAs
@@ -36,10 +36,10 @@ scalemat2 <- scale(mat2)
 # Define function to apply across quartiles (already matched by lab)
 
 library(survival)
-# Original co-variates
+# Original co-variates. Breslow needed for >10 years
 multiclr <- function(AAconc, dat) { 
   clogit(Cncr_Caco_Clrt ~ AAconc + Bmi_Cat + Smoke_Stat + Alc_Drinker + Pa_Index + #Pa_Total + 
-           strata(Match_Caseset), #method = "breslow", 
+           strata(Match_Caseset), method = "breslow", 
            data = dat) 
 }
 
@@ -66,17 +66,25 @@ MA.cont <- map_df(ma.cont, bind_rows) %>%
   select(estimate = "b", conf.low = "ci.lb", conf.high = "ci.ub", I2, phet = "QEp") %>%
   bind_cols(compound = results1$compound)
 
-# Bind Phase I and phase II together and format
+# Bind Phase I and phase II together and format (for sensitivity analysis go to followup)
 tabcont <- bind_rows(results1, results2, MA.cont) %>% arrange(compound) %>%
   mutate_at(vars(estimate:conf.high), ~ format(round(., digits = 2), nsmall = 2)) %>%
   mutate_at(vars(p.adj:phet), ~ round(., digits = 3)) %>% 
   mutate(B1 = " (", hyph = "-", B2 = ")") %>%
   unite("CI", estimate, B1, conf.low, hyph, conf.high, B2, sep = "")
 
+
 # Using map() (not used)
 contD <- bind_rows(cont1, cont2) %>% group_by(compound) %>% nest() %>% 
   mutate(mods = map(data, ~ rma(estimate, sei = std.error, data = ., method="REML")),
          tidied = map(mods, tidy, conf.int = T)) %>% unnest(tidied)
+
+# Format sensitivity analyses
+followup <- MA.cont %>%
+  mutate_at(vars(estimate:conf.high), ~ format(round(., digits = 2), nsmall = 2)) %>%
+  mutate_at(vars(phet), ~ round(., digits = 3)) %>% 
+  mutate(B1 = " (", hyph = "-", B2 = ")") %>%
+  unite("CI", estimate, B1, conf.low, hyph, conf.high, B2, sep = "")
 
 
 ### Categorical analysis. Need to alter function to get categories with cutpoints based on controls
