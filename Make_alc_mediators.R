@@ -10,8 +10,8 @@ expr <- "(carn|oacid|genic|roph|ingo|Sugars)[_]"
 mat <- crc1 %>% select(matches(expr), -contains("tdq")) %>% log2 %>% scale
 
 # Subset controls 
-ctlmat <- mat[crc1$Cncr_Caco_Clrt == 0, ]
-dat <- crc1[crc1$Cncr_Caco_Clrt == 0, ]
+ctlmat <- mat[crc1$Cncr_Caco_Clrt == 0 & crc1$Qe_Alc != 0, ]
+dat <- crc1[crc1$Cncr_Caco_Clrt == 0 & crc1$Qe_Alc != 0, ]
 
 # Adjust matrix and bind log transformed alcohol intakes
 library(lme4)
@@ -44,7 +44,7 @@ crc1$M.alc <- exp(predict(mod1, mat)[,,1])
 
 # Get case-control for prediction, log2 and scale as for discovery matrix
 expr <- "(carn|oacid|genic|roph|ingo|Sugars)[_]"
-mat1 <- crc1 %>% select(matches(expr), -contains("tdq")) %>% log2 %>% scale
+mat <- crc1 %>% select(matches(expr), -contains("tdq")) %>% log2 %>% scale
 
 library(haven)
 ctrl <- read_dta("obes_metabo.dta") %>% mutate(Study = 
@@ -61,18 +61,22 @@ ctrl0 <- ctrl %>% select(matches(expr), -contains("tdq")) %>% select_if(~ sum(.,
 ctrl0 <- ctrl0[, colSums(is.na(ctrl0)) < 697]
 
 # Get CC matrix and discovery matrix and put columns in same order
-predmat <- mat[, intersect(colnames(ctrl0), colnames(mat))]
+#predmat <- mat[, intersect(colnames(ctrl0), colnames(mat))]
 
 library(zoo)
 hm <- function(x) min(x)/2
 discmat <- ctrl0[, intersect(colnames(ctrl0), colnames(mat))] %>% as.matrix %>% na_if(0) %>%
   na.aggregate(FUN = hm) %>% log2 %>% scale
 
+# Exclude zero alcohol consumers N = 1741->1635
+discmat <- discmat[ctrl$Qe_Alc != 0, ]
+dat1 <- ctrl[ctrl$Qe_Alc != 0, ]
+
 # Adjust matrix and bind log transformed alcohol intakes
 library(lme4)
-adj   <- function(x) residuals(lm(x ~ Center + batch_no, data = ctrl))
+adj   <- function(x) residuals(lm(x ~ Center + batch_no, data = dat1))
 adjmat <- apply(discmat, 2, adj)
-plsdat <- bind_cols(alc = log(ctrl$Qe_Alc/12 + 0.01), adjmat)
+plsdat <- bind_cols(alc = log(dat1$Qe_Alc/12 + 0.01), adjmat)
 
 # Train PLS. Find the number of dimensions with lowest cross validation error
 library(pls)

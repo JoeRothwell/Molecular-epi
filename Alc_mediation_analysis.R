@@ -48,11 +48,14 @@ modM <- lm(M.alc ~ Bmi_C + Qe_Energy + L_School + Smoke_Stat + Smoke_Int + Heigh
               Qge0701 + I(Qe_Alc/12), data = crc1)
 
 # Natural direct effect is given as exp(coeff for 1 unit change in exposure) theta1
-theta1s <- tidy(modY, exponentiate = T, conf.int = T)[20, -1] #NDE = 1.08 (0.95-1.22)
+theta1s <- tidy(modY, exponentiate = T, conf.int = T)[20, -1] 
+
+#NDE = 1.08 (0.95-1.22)
+#      1.07 (0.94-1.22) for new mediator derived without zero alc values
 
 # Natural indirect effect is given as exp(coeff of theta for mediator x beta for exposure)
 theta2s <- tidy(modY, conf.int = T)[21, -1]
-#theta2s <- tidy(modY, conf.int = T)[21,]
+theta2s <- tidy(modY, conf.int = T)[21, ]
 
 # For betas need to get CI separately
 beta1s <- tidy(modM, conf.int = T)[21, -1] %>% as.numeric
@@ -60,16 +63,17 @@ ci     <- confint(modM, "I(Qe_Alc/12)")
 beta1s <- c(beta1s, ci)
 exp(theta2s*beta1s)
 # NIE = 1.08 (1.02-1.17)
+#       1.08 (1.02-1.18) for new mediator derived without zero alc values
 
 # Summary
 # TE = 1.14 (1.00-1.28)
-# NDE = 1.08 (0.95-1.22)
-# NIE = 1.08 (1.02-1.17)
+# NDE = 1.07 (0.94-1.22)
+# NIE = 1.08 (1.02-1.18)
 
 # Risk difference ratio is defined as log(TE) - log(NDE) / log (NDE)  *100
 logTE <- coef(fit3)[20] 
 logNDE <- coef(modY)[20]
-RDR <- 100 * (logTE - logNDE) / logNDE # 74.0%
+RDR <- 100 * (logTE - logNDE) / logNDE # 74.0%; 86.9% with new mediator
 
 
 ### Mediator 1 with gate variable
@@ -124,7 +128,7 @@ exp(theta2s*beta1s)
 # Risk difference ratio is defined as log(TE) - log(NDE) / log (NDE)  *100
 logTE <- coef(fit3)[20] 
 logNDE <- coef(modY)[20]
-RDR <- 100 * (logTE - logNDE) / logNDE # -12.9%
+RDR <- 100 * (logTE - logNDE) / logNDE # -12.9% (-13.4 for new mediator with zeros excluded)
 
 # With gate variable
 modY <- clogit(update(base, ~. + I(Qe_Alc/12) + Qe_Alc_cat + M.alc1), data = crc1) 
@@ -154,4 +158,4 @@ exp(theta2s*beta1s)
 # Risk difference ratio is defined as log(TE) - log(NDE) / log (NDE)  *100
 logTE <- coef(fit4)[20] 
 logNDE <- coef(modY)[20]
-RDR <- 100 * (logTE - logNDE) / logNDE # -12.9%
+RDR <- 100 * (logTE - logNDE) / logNDE # -10.8%
