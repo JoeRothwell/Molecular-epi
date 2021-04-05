@@ -52,6 +52,7 @@ theta1s <- tidy(modY, exponentiate = T, conf.int = T)[20, -1] #NDE = 1.08 (0.95-
 
 # Natural indirect effect is given as exp(coeff of theta for mediator x beta for exposure)
 theta2s <- tidy(modY, conf.int = T)[21, -1]
+#theta2s <- tidy(modY, conf.int = T)[21,]
 
 # For betas need to get CI separately
 beta1s <- tidy(modM, conf.int = T)[21, -1] %>% as.numeric
@@ -68,18 +69,32 @@ exp(theta2s*beta1s)
 # Risk difference ratio is defined as log(TE) - log(NDE) / log (NDE)  *100
 logTE <- coef(fit3)[20] 
 logNDE <- coef(modY)[20]
-RDR <- 100 * (logTE - logNDE) / logNDE # 73.2%
+RDR <- 100 * (logTE - logNDE) / logNDE # 74.0%
 
 
 ### Mediator 1 with gate variable
-
-modY <- clogit(update(base, ~. + I(Qe_Alc/12) + + Qe_Alc_cat + M.alc), data = crc1) 
+# Natural direct effect is given as exp(coeff for 1 unit change in exposure) theta1
+modY <- clogit(update(base, ~. + I(Qe_Alc/12) + Qe_Alc_cat + M.alc), data = crc1) 
+theta1s <- tidy(modY, exponentiate = T, conf.int = T)[20, -1] #NDE = 1.11 (0.97-1.28)
+theta2s <- tidy(modY, conf.int = T)[21, -1]
 
 # Linear model of outcome and mediator (OR from beta coefficients). Need beta1 (exposure coef)
 modM <- lm(M.alc ~ Bmi_C + Qe_Energy + L_School + Smoke_Stat + Smoke_Int + Height_C + 
              Qge0701 + I(Qe_Alc/12) + Qe_Alc_cat, data = crc1)
+# Need to get CIs separately
+beta1s <- tidy(modM, conf.int = T)[21, -1] %>% as.numeric
+ci     <- confint(modM, "I(Qe_Alc/12)")
+beta1s <- c(beta1s, ci)
+exp(theta2s*beta1s)
+# NIE = 0.98 (0.96-1.01)
 
-# Now rerun lines 51 to 71 above
+# Summary
+# TE = 1.18 (1.03-1.34)
+# NDE = 1.11 (0.97-1.28)
+
+logTE <- coef(fit4)[20] 
+logNDE <- coef(modY)[20]
+RDR <- 100 * (logTE - logNDE) / logNDE # 51.2%
 
 
 ### Mediator 2 - EPIC pooled controls
@@ -93,7 +108,7 @@ modM <- lm(M.alc1 ~ Bmi_C + Qe_Energy + L_School + Smoke_Stat + Smoke_Int + Heig
 theta1s <- tidy(modY, exponentiate = T)[20, -1] #NDE = 1.16 (1.02-1.31)
 
 # Natural indirect effect is given as exp(coeff of theta for mediator x beta for exposure)
-theta2s <- tidy(modY)[21, -1]
+theta2s <- tidy(modY, conf.int = T)[21, -1]
 
 # For betas need to get CI separately
 beta1s <- tidy(modM)[21, -1] %>% as.numeric
@@ -105,11 +120,38 @@ exp(theta2s*beta1s)
 # Summary
 # TE = 1.14 (1.00-1.28)
 # NDE = 1.16 (1.02-1.31)
-# NIE = 0.98 (0.97-1.01)
 
 # Risk difference ratio is defined as log(TE) - log(NDE) / log (NDE)  *100
 logTE <- coef(fit3)[20] 
 logNDE <- coef(modY)[20]
 RDR <- 100 * (logTE - logNDE) / logNDE # -12.9%
 
+# With gate variable
+modY <- clogit(update(base, ~. + I(Qe_Alc/12) + Qe_Alc_cat + M.alc1), data = crc1) 
 
+# Linear model of outcome and mediator (OR from beta coefficients). Need beta1 (exposure coef)
+modM <- lm(M.alc1 ~ Bmi_C + Qe_Energy + L_School + Smoke_Stat + Smoke_Int + Height_C + 
+             Qge0701 + I(Qe_Alc/12) + Qe_Alc_cat, data = crc1)
+
+# Natural direct effect is given as exp(coeff for 1 unit change in exposure) theta1
+theta1s <- tidy(modY, conf.int = T)[20, -1] #NDE = 1.16 (1.02-1.31)
+
+# Natural indirect effect is given as exp(coeff of theta for mediator x beta for exposure)
+theta2s <- tidy(modY, conf.int = T)[21, -1]
+
+# For betas need to get CI separately
+beta1s <- tidy(modM)[21, -1] %>% as.numeric
+ci     <- confint(modM, "I(Qe_Alc/12)")
+beta1s <- c(beta1s, ci)
+exp(theta2s*beta1s)
+# NIE = 0.99 (0.98-1.00)
+
+# Summary
+# TE = 1.18 (1.00-1.34)
+# NDE = 1.16 (1.02-1.31)
+# NIE = 0.99 (0.98-1.00)
+
+# Risk difference ratio is defined as log(TE) - log(NDE) / log (NDE)  *100
+logTE <- coef(fit4)[20] 
+logNDE <- coef(modY)[20]
+RDR <- 100 * (logTE - logNDE) / logNDE # -12.9%
