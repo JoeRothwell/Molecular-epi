@@ -159,12 +159,6 @@ Q4 <- filter(tabcat, term == "AAconc4") %>% select(OR:phet)
 
 # Now copy and paste tabcont, Q2, Q3, Q4 into Excel
 
-
-# Plot distributions
-#plot.ts(mat1[, 1:6], type = "p", main = "Arg to Orn")
-#plot.ts(mat1[, 7:13], type = "p", main = "Phe to Val")
-# No far outliers
-
 # Extra covariates for sensitivity analysis
 library(survival)
 multiclr <- function(aa.conc, dat) { 
