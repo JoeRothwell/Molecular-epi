@@ -1,51 +1,35 @@
-# SAS datasets
+# Exploratory analysis of biocrates controls
 library(haven)
-# data <- read_sas("D:/obes_metabo.sas7bdat")
-# data1 <- read_sas("D:/obes_metabo_1.sas7bdat")
-# ctrl <- read.csv("D:/obes_metabo.csv")
-# ctrl <- readRDS("Biocrates data controls.rds")
+ctrl <- read_dta("obes_metabo.dta")
 
-# Outlier removal and adjustment for confounders ----
+# Outlier removal and adjustment for confounders
+# Subset metabolite matrix, replace zero with NA
+concs <- ctrl %>% select(Acylcarn_C0 : Sugars_H1) %>% as.matrix
+concs[concs == 0] <- NA
+  
+# Impute missing concentrations with half minimum value (otherwise gives contrasts error for sex and study)
+library(zoo)
+concs1 <- na.aggregate(concs, FUN = function(x) min(x)/2)
+logconcs <- log2(concs1)
+pca <- prcomp(logconcs, scale. = T)
+  
+# Plot with group labels
+library(pca3d)
+pca2d(pcaconcs, group = ctrl$Study, show.group.labels = F, legend = "bottomright")
+box(which = "plot", lty = "solid")
+#PCA reveals two outliers on PC1, 3600 and 3722
+outliers <- which(pcaconcs$x[, 1] > 40)
 
-library(tidyverse)
-# First dataset
-ctrl <- readRDS("Biocrates data controls.rds")
-# Expanded dataset with more studies
-#ctrl <- read_dta("obes_metabo.dta")
-
-# Subset metabolite matrix
-prepdata <- function(plotpca = F) {
+# Export data for PCPR2
   
-  library(tidyverse)
-  concs <- ctrl %>% select(Acylcarn_C0 : Sugars_H1) %>% as.matrix
-  
-  # replace zero with NA
-  concs[concs == 0] <- NA
-  
-  # Impute missing concentrations with half minimum value (otherwise gives contrasts error for sex and study)
-  library(zoo)
-  concs1 <- na.aggregate(concs, FUN = function(x) min(x)/2)
-  logconcs <- log2(concs1)
-  pcaconcs <- prcomp(logconcs, scale. = T)
-  
-  # Plot with group labels
-  if(plotpca == T){
-    library(pca3d)
-    pca2d(pcaconcs, group = ctrl$Study, show.group.labels = F, legend = "topright")
-    box(which = "plot", lty = "solid")
-  }
-  
-  #PCA reveals two outliers on PC1, 3600 and 3722
-  outliers <- which(pcaconcs$x[, 1] > 40)
-  
-  #subset data and replot
-  #ctrl1 <- ctrl[ -outliers, ]
-  ctrl1 <- ctrl %>% mutate(batch_no = as.numeric(flatten(str_extract_all(Batch_MetBio, "[0-9]+")))) %>% 
+#subset data and replot
+ctrl1 <- ctrl[ -outliers, ]
+ctrl1 <- ctrl %>% mutate(batch_no = as.numeric(flatten(str_extract_all(Batch_MetBio, "[0-9]+")))) %>% 
     slice(-outliers)
-  logconcs1 <- logconcs[ -outliers, ]
+logconcs1 <- logconcs[ -outliers, ]
   #ctrl1 <- cbind(ctrl1, logconcs1)
-  return(list(ctrl1, logconcs1))
-}
+return(list(ctrl1, logconcs1))
+
 output <- prepdata()
 
 # first is whole dataset outliers removed, second is matrix of log concs
