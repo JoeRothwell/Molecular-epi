@@ -34,10 +34,10 @@ crc1 <- read_sas("clrt_caco_metabo.sas7bdat") %>%
   left_join(meta, by = "Idepic", suffix = c("_1", "")) %>%
   mutate_at(vars(var.list), as.factor) %>% 
   mutate(Smoke_Int = fct_collapse(Smoke_Intensity, Other = c("8", "9", "10"))) %>% 
-  group_by(Match_Caseset) %>% filter(n() == 2) %>% ungroup()
-  #filter(Country != 6) # Greece removed
+  group_by(Match_Caseset) %>% filter(n() == 2) %>% ungroup() %>%
+  filter(Country != 6) # Greece removed
 
-# 980 subjects left, checked 490 cases 490 controls
+# 490 C+C, 467 after removal of Greece
 
 # Add categorical BMI
 crc1$Bmi_Cat<- as.factor(cut(crc1$Bmi_C, c(0,25,30,99), labels=FALSE, right=FALSE))
@@ -47,6 +47,7 @@ crc1$Bmi_Cat<- as.factor(cut(crc1$Bmi_C, c(0,25,30,99), labels=FALSE, right=FALS
 #colon1 <- crc1 %>% filter(!location %in% 3 & Fasting_C == 2)
 
 # Get colon cancer by Jelena's list of IDs and join to data to leave 740 subjects
+# 700 after removal of Greece
 p180ids <- read.csv("p180_ids.csv")
 colon1 <- crc1 %>% inner_join(p180ids, by = c("Idepic" = "ids_p180")) %>% filter(Country != 6)
 
@@ -61,15 +62,15 @@ crc1f <- crc1 %>% filter(Sex == 2)
 crc1t <- crc1 %>% group_by(Match_Caseset) %>% filter(max(Tfollowup, na.rm = T) > 2) %>% ungroup()
 
 # Large case-control subset (p150 from Jelena)
-# 1185 cases, 1185 controls
+# 1185 C+C, 1141 C+C after removal of Greece
 crc2 <- read_csv("biocrates_p150.csv") %>% 
   select(Match_Caseset, Cncr_Caco_Clrt, 
          ends_with("Idepic"), matches("(carn|oacid|genic|roph|ingo|Sugars)[_]"), -contains("tdq")) %>%
   inner_join(meta, by = "Idepic") %>% 
   mutate_at(vars(var.list), as.factor) %>% 
   mutate(Smoke_Int = fct_collapse(Smoke_Intensity, Other = c("8", "9", "10"))) %>%
-  group_by(Match_Caseset) %>% filter(n() == 2) %>% ungroup()
-  #filter(Country != 6)
+  group_by(Match_Caseset) %>% filter(n() == 2) %>% ungroup() %>%
+  filter(Country != 6)
 
 crc2$Bmi_Cat<- as.factor(cut(crc2$Bmi_C, c(0,25,30,99), labels=FALSE, right=FALSE))
 
@@ -97,9 +98,8 @@ crc2t <- crc2 %>% group_by(Match_Caseset) %>% filter(mean(Tfollowup, na.rm = T) 
 crc2m <- crc2 %>% filter(Sex == 1)
 crc2f <- crc2 %>% filter(Sex == 2)
 
-### 11 september 2020, reviewers revisions for CGH ###
-# Merge crc1 and crc2 to make complete dataset (now moved to CRC_prep_data_rev)
-crc <- bind_rows(crc1, crc2, .id = "lab")
+# Merge crc1 and crc2 to make complete dataset, remove non-fasting
+crc <- bind_rows(crc1, crc2, .id = "lab") %>% filter(Fasting_C == 2)
 crc$lab <- as.factor(crc$lab)
 
 colon <- bind_rows(colon1, colon2, .id = "lab")
