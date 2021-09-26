@@ -2,6 +2,10 @@
 # Load the 3 CRC studies with all variables
 load("alc_mediation.Rdata")
 
+# Load oxidative stress data from Pietro
+#library(haven)
+#oxstress <- read_sas("crc_oxstress2.sas7bdat")
+
 # Get small case-control study
 #meta <- read_dta("clrt_caco.dta") 
 #crc1 <- read_sas("clrt_caco_metabo.sas7bdat") %>% filter(!is.na(Batch_MetBio) & Country != 6)
@@ -54,8 +58,8 @@ selectNcomp(mod, method = "randomization", plot = T)
 # Run PLS with 2 components and get coefficients, predict for mat
 mod1 <- plsr(alc ~ ., data = plsdat1, ncomp = 1)
 coeff <- data.frame(value = round(coef(mod1)[ , 1, 1], 3))
-crc1$M1 <- exp(predict(mod1, mat1)[,,1])
-
+#crc1$M1 <- exp(predict(mod1, mat1)[,,1])
+M1 <- exp(predict(mod1, mat1)[,,1])
 
 # Amino acids only
 mod <- plsr(alc ~ ., ncomp = 10, data = plsdat2, validation = "CV")
@@ -70,8 +74,8 @@ selectNcomp(mod, method = "randomization", plot = T)
 # Run PLS with 2 components and get coefficients, predict for mat
 mod1 <- plsr(alc ~ ., data = plsdat2, ncomp = 1)
 coeff <- data.frame(value = round(coef(mod1)[ , 1, 1], 3))
-crc1$M2 <- exp(predict(mod1, mat2)[,,1])
-
+#crc1$M2 <- exp(predict(mod1, mat2)[,,1])
+M2 <- exp(predict(mod1, mat2)[,,1])
 
 # Lipid metabolites only
 mod <- plsr(alc ~ ., ncomp = 10, data = plsdat3, validation = "CV")
@@ -86,7 +90,8 @@ selectNcomp(mod, method = "randomization", plot = T)
 # Run PLS with 2 components and get coefficients, predict for mat
 mod1 <- plsr(alc ~ ., data = plsdat3, ncomp = 1)
 coeff <- data.frame(value = round(coef(mod1)[ , 1, 1], 3))
-crc1$M3 <- exp(predict(mod1, mat3)[,,1])
+#crc1$M3 <- exp(predict(mod1, mat3)[,,1])
+M3 <- exp(predict(mod1, mat3)[,,1])
 
 #fit3a <- clogit(update(base, ~. + M.alc), data = crc1) 
 #OR for mediator 2.63 (1.43-4.81)
@@ -146,7 +151,8 @@ mod1 <- plsr(alc ~ ., data = plsdat, ncomp = 3)
 coeff <- data.frame(value = round(coef(mod)[ , 1, 1], 3))
 
 # Get cases for prediction, log2 and scale as for discovery matrix
-crc1$M4 <- exp(predict(mod1, data.frame(mat))[,,1])
+#crc1$M4 <- exp(predict(mod1, data.frame(mat))[,,1])
+M4 <- exp(predict(mod1, data.frame(mat))[,,1])
 
 # Fatty acids mediator from controls of CRC1
 crc3 <- crc3.ph %>% ungroup()
@@ -183,4 +189,8 @@ mod1 <- plsr(alc ~ ., data = plsdat, ncomp = 2)
 coeff <- data.frame(value = round(coef(mod)[ , 1, 1], 3))
 
 # Get cases for prediction, log2 and scale as for discovery matrix
-crc3$M5 <- exp(predict(mod1, data.frame(concs))[,,1])
+#crc3$M5 <- exp(predict(mod1, data.frame(concs))[,,1])
+M5 <- exp(predict(mod1, data.frame(concs))[,,1])
+
+# Remove unneeded objects
+rm(list = ls(pattern = "concs|adjmat|ctlmat|mat|plsdat|expr|discmat|ctrl"))
