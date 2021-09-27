@@ -40,9 +40,9 @@ library(broom)
 mediate <- function(fit, dat, M, gate = F){
   
   # M1: controls from small case-control, all biocrates compounds (as Laura did)
-  # First get total effect
-  TE <- tidy(fit, conf.int = T, exponentiate = T) %>% 
-    filter(term == "I(Qe_Alc/12)") #%>% select(-1)
+  # First get total effect (OR and CIs and just coefficient)
+  TE <- tidy(fit, conf.int = T, exponentiate = T) %>% filter(term == "I(Qe_Alc/12)")
+  ln.te <- tidy(fit) %>% filter(term == "I(Qe_Alc/12)") %>% select(2)
   
   # modY is a CLR adjusting for the mediator. Need exposure and mediator coefs theta1, theta2 
   if(gate == F) {
@@ -71,14 +71,16 @@ mediate <- function(fit, dat, M, gate = F){
   theta2 <- tidy(modY, conf.int = T) %>% filter(term == "M") %>% select(-1)
   beta1  <- tidy(modM, conf.int = T) %>% filter(term == "I(Qe_Alc/12)") %>% select(-1)
   NIE <- exp(theta2*beta1)
+  ln.nie <- (theta2*beta1)[1]
 
   # Risk difference ratio is defined as log(TE) - log(NDE) / log (NDE)  *100
   logTE <- coef(fit)["I(Qe_Alc/12)"] 
   logNDE <- coef(modY)["I(Qe_Alc/12)"]
   RDR <- 100 * (logTE - logNDE) / logNDE # 90.6
+  med <- (100 * ln.nie)/ln.te
   
   #return(list(te = TE, nde = NDE, nie = NIE, rdr = RDR))
-  return(list(te.nde = bind_rows(TE, NDE), nie = NIE, rdr = RDR))
+  return(list(te.nde = bind_rows(TE, NDE), nie = NIE, rdr = RDR, perc = med))
 }
 
 # M1: controls from small case-control, all biocrates compounds (as Laura did)
@@ -106,10 +108,10 @@ mediate(fit4, crc1, M4, gate = T)
 # TE = 1.18 (1.00-1.34), NDE = 1.20 (1.05-1.37), NIE = 0.99 (0.98-1.01), RDR = -9.5
 
 # M5: derived from fatty acids data
-mediate(fit5, crc3, M5, gate = F)
-mediate(fit6, crc3, M5, gate = T)
+mediate(fit5, crc3.ph, M5, gate = F)
+mediate(fit6, crc3.ph, M5, gate = T)
 # TE = 1.15 (1.02-1.29), NDE = 1.21 (1.06-1.38), NIE = 0.95 (0.93-1.00), -29.1
-# TE = 1.18 (1.00-1.34), NDE = 1.21 (1.06-1.38), NIE = 0.95 (0.93-1.00), -9.5
+# TE = 1.19 (1.04-1.35), NDE = 1.27 (1.10-1.46), NIE = 0.95 (0.93-1.00), -28.6
 
 # Single compound mediators
 # LysoPC 16:1 and 17:0, PC aa 32:1, 34:1, ae30:2, 36:2, 38:3, SM 14:1, 16:1, 22:2
