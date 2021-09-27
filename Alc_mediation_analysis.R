@@ -203,3 +203,35 @@ NIE <- exp(theta2 * beta1)
 logTE <- coef(fit6)[19] 
 logNDE <- coef(modY)[19]
 RDR <- 100 * (logTE - logNDE) / logNDE # -9.5%
+
+
+
+### Single compound mediators from van Roekel et al 2018
+# LysoPC 16:1 and 17:0, PC aa 32:1, 34:1, ae30:2, 36:2, 38:3, SM 14:1, 16:1, 22:2
+M6 <- crc1$Glyceroph_Lysopc_A_C16_1
+modY <- clogit(update(base, ~. + I(Qe_Alc/12) + M6), data = crc1) 
+modM <- lm(M6 ~ Bmi_C + Qe_Energy + L_School + Smoke_Stat + Smoke_Int + Height_C + 
+             Qge0701 + I(Qe_Alc/12), data = crc1)
+# Natural direct effect is given as exp(coeff for 1 unit change in exposure) theta1
+theta1 <- tidy(modY, exponentiate = T, conf.int = T) %>% filter(term == "M6") %>% select(-1)
+theta2 <- tidy(modY, conf.int = T) %>% filter(term == "M6") %>% select(-1)
+beta1 <- tidy(modM, conf.int = T) %>% filter(term == "I(Qe_Alc/12)") %>% select(-1)
+NIE <- exp(theta2 * beta1)
+# TE = 1.18 (1.00-1.34), NDE = 1.21 (1.06-1.38), NIE = 0.95 (0.93-1.00)
+logTE <- coef(fit3)[19] %>% as.numeric
+logNDE <- coef(modY)[19] %>% as.numeric
+RDR <- 100 * (logTE - logNDE) / logNDE # -29.1%
+
+# Gate variable
+modY <- clogit(update(base, ~. + I(Qe_Alc/12) + Qe_Alc_cat + M5), data = crc3) 
+modM <- lm(M6 ~ Bmi_C + Qe_Energy + L_School + Smoke_Stat + Smoke_Int + Height_C + 
+             Qge0701 + I(Qe_Alc/12) + Qe_Alc_cat, data = crc3)
+# Natural direct effect is given as exp(coeff for 1 unit change in exposure) theta1
+theta1 <- tidy(modY, exponentiate = T, conf.int = T) %>% filter(term == "I(Qe_Alc/12)") %>% select(-1)
+theta2 <- tidy(modY, conf.int = T) %>% filter(term == "M6") %>% select(-1)
+beta1 <- tidy(modM, conf.int = T) %>% filter(term == "I(Qe_Alc/12)") %>% select(-1)
+NIE <- exp(theta2 * beta1)
+# TE = 1.18 (1.00-1.34), NDE = 1.21 (1.06-1.38), NIE = 0.95 (0.93-1.00)
+logTE <- coef(fit6)[19] 
+logNDE <- coef(modY)[19]
+RDR <- 100 * (logTE - logNDE) / logNDE # -9.5%
