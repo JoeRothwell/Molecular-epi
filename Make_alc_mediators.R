@@ -3,8 +3,8 @@
 load("alc_mediation.Rdata")
 
 # Load oxidative stress data from Pietro
-#library(haven)
-#oxstress <- read_sas("crc_oxstress2.sas7bdat")
+library(haven)
+oxstress <- read_sas("crc_oxstress2.sas7bdat")
 
 # Get small case-control study
 #meta <- read_dta("clrt_caco.dta") 
@@ -207,6 +207,8 @@ M14 <- crc1$Sphingo_Sm_Oh_C16_1
 M15 <- crc1$Sphingo_Sm_Oh_C22_2
 
 # Oxidative stress mediators
+M16 <- crc1$Frap_CLRT_10
+M17 <- crc1$Rom_CLRT_10
 
 # Remove unneeded objects
 rm(list = ls(pattern = "concs|adjmat|ctlmat|mat|plsdat|expr|discmat|ctrl"))
