@@ -192,5 +192,21 @@ coeff <- data.frame(value = round(coef(mod)[ , 1, 1], 3))
 #crc3$M5 <- exp(predict(mod1, data.frame(concs))[,,1])
 M5 <- exp(predict(mod1, data.frame(concs))[,,1])
 
+# Single compound mediators
+# LysoPC 16:1 and 17:0, PC aa 32:1, 34:1, ae30:2, 36:2, 38:3, SM 14:1, 16:1, 22:2
+
+M6 <- crc1$Glyceroph_Lysopc_A_C16_1
+M7 <- crc1$Glyceroph_Lysopc_A_C17_0
+M8 <- crc1$Glyceroph_Pc_Aa_C32_1
+M9 <- crc1$Glyceroph_Pc_Aa_C34_1
+M10 <- crc1$Glyceroph_Pc_Ae_C30_2
+M11 <- crc1$Glyceroph_Pc_Ae_C36_2
+M12 <- crc1$Glyceroph_Pc_Ae_C38_3
+M13 <- crc1$Sphingo_Sm_Oh_C14_1
+M14 <- crc1$Sphingo_Sm_Oh_C16_1
+M15 <- crc1$Sphingo_Sm_Oh_C22_2
+
+# Oxidative stress mediators
+
 # Remove unneeded objects
 rm(list = ls(pattern = "concs|adjmat|ctlmat|mat|plsdat|expr|discmat|ctrl"))
