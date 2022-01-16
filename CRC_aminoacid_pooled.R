@@ -1,5 +1,5 @@
-# Separate studies for Jelena's paper. p180 (small) had 740 subjects, p150 (large) had 556
-# Note: no NAs and no zeros in these data
+# EPIC P180 and P150 studies now pooled instead of meta-analysed. 
+# p180 (small) had 740 subjects, p150 (large) had 556. Note: no NAs and no zeros in these data
 source("CRC_prep_data.R")
 rm(list = ls(pattern = "colon|dist|prox|rect|crc1|crc2"))
 
@@ -29,7 +29,7 @@ crc %>% select(contains("Aminoacid_")) %>% ncol() #22
 # Update: keep all amino acids and give missings instead (to keep p180 AAs)
 mat0 <- crc %>% select(contains("Aminoacid_")) #%>% 
   #select_if(~ sum(is.na(.)) < (nrow(crc) * 0.31))
-mat <- crc %>% select(colnames(mat0)) #738, 698 w/o Greece
+mat <- crc %>% select(colnames(mat0)) #1308 w/o Greece
 scalemat <- scale(mat)
 
 ### Continuous models per SD increase
@@ -58,7 +58,7 @@ ctrl <- crc$Cncr_Caco_Clrt == 0
 # Using control inner cutpoints and full range outer cutpoints
 cutct <- function(x, ...) { 
   inner <- quantile(x[ctrl])[2:4]
-  outer <- quantile(x)[c(1,5)]
+  outer <- quantile(x)[c(1, 5)]
   cut(x, breaks = sort(c(outer, inner)), include.lowest = T, ...)
 }
 
@@ -92,6 +92,35 @@ Q2 <- filter(tabcat, term == "AAconc2") %>% select(OR:p.adj)
 Q3 <- filter(tabcat, term == "AAconc3") %>% select(OR:p.adj)
 Q4 <- filter(tabcat, term == "AAconc4") %>% select(OR:p.adj)
 
+# Categorical analysis for P180 compounds only (run cutct first)
+crc180 <- crc %>% filter(lab == 1)
+ctrl <- crc180$Cncr_Caco_Clrt == 0
+# Remove aspartate (too many of the same value) and Xleu (not included)
+mat180 <- crc180 %>% select(colnames(mat0[-c(4,22)])) #708 w/o Greece
+
+# Apply across continuous matrix to get categories as factor or integer labels = F (for p-trend)
+mat1 <- apply(mat180, 2, cutct, labels = 1:4)
+mat1a <- apply(mat180, 2, cutct, labels = F)
+
+library(broom)
+fits180 <- apply(mat1, 2, multiclr, dat = crc180) %>% 
+  map_df( ~tidy(., exponentiate = T, conf.int = T)) %>% filter(grepl("AAconc", term)) %>%
+  mutate(compound = rep(colnames(mat180), each = 3)) %>%
+  mutate(p.adj = p.adjust(p.value, method = "fdr"))
+
+# Get p-trend by entering quartile numbers into the model as continuous variables (1,2,3,4)
+trends <- apply(mat1a, 2, multiclr, dat = crc180) %>% map_df( ~ tidy(.)) %>% 
+  filter(term == "AAconc") %>% select(p.value) %>% bind_cols(compound = colnames(mat180))
+
+# Extract results
+results1 <- fits180 %>% select(term, compound, estimate, conf.low, conf.high, p.adj) 
+
+tabcat <- results1 %>%
+  mutate_at(vars(estimate:conf.high), ~ format(round(., digits = 2), nsmall = 2)) %>% 
+  mutate_at(vars(p.adj), ~ round(., digits = 3)) %>% 
+  mutate(B1 = " (", hyph = "-", B2 = ")") %>%
+  unite("OR", estimate, B1, conf.low, hyph, conf.high, B2, sep = "") %>%
+  arrange(compound, term)
 
 # Correlations
 mat <- colon %>% filter(Cncr_Caco_Clrt == 0) %>% select(contains("Aminoacid_")) %>% 
