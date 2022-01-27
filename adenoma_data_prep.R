@@ -12,10 +12,15 @@ cmpd.meta <- read_csv("Biocrates_cmpd_metadata.csv") %>%
   mutate(cmpd.low = str_replace(cmpd.low, "lyso", "lyso_")) %>%
   mutate(cmpd.low = str_replace(cmpd.low, "c4_oh_", "c4_oh")) 
 
-# Main adenoma data: replace NAs, clean up names, remove empty rows, rename sarcosine_178 to sarcosine
+# SCFA data: clean and prepare for join to biocrates data
+scfa <- read_xlsx("Irish Czech_Data_file_2020_JR_DH_mod.xlsx", sheet = 3, skip = 1) %>%
+  remove_empty("rows") %>% rename(id = `SCFA Plasma ID`) %>% clean_names()
+
+# Main biocrates data: replace NAs, clean up names, remove empty rows, rename sarcosine_178 to sarcosine
 dat <- read_xlsx("CRC Metabolomics MasterFile only Biocrates.xlsx", skip = 1, na = c(".", "<LOD")) %>% 
   clean_names() %>% remove_empty("rows") %>% mutate(pathsum = pathology_summary) %>%
-  rename(sarcosine = sarcosine_178)
+  rename(sarcosine = sarcosine_178) %>%
+  left_join(scfa, by = "id")
 
 # Pathology codings
 # 1 = Cancer; 2 = High Grade Dysplasia; 3 = Adenoma (TA, TVA, VA);  4 = Polyp (HP or small TA); 
@@ -52,26 +57,26 @@ table(dat$ct)
 # Metabolite selection (From Magda sheet) (377 subjects)
 # Recode 998 and 999 with missing, remove missing > 40%
 
-# Get Biocrates data only.Remove 11 missings using NA glu (no peak detected)
+# Get main variables only incl. Biocrates and SCFA data. Remove 11 missings using NA glu (no peak detected)
 mat <- dat %>% select(pathsum, bmi, diabetes, country:age, batch, alcohol, alcohol_drinks_week, 
-                      smoke, lyso_pc_a_c16_0:c9) %>% filter(!is.na(glu))
+                      smoke, lyso_pc_a_c16_0:c9, acetic_acid_m_m:valeric_acid_m_m) %>% filter(!is.na(glu))
 #missmap(mat, rank.order = F, x.cex = 1)
+
+## Analysis of Biocrates compounds only (for SCFA, go to end of script)
  
-# Convert character columns to numeric, remove metabolites with more than 21% missings (80),
-# code normal = 0, pathology = 1 for logistic regression
+# Convert character columns to numeric, remove metabolites with more than 21% missings (80)
 mat <- mat %>% mutate_at(.vars = vars(lyso_pc_a_c16_0:c9), .funs = as.numeric)
 
 # Remove metabolites with more than 21% missings (missings == T OR metadata == T)
 missvec <- sapply(mat, function(x) sum(is.na(x)) < 80)
 metvec <- 1:ncol(mat) %in% 1:10
 
-#mat1 <- mat %>% select_if(~ sum(is.na(.)) < 80) %>% mutate(ct = ifelse(pathsum %in% 5:6, 0, 1))
+# code normal = 0, pathology = 1 for logistic regression
 mat1 <- mat %>% select_if(missvec == T | metvec == T) %>% mutate(ct = ifelse(pathsum %in% 5:6, 0, 1))
+
 #missmap(mat1, rank.order = F, x.cex = 1)
-# Add numeric case-control variable
 
 # Impute half min value and subset full matrix
-expr <- "(carn|oacid|genic|roph|ingo|Sugars)[_]"
 mat2 <- na.aggregate(as.matrix(mat1[, -c(1:10, ncol(mat1))]), function(x) min(x)/2)
 
 # Replace matrix names with standardised ones (see match_cmpd_names.R)
@@ -116,5 +121,30 @@ dend <- dend %>% #set("labels_colors", mat1$country, order_value = TRUE) %>%
   set("labels_cex", .5)
 plot(dend, horiz = F)
 
+##  SCFA analysis
 
+# Get metadata and SCFA only. Remove 11 missings using NA glu (no peak detected)
+mat <- dat %>% select(pathsum, bmi, diabetes, country:age, batch, alcohol, alcohol_drinks_week, 
+                      smoke, lyso_pc_a_c16_0:c9, 
+                      acetic_acid_m_m:valeric_acid_m_m) %>%
+  filter(if_all(acetic_acid_m_m:valeric_acid_m_m, ~ !is.na(.)))
 
+# Convert character columns to numeric, remove metabolites with more than 21% missings (80),
+mat <- mat %>% mutate_at(.vars = vars(acetic_acid_m_m:valeric_acid_m_m), .funs = as.numeric)
+mat <- mat %>% mutate_at(.vars = vars(lyso_pc_a_c16_0:valeric_acid_m_m), .funs = as.numeric)
+
+# Get correlations for all compounds or just SCFA
+library(corrplot)
+cormat <- cor(mat[, -(1:10)], use = "pairwise.complete.obs")
+corrplot(cormat, method = "square", tl.col = "black", order = "hclust")
+# 2-methylbutyric acid, butyric acid and valeric acid strongly correlated
+
+# Remove metabolites with more than 21% missings (missings == T OR metadata == T)
+missvec <- sapply(mat, function(x) sum(is.na(x)) < 80)
+metvec <- 1:ncol(mat) %in% 1:10
+mat1 <- mat %>% select_if(missvec == T | metvec == T) %>% mutate(ct = ifelse(pathsum %in% 5:6, 0, 1))
+
+#missmap(mat1, rank.order = F, x.cex = 1)
+
+# Impute half min value and subset full matrix
+mat2 <- na.aggregate(as.matrix(mat1[, -c(1:10, ncol(mat1))]), function(x) min(x)/2)
