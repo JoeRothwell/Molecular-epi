@@ -22,6 +22,10 @@ crc <- crc %>% filter(Tfollowup >= 10)
 crc <- crc %>% filter(Stagclrt == 2)
 crc <- crc %>% filter(Stagclrt %in% 3:5)
 
+# By sex
+crc <- crc %>% filter(Sex == 1)
+crc <- crc %>% filter(Sex == 2)
+
 # Count amino acids
 crc %>% select(contains("Aminoacid_")) %>% ncol() #22
 
