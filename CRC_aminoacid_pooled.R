@@ -2,6 +2,7 @@
 # p180 (small) had 740 subjects, p150 (large) had 556. Note: no NAs and no zeros in these data
 source("CRC_prep_data.R")
 rm(list = ls(pattern = "colon|dist|prox|rect|crc1|crc2"))
+# save.image(file = "amino_acids_models.Rdata")
 
 library(survival)
 # Define function to apply across quartiles (already matched by lab)
