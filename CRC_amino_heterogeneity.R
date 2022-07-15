@@ -148,11 +148,19 @@ lrtest(mod1, mod2)
 # Heterogeneity by subsite in UK Biobank, colon and rectal
 library(readxl)
 library(metafor)
-results <- read_xlsx("ukb_aminoacids_het.xlsx")
-gln <- rma(yi = estimate, sei = std.error, dat = results, #method="FE", 
-              subset = c(11,38))
-hist <- rma(yi = estimate, sei = std.error, dat = results, #method="FE", 
-            subset = c(13,40))
-malist <- list(gln, hist)
+df <- read_xlsx("ukb_aminoacids_het.xlsx")
+
+# Meta-analyse colon and rectal estimates for each amino acids
+ala <- rma(yi = estimate, sei = std.error, dat = df, subset = compound == "ala" & (subsite == "Colon" | subsite == "Rectal"))
+gln <- rma(yi = estimate, sei = std.error, dat = df, subset = compound == "gln" & (subsite == "Colon" | subsite == "Rectal"))
+gly <- rma(yi = estimate, sei = std.error, dat = df, subset = compound == "gly" & (subsite == "Colon" | subsite == "Rectal"))
+his <- rma(yi = estimate, sei = std.error, dat = df, subset = compound == "his" & (subsite == "Colon" | subsite == "Rectal"))
+iso <- rma(yi = estimate, sei = std.error, dat = df, subset = compound == "iso" & (subsite == "Colon" | subsite == "Rectal"))
+leu <- rma(yi = estimate, sei = std.error, dat = df, subset = compound == "leu" & (subsite == "Colon" | subsite == "Rectal"))
+val <- rma(yi = estimate, sei = std.error, dat = df, subset = compound == "val" & (subsite == "Colon" | subsite == "Rectal"))
+phe <- rma(yi = estimate, sei = std.error, dat = df, subset = compound == "phe" & (subsite == "Colon" | subsite == "Rectal"))
+tyr <- rma(yi = estimate, sei = std.error, dat = df, subset = compound == "tyr" & (subsite == "Colon" | subsite == "Rectal"))
+
+malist <- list(ala, gln, gly, his, iso, leu, val, phe, tyr)
 output <- lapply(malist, "[", c("QEp", "I2"))
 phets <- do.call(rbind, output)
