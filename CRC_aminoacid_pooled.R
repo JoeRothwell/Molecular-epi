@@ -46,7 +46,7 @@ mods <- apply(scalemat, 2, multiclr, dat = crc) %>%
 # Count non-missings for each amino acid
 samp <- tibble(measured = colSums(!is.na(mat)))
 
-results <- mods %>% select(compound, estimate, conf.low, conf.high, p.adj) %>% bind_cols(samp)
+results <- mods %>% select(compound, estimate, conf.low, conf.high, p.value, p.adj) %>% bind_cols(samp)
 
 # Format OR (to convert to function?)
 pooled <- results %>%
