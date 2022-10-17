@@ -32,8 +32,8 @@ crc %>% select(contains("Aminoacid_")) %>% ncol() #22
 
 # Filter amino acids with over 31% missings
 # Update: keep all amino acids and give missings instead (to keep p180 AAs)
-mat0 <- crc %>% select(contains("Aminoacid_")) #%>% 
-  #select_if(~ sum(is.na(.)) < (nrow(crc) * 0.31))
+mat0 <- crc %>% select(contains("Aminoacid_")) %>% 
+  select_if(~ sum(is.na(.)) < (nrow(crc) * 0.31))
 mat <- crc %>% select(colnames(mat0)) #1308 w/o Greece
 scalemat <- scale(mat)
 
@@ -61,15 +61,20 @@ ctrl <- crc$Cncr_Caco_Clrt == 0
 #cutct <- function(x) cut(x, breaks = quantile(x[ctrl]), include.lowest = T, labels = 1:4)
 
 # Using control inner cutpoints and full range outer cutpoints
-cutct <- function(x, ...) { 
+# "Breaks" can either be a numeric vector or the number of intervals
+cutct <- function(x, ...) {
   inner <- quantile(x[ctrl])[2:4]
   outer <- quantile(x)[c(1, 5)]
   cut(x, breaks = sort(c(outer, inner)), include.lowest = T, ...)
 }
 
-# Apply across continuous matrix to get categories as factor or integer (for p-trend)
+# Apply across continuous matrix to get categories as factor (for categorical models)
 mat1 <- apply(mat, 2, cutct, labels = 1:4)
+# Or or integer (for p-trend)
 mat1a <- apply(mat, 2, cutct, labels = F)
+# For reviewer comment: recreate matrices with quartile numbers
+mat2 <- apply(mat, 2, cut, breaks = 4, include.lowest = T)
+mat2 <- apply(mat, 2, cut2, cuts = 4)
 
 library(broom)
 fits1 <- apply(mat1, 2, multiclr, dat = crc) %>% 
