@@ -32,9 +32,10 @@ crc %>% select(contains("Aminoacid_")) %>% ncol() #22
 
 # Filter amino acids with over 31% missings
 # Update: keep all amino acids and give missings instead (to keep p180 AAs)
-mat0 <- crc %>% select(contains("Aminoacid_")) %>% 
+mat0 <- crc %>% select(contains("Aminoacid_")) %>%
   select_if(~ sum(is.na(.)) < (nrow(crc) * 0.31))
 mat <- crc %>% select(colnames(mat0)) #1308 w/o Greece
+# For continuous need to scale
 scalemat <- scale(mat)
 
 ### Continuous models per SD increase
@@ -63,8 +64,8 @@ ctrl <- crc$Cncr_Caco_Clrt == 0
 # Using control inner cutpoints and full range outer cutpoints
 # "Breaks" can either be a numeric vector or the number of intervals
 cutct <- function(x, ...) {
-  inner <- quantile(x[ctrl])[2:4]
-  outer <- quantile(x)[c(1, 5)]
+  inner <- quantile(x[ctrl], na.rm = TRUE)[2:4]
+  outer <- quantile(x, na.rm = TRUE)[c(1, 5)]
   cut(x, breaks = sort(c(outer, inner)), include.lowest = T, ...)
 }
 
@@ -72,9 +73,21 @@ cutct <- function(x, ...) {
 mat1 <- apply(mat, 2, cutct, labels = 1:4)
 # Or or integer (for p-trend)
 mat1a <- apply(mat, 2, cutct, labels = F)
+
+
 # For reviewer comment: recreate matrices with quartile numbers
-mat2 <- apply(mat, 2, cut, breaks = 4, include.lowest = T)
-mat2 <- apply(mat, 2, cut2, cuts = 4)
+# To do this use Hmisc:cut2. Edit function to output medians instead of means (line 133)
+library(Hmisc)
+trace(cut2, edit=TRUE)
+
+cutct2 <- function(x, ...) {
+  inner <- quantile(x[ctrl], na.rm = TRUE)[2:4]
+  outer <- quantile(x, na.rm = TRUE)[c(1, 5)]
+  cut2(x, cuts = sort(c(outer, inner)), ...)
+}
+mat2 <- apply(mat, 2, cutct2, levels.mean = TRUE) 
+untrace(cut2)
+mat2a <- apply(mat2, 2, as.numeric)
 
 library(broom)
 fits1 <- apply(mat1, 2, multiclr, dat = crc) %>% 
@@ -83,13 +96,21 @@ fits1 <- apply(mat1, 2, multiclr, dat = crc) %>%
   mutate(compound = rep(colnames(mat1), each = 3)) %>%
   mutate(p.adj = p.adjust(p.value, method = "fdr"))
 
-# Get p-trend by entering quartile numbers into the model as continuous variables (1,2,3,4)
-trends <- apply(mat1a, 2, multiclr, dat = crc) %>% map_df( ~ tidy(.)) %>% 
-  filter(term == "AAconc") %>% select(p.value)
-
-# Extract results
+# Extract results of models
 results1 <- fits1 %>% select(term, compound, estimate, conf.low, conf.high, p.adj) 
 
+# Get p-trend by entering quartile numbers into the model as continuous variables (1,2,3,4)
+trends1 <- apply(mat1a, 2, multiclr, dat = crc) %>% map_df( ~ tidy(.)) %>% 
+  filter(term == "AAconc") %>% select(p.value)
+
+# Reviewers comment: enter quartile medians into model as continuous variables
+trends2 <- apply(mat2a, 2, multiclr, dat = crc) %>% map_df( ~ tidy(.)) %>% 
+  filter(term == "AAconc") %>% select(p.value)
+
+# Make df to compare trends1 and trends2
+trends <- cbind(Qnums = trends1, Qmeds = trends2)
+
+# Format results
 tabcat <- results1 %>%
   mutate_at(vars(estimate:conf.high), ~ format(round(., digits = 2), nsmall = 2)) %>% 
   mutate_at(vars(p.adj), ~ round(., digits = 3)) %>% 
@@ -102,7 +123,9 @@ Q2 <- filter(tabcat, term == "AAconc2") %>% select(OR:p.adj)
 Q3 <- filter(tabcat, term == "AAconc3") %>% select(OR:p.adj)
 Q4 <- filter(tabcat, term == "AAconc4") %>% select(OR:p.adj)
 
-# Categorical analysis for P180 compounds only (run cutct first)
+Q2to4 <- cbind(Q2, Q3, Q4)
+
+### Categorical analysis for P180 compounds only (run cutct first)
 crc180 <- crc %>% filter(lab == 1)
 ctrl <- crc180$Cncr_Caco_Clrt == 0
 # Remove aspartate (too many of the same value) and Xleu (not included)
@@ -111,6 +134,9 @@ mat180 <- crc180 %>% select(colnames(mat0[-c(4,22)])) #708 w/o Greece
 # Apply across continuous matrix to get categories as factor or integer labels = F (for p-trend)
 mat1 <- apply(mat180, 2, cutct, labels = 1:4)
 mat1a <- apply(mat180, 2, cutct, labels = F)
+# Reviewer's comment: get p-values from quartile medians (run cutct2)
+mat2 <- apply(mat180, 2, cutct2, levels.mean = TRUE) 
+mat2a <- apply(mat2, 2, as.numeric)
 
 library(broom)
 fits180 <- apply(mat1, 2, multiclr, dat = crc180) %>% 
@@ -119,12 +145,13 @@ fits180 <- apply(mat1, 2, multiclr, dat = crc180) %>%
   mutate(p.adj = p.adjust(p.value, method = "fdr"))
 
 # Get p-trend by entering quartile numbers into the model as continuous variables (1,2,3,4)
-trends <- apply(mat1a, 2, multiclr, dat = crc180) %>% map_df( ~ tidy(.)) %>% 
+# Note: remove p150 compounds as don't use the full data
+trends <- apply(mat2a, 2, multiclr, dat = crc180) %>% map_df( ~ tidy(.)) %>% 
   filter(term == "AAconc") %>% select(p.value) %>% bind_cols(compound = colnames(mat180))
 
 # Extract results
 results1 <- fits180 %>% select(term, compound, estimate, conf.low, conf.high, p.adj) 
-
+# Format results
 tabcat <- results1 %>%
   mutate_at(vars(estimate:conf.high), ~ format(round(., digits = 2), nsmall = 2)) %>% 
   mutate_at(vars(p.adj), ~ round(., digits = 3)) %>% 
