@@ -7,8 +7,13 @@ rm(list = ls(pattern = "colon|dist|prox|rect|crc1|crc2"))
 library(survival)
 # Define function to apply across quartiles (already matched by lab)
 # Original co-variates. Breslow needed for >10 years
+
+# Also: Sensitivity analysis adjusting for red and processed meat, poultry, fish, dairy products
+# Qge0701 Qge0702 Qge0704 Qge0801 Qge05
+
 multiclr <- function(AAconc, dat) { 
   clogit(Cncr_Caco_Clrt ~ AAconc + Bmi_Cat + Smoke_Stat + Alc_Drinker + Pa_Index + #Pa_Total + 
+           Qge0701 + Qge0704 + Qge0702 + Qge0801 + Qge05 +
            strata(Match_Caseset), method = "breslow", 
          data = dat) 
 }
