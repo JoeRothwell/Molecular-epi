@@ -16,14 +16,18 @@ colnames(AAresults) = c("compound", "estimate", "se", "coeff", "p.value", "conf.
 plotA <- ggplot(results1, aes(x = estimate, y = log10(p.value))) + geom_point() + 
   scale_y_reverse(limits = c(0, -3), breaks = c(0:-2), labels = function(x) 10^x) +
   theme_bw() + geom_hline(yintercept = log10(0.05), linetype = "dashed") +
+  geom_vline(xintercept = 1, size = 0.2, colour = "grey60") + 
   xlab("OR per SD concentration") + ylab("Raw P-value") +
+  theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank()) +
   geom_text(aes(label = compound), vjust = 1.5) +
   labs(title = "EPIC")
 
 plotB <- ggplot(AAresults, aes(x = estimate, y = log10(p.value))) + geom_point() + 
   scale_y_reverse(limits = c(0, -2), breaks = c(0:-2), labels = function(x) 10^x) +
   theme_bw() + geom_hline(yintercept = log10(0.05), linetype = "dashed") +
+  geom_vline(xintercept = 1, size = 0.2, colour = "grey60") + 
   xlab("HR per SD concentration") + ylab("Raw P-value") +
+  theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank()) +
   geom_text(aes(label = compound), vjust = 1.5) +
   labs(title = "UK Biobank")
 
