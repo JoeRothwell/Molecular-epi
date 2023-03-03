@@ -8,15 +8,22 @@ library(survival)
 # Define function to apply across quartiles (already matched by lab)
 # Original co-variates. Breslow needed for >10 years
 
-# Also: Sensitivity analysis adjusting for red and processed meat, poultry, eggs, fish, dairy products
-# Qge0701 Qge0702 Qge0704 Qge0801 Qge05 Qge09
+# Also: Sensitivity analysis adjusting for red and processed meat (0701/0704), poultry (0702), fish (0801),
+# eggs (0901), dairy products (05)
+# Note: dropped egg to be consistent with UKB
 
 multiclr <- function(AAconc, dat) { 
   clogit(Cncr_Caco_Clrt ~ AAconc + Bmi_Cat + Smoke_Stat + Alc_Drinker + Pa_Index + #Pa_Total + 
-           Qge0701 + Qge0704 + Qge0702 + Qge0801 + Qge05 + Qge09 +
+           # Qe_Protan +
+           Qge0701 + Qge0704 + Qge0702 + Qge0801 + Qge05 +
            strata(Match_Caseset), method = "breslow", 
          data = dat) 
 }
+
+# Get animal protein sources for Table 1
+crc$protein_sources <- crc$Qge0701 + crc$Qge0704 + crc$Qge0702 + crc$Qge0801 + crc$Qge05
+tapply(crc$protein_sources, crc$Cncr_Caco_Clrt, mean)
+tapply(crc$protein_sources, crc$Cncr_Caco_Clrt, sd)
 
 # Subsets for sensitivity analysis
 # Follow up time
@@ -52,6 +59,7 @@ mods <- apply(scalemat, 2, multiclr, dat = crc) %>%
 # Count non-missings for each amino acid
 samp <- tibble(measured = colSums(!is.na(mat)))
 
+# Extract columns of interest and bind to non-missings
 results <- mods %>% select(compound, estimate, conf.low, conf.high, p.value, p.adj) %>% bind_cols(samp)
 
 # Format OR (to convert to function?)

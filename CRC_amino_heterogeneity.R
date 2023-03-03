@@ -148,7 +148,7 @@ lrtest(mod1, mod2)
 # Heterogeneity by subsite in UK Biobank, colon and rectal
 library(readxl)
 library(metafor)
-df <- read_xlsx("ukb_aminoacids_het.xlsx")
+df <- read_xlsx("ukb_aminoacids_het2022.xlsx")
 
 # Meta-analyse colon and rectal estimates for each amino acids
 ala <- rma(yi = estimate, sei = std.error, dat = df, subset = compound == "ala" & (subsite == "Colon" | subsite == "Rectal"))
