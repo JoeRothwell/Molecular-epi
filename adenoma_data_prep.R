@@ -58,7 +58,7 @@ table(dat$ct)
 # Recode 998 and 999 with missing, remove missing > 40%
 
 # Get main variables only incl. Biocrates and SCFA data. Remove 11 missings using NA glu (no peak detected)
-mat <- dat %>% select(pathsum, bmi, diabetes, country:age, batch, alcohol, alcohol_drinks_week, 
+mat <- dat %>% select(pathsum, path.group, bmi, diabetes, country:age, batch, alcohol, alcohol_drinks_week, 
                       smoke, lyso_pc_a_c16_0:c9, acetic_acid_m_m:valeric_acid_m_m) %>% filter(!is.na(glu))
 #missmap(mat, rank.order = F, x.cex = 1)
 
@@ -97,23 +97,23 @@ polyp   <- mat1$pathsum %in% c(4, 5:6)
 # Plot PCA and PCPR2
 library(pca3d)
 pca <- prcomp(mat2, scale. = T)
-dev.off()
+#dev.off()
 pca2d(pca, group = mat1$path.group, legend = "bottomright")
 box(which = "plot", lty = "solid")
 
 # mat1 is the unimputed matrix with metadata, mat2 is the imputed matrix without metadata
 # PC-PR2
 library(pcpr2)
-props <- runPCPR2(mat2, mat1[, 1:5])
+props <- runPCPR2(mat2, mat1[, c("path.group", "country", "sex", "age", "batch")]) #need to get right columns
 plot(props, col = "red")
 
-# Cluster dendrogram
+# Cluster dendrogram of individuals
 scalemat <- scale(mat2)
 colnames(scalemat) <- NULL
 hh <- hclust(dist(scalemat))
-plot(hh)
+plot(hh) # 2 main clusters
 
-# Or (from Stack Overflow post)
+# Or with dendextend (from Stack Overflow post)
 library(dendextend)
 dend <- hclust(dist(scalemat)) %>% as.dendrogram
 dend <- dend %>% #set("labels_colors", mat1$country, order_value = TRUE) %>%
@@ -148,3 +148,4 @@ mat1 <- mat %>% select_if(missvec == T | metvec == T) %>% mutate(ct = ifelse(pat
 
 # Impute half min value and subset full matrix
 mat2 <- na.aggregate(as.matrix(mat1[, -c(1:10, ncol(mat1))]), function(x) min(x)/2)
+
