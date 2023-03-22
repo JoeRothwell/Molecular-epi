@@ -9,29 +9,29 @@ mod2 <- function(x, dat) glm(ct ~ x + bmi + diabetes + sex + age + smoke +
 
 library(broom)
 # Adenoma both countries
-fits1 <- apply(mat2a[adenoma, ], 2, mod1, mat1[adenoma, ]) %>% map_df(tidy) %>% 
+fits1 <- apply(mat2a[adenoma, ], 2, mod1, dat1[adenoma, ]) %>% map_df(tidy) %>% 
   filter(term == "x") %>% mutate(p.fdr = p.adjust(p.value, method = "fdr")) %>% 
   add_column(compound = colnames(mat2)) %>% select(compound, estimate:p.fdr)
 
 # CRC all samples (no BMI adjustment etc)
-fits2 <- apply(mat2a[crc, ], 2, mod1, mat1[crc, ]) %>% map_df(tidy) %>% 
+fits2 <- apply(mat2a[crc, ], 2, mod1, dat1[crc, ]) %>% map_df(tidy) %>% 
   filter(term == "x") %>% mutate(p.fdr = p.adjust(p.value, method = "fdr")) %>% 
   add_column(compound = colnames(mat2)) %>% select(compound, estimate:p.fdr)
 
 # CRC CR samples only (adjusted BMI and other covariates)
-fits2a <- apply(mat2a[crc, ], 2, mod2, mat1[crc, ]) %>% map_df(tidy) %>% 
+fits2a <- apply(mat2a[crc, ], 2, mod2, dat1[crc, ]) %>% map_df(tidy) %>% 
   filter(term == "x") %>% mutate(p.fdr = p.adjust(p.value, method = "fdr")) %>% 
   add_column(compound = colnames(mat2)) %>% select(compound, estimate:p.fdr)
 
 # Polyp both countries 
-fits3 <- apply(mat2a[polyp, ], 2, mod1, mat1[polyp, ]) %>% map_df(tidy) %>% 
+fits3 <- apply(mat2a[polyp, ], 2, mod1, dat1[polyp, ]) %>% map_df(tidy) %>% 
   filter(term == "x") %>% mutate(p.fdr = p.adjust(p.value, method = "fdr")) %>% 
   add_column(compound = colnames(mat2)) %>% select(compound, estimate:p.fdr)
 
-
+# Manhattan plot overlaying adenoma and CRC results 
 library(ggplot2)
-ggplot() + geom_point(data=mods.adenoma, aes(compound, log10(p.value)), colour = "red") +
-  geom_point(data=mods.crc, aes(compound, log10(p.value)), colour = "blue") +
+ggplot() + geom_point(data=fits1, aes(compound, log10(p.value)), colour = "red") +
+  geom_point(data=fits2a, aes(compound, log10(p.value)), colour = "blue") +
   theme_grey() + scale_y_reverse() + ylab("-log10 raw p-value") + xlab("Metabolite") +
   geom_hline(yintercept = log10(0.00424), linetype = "dotted") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))

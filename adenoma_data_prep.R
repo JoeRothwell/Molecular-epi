@@ -4,7 +4,8 @@ library(tidyverse)
 library(Amelia)
 library(zoo)
 
-# Prep data. Get standardised compound names for PLS that match those in adenoma data
+# Put datasets together: compound metadata, main dataset and SCFA
+# Get standardised compound names for PLS that match those in adenoma data
 cmpd.meta <- read_csv("Biocrates_cmpd_metadata.csv") %>%
   separate(Compound, into = c("Compound.cl", "Compound.str"),
            remove = F, extra = "merge", fill = "right") %>%
@@ -14,7 +15,7 @@ cmpd.meta <- read_csv("Biocrates_cmpd_metadata.csv") %>%
 
 
 # Main biocrates data: replace NAs, clean up names, remove empty rows, rename sarcosine_178 to sarcosine
-bioc <- read_xlsx("CRC Metabolomics MasterFile only Biocrates.xlsx", skip = 1, na = c(".", "<LOD")) %>% 
+alldata <- read_xlsx("CRC Metabolomics MasterFile only Biocrates.xlsx", skip = 1, na = c(".", "<LOD")) %>% 
   clean_names() %>% remove_empty("rows") %>% mutate(pathsum = pathology_summary) %>%
   rename(sarcosine = sarcosine_178)
 
@@ -25,17 +26,20 @@ scfa <- read_xlsx("Irish Czech_Data_file_2020_JR_DH_mod.xlsx", sheet = 3, skip =
 
 missmap(scfa, rank.order = F, x.cex = 1)
 
-dat <- bioc %>% left_join(scfa, by = "id") #%>% select(-id, -pathology)
+# Add the SCFA data
+dat0 <- alldata %>% left_join(scfa, by = "id") #%>% select(-id, -pathology)
 
-# Pathology codings
+
+
+### Pathology codings
 # 1 = Cancer; 2 = High Grade Dysplasia; 3 = Adenoma (TA, TVA, VA);  4 = Polyp (HP or small TA); 
 # 5 = normal (after colonoscopy); 6 = blood donor control
-table(dat$pathology_summary)
-table(dat$country, dat$pathology_summary)
+table(dat0$pathology_summary)
+table(dat0$country, dat0$pathology_summary)
 # 217 subjects in Ireland, 172 in CR. CR only has colorectal cancer as pathology (125)
 
-# Make pathology groups
-dat <- dat %>% 
+# Rename and add categorical pathology group variable
+dat <- dat0 %>% 
   rename(sex = sex_f_female_m_male, 
          norm.class = normal_classification_for_other_minor_diagnoses_for_colonoscopy_normals,
          batch = batch_plasma_metabolomics,
@@ -49,7 +53,7 @@ dat <- dat %>%
 table(dat$path.group)
 #adenoma crc  normal   polyp 
 #60      153     103      73
-table(dat$path.group, dat$country)
+table(dat$path.group, dat$country) # only CRC and normal for country 2 (CR)
 
 # Remove a) normals with inflammatory conditions, b) polyps that are not hyperplastic polyps
 #dat <- dat %>% filter(pathsum %in% c(1,2,3,4,6) | norm.class == 1)
@@ -62,11 +66,15 @@ table(dat$ct)
 # Metabolite selection (From Magda sheet) (377 subjects)
 # Recode 998 and 999 with missing, remove missing > 40%
 
-# Get main variables only incl. Biocrates and SCFA data.
-dat <- dat %>% select(pathsum, path.group, bmi, diabetes, country:age, batch, scfa_analysis_batch,
-                      alcohol, alcohol_drinks_week, smoke, lyso_pc_a_c16_0 : c9) %>% 
-#Remove samples with no glutamate measurement (11 missings, no peak detected)
-               filter(!is.na(glu))
+
+
+# Get main variables only incl. Biocrates data.
+# Remove samples with no biocrates measurements using glutamate (11 missings, no peak detected)
+dat <- dat %>% select(pathsum, path.group, bmi, diabetes, country:age, batch, 
+                      scfa_analysis_batch, alcohol, alcohol_drinks_week, smoke, lyso_pc_a_c16_0 : c9) %>% 
+                      filter(!is.na(glu))
+
+colnames(dat)
 
 # Or: get main variables only incl. SCFA data.
 datsc <- dat %>% select(pathsum, path.group, bmi, diabetes, country:age, batch, scfa_analysis_batch,
@@ -78,21 +86,25 @@ missmap(datsc, rank.order = F, x.cex = 1)
 ### Analysis of Biocrates compounds only (for SCFA, go to end of script)
  
 # Convert character columns to numeric, remove metabolites with more than 21% missings (80)
-#dat1 <- dat %>% mutate_at(.vars = vars(lyso_pc_a_c16_0 : c9), .funs = as.numeric)
+dat1 <- dat %>% mutate(across(lyso_pc_a_c16_0 : c9, as.numeric))
 
 # Remove metabolites with more than 21% missings (missings == T OR metadata == T)
-# Logical vectors for non-missings (warning, participant data hard coded in cols 1-12)
-missvec <- sapply(dat, function(x) sum(is.na(x)) < 80)
-metvec <- 1:ncol(dat) %in% 1:12
+# Logical vectors for non-missings (warning, participant data hardcoded in cols 1-12)
+missvec <- sapply(dat1, function(x) sum(is.na(x)) < 80)
 
+# Logical vector of metabolite/non-metabolite columns
+metvec <- 1:ncol(dat1) %in% 1:12
+
+# Keep column if participant data or metabolite with less than 21% missing
 # code normal = 0, pathology = 1 for logistic regression
-dat1 <- dat %>% select_if(missvec == T | metvec == T) %>% mutate(ct = ifelse(pathsum %in% 5:6, 0, 1))
+dat1 <- dat1 %>% select_if(missvec == T | metvec == T) %>% mutate(ct = ifelse(pathsum %in% 5:6, 0, 1))
 
 missmap(dat1, rank.order = F, x.cex = 1)
 
 # Impute half min value and subset full matrix
-mat <- dat1 %>% select(lyso_pc_a_c16_0 : c9)
-mat2 <- na.aggregate(as.matrix(dat1[ , -c(1:10, ncol(dat1))]), function(x) min(x)/2)
+mat <- dat1 %>% select(lyso_pc_a_c16_0 : c5)
+# mat <- dat1 %>% select(lyso_pc_a_c16_0 : c9)
+mat2 <- na.aggregate(as.matrix(dat1[ , -c(1:12, ncol(dat1))]), function(x) min(x)/2)
 
 # Replace matrix names with standardised ones (see match_cmpd_names.R)
 matnames <- data.frame(cmpd.low = colnames(mat2), ord = 1:length(colnames(mat2)))
@@ -103,23 +115,25 @@ mat2a <- mat2 %>% log2 %>% scale
 colnames(mat2a) <- df1$Compound
 
 # Subsets for all, normal vs adenoma, CRC or polyp
-adenoma <- mat1$pathsum %in% c(2:3, 5:6)
-crc     <- mat1$pathsum %in% c(1, 5:6)
-polyp   <- mat1$pathsum %in% c(4, 5:6)
+adenoma <- dat1$pathsum %in% c(2:3, 5:6)
+crc     <- dat1$pathsum %in% c(1, 5:6)
+polyp   <- dat1$pathsum %in% c(4, 5:6)
 
 # Table sex and country: F, 58 and 30 in 1 and 2, M 55 and 17 in 1 and 2
 
 # Plot PCA and PCPR2
 library(pca3d)
 pca <- prcomp(mat2, scale. = T)
-#dev.off()
-pca2d(pca, group = mat1$path.group, legend = "bottomright")
+dev.off()
+pca2d(pca, group = dat1$path.group, legend = "bottomright")
 box(which = "plot", lty = "solid")
+# CRCs are at visibly higher values along PC1
 
-# mat1 is the unimputed matrix with metadata, mat2 is the imputed matrix without metadata
+
+# dat1 is the unimputed matrix with metadata, mat2 is the imputed matrix without metadata
 # PC-PR2
 library(pcpr2)
-props <- runPCPR2(mat2, mat1[, c("path.group", "country", "sex", "age", "batch")]) #need to get right columns
+props <- runPCPR2(mat2, dat1[, c("path.group", "country", "sex", "age", "batch")]) #need to get right columns
 plot(props, col = "red")
 
 # Cluster dendrogram of individuals
