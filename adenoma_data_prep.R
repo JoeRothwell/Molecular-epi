@@ -50,6 +50,9 @@ dat <- dat0 %>%
                )) ##%>%
   #mutate(path = if_else(pathsum %in% 1:4, 1, 0))
 
+# Specify cols to convert to factor
+varlist <- c("country", "sex", "batch", "diabetes", "smoke")
+
 table(dat$path.group)
 #adenoma crc  normal   polyp 
 #60      153     103      73
@@ -59,14 +62,14 @@ table(dat$path.group, dat$country) # only CRC and normal for country 2 (CR)
 #dat <- dat %>% filter(pathsum %in% c(1,2,3,4,6) | norm.class == 1)
 #dat <- dat %>% filter(pathsum %in% c(1,2,3,5,6) | histology_of_adenoma %in% 7)
 
-# Add binary variable for adenoma
-dat <- dat %>% mutate(ct = case_when(pathsum %in% 2:3 ~ 1, pathsum %in% 5:6 ~ 0))
+# Convert to factor and add binary variable for adenoma
+dat <- dat %>% mutate(across(all_of(varlist), as.factor)) %>% 
+  mutate(ct = case_when(pathsum %in% 2:3 ~ 1, pathsum %in% 5:6 ~ 0))
+
 table(dat$ct)
 
 # Metabolite selection (From Magda sheet) (377 subjects)
 # Recode 998 and 999 with missing, remove missing > 40%
-
-
 
 # Get main variables only incl. Biocrates data.
 # Remove samples with no biocrates measurements using glutamate (11 missings, no peak detected)
@@ -111,7 +114,8 @@ matnames <- data.frame(cmpd.low = colnames(mat2), ord = 1:length(colnames(mat2))
 
 library(fuzzyjoin)
 df1 <- stringdist_right_join(cmpd.meta, matnames, by = "cmpd.low", max_dist = 0.5)
-mat2a <- mat2 %>% log2 %>% scale
+# mat2a <- mat2 %>% log2 %>% scale
+mat2a <- mat2 %>% scale
 colnames(mat2a) <- df1$Compound
 
 # Subsets for all, normal vs adenoma, CRC or polyp
