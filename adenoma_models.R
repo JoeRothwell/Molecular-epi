@@ -28,6 +28,10 @@ fits3 <- apply(mat2a[polyp, ], 2, mod1, dat1[polyp, ]) %>% map_df(tidy) %>%
   filter(term == "x") %>% mutate(p.fdr = p.adjust(p.value, method = "fdr")) %>% 
   add_column(compound = colnames(mat2)) %>% select(compound, estimate:p.fdr)
 
+# Write to clipboard for pasting results into Excel
+library(clipr)
+write_clip(fits1)
+
 # Manhattan plot overlaying adenoma and CRC results 
 library(ggplot2)
 ggplot() + geom_point(data=fits1, aes(compound, log10(p.value)), colour = "red") +

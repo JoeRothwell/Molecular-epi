@@ -59,8 +59,8 @@ table(dat$path.group)
 table(dat$path.group, dat$country) # only CRC and normal for country 2 (CR)
 
 # Remove a) normals with inflammatory conditions, b) polyps that are not hyperplastic polyps
-#dat <- dat %>% filter(pathsum %in% c(1,2,3,4,6) | norm.class == 1)
-#dat <- dat %>% filter(pathsum %in% c(1,2,3,5,6) | histology_of_adenoma %in% 7)
+dat <- dat %>% filter(pathsum %in% c(1,2,3,4,6) | norm.class == 1)
+dat <- dat %>% filter(pathsum %in% c(1,2,3,5,6) | histology_of_adenoma %in% 7)
 
 # Convert to factor and add binary variable for adenoma
 dat <- dat %>% mutate(across(all_of(varlist), as.factor)) %>% 
