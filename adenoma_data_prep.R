@@ -121,6 +121,7 @@ colnames(mat2a) <- df1$Compound
 # Subsets for all, normal vs adenoma, CRC or polyp
 adenoma <- dat1$pathsum %in% c(2:3, 5:6)
 crc     <- dat1$pathsum %in% c(1, 5:6)
+crc.cr  <- dat1$pathsum %in% c(1, 5:6) & dat1$country == 2
 polyp   <- dat1$pathsum %in% c(4, 5:6)
 
 # Table sex and country: F, 58 and 30 in 1 and 2, M 55 and 17 in 1 and 2

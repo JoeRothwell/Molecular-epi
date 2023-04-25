@@ -19,7 +19,7 @@ fits2 <- apply(mat2a[crc, ], 2, mod1, dat1[crc, ]) %>% map_df(tidy) %>%
   add_column(compound = colnames(mat2)) %>% select(compound, estimate:p.fdr)
 
 # CRC CR samples only (adjusted BMI and other covariates)
-fits2a <- apply(mat2a[crc, ], 2, mod2, dat1[crc, ]) %>% map_df(tidy) %>% 
+fits2a <- apply(mat2a[crc.cr, ], 2, mod2, dat1[crc.cr, ]) %>% map_df(tidy) %>% 
   filter(term == "x") %>% mutate(p.fdr = p.adjust(p.value, method = "fdr")) %>% 
   add_column(compound = colnames(mat2)) %>% select(compound, estimate:p.fdr)
 
@@ -30,7 +30,7 @@ fits3 <- apply(mat2a[polyp, ], 2, mod1, dat1[polyp, ]) %>% map_df(tidy) %>%
 
 # Write to clipboard for pasting results into Excel
 library(clipr)
-write_clip(fits1)
+write_clip(fits2a)
 
 # Manhattan plot overlaying adenoma and CRC results 
 library(ggplot2)
