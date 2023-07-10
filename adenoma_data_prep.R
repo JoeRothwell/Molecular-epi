@@ -58,9 +58,12 @@ table(dat$path.group)
 #60      153     103      73
 table(dat$path.group, dat$country) # only CRC and normal for country 2 (CR)
 
+
+# Sensitivity analyses:
 # Remove a) normals with inflammatory conditions, b) polyps that are not hyperplastic polyps
-dat <- dat %>% filter(pathsum %in% c(1,2,3,4,6) | norm.class == 1)
-dat <- dat %>% filter(pathsum %in% c(1,2,3,5,6) | histology_of_adenoma %in% 7)
+dat <- dat %>% filter(pathsum %in% c(1:6) | norm.class == 1)
+dat <- dat %>% filter(pathsum %in% c(1:6) | histology_of_adenoma %in% 7)
+
 
 # Convert to factor and add binary variable for adenoma
 dat <- dat %>% mutate(across(all_of(varlist), as.factor)) %>% 
@@ -126,12 +129,18 @@ polyp   <- dat1$pathsum %in% c(4, 5:6)
 
 # Table sex and country: F, 58 and 30 in 1 and 2, M 55 and 17 in 1 and 2
 
-# Plot PCA and PCPR2
-library(pca3d)
+# Perform and plot PCA
 pca <- prcomp(mat2, scale. = T)
 dev.off()
-pca2d(pca, group = dat1$path.group, legend = "bottomright")
-box(which = "plot", lty = "solid")
+
+scores <- pca$x[, 1:2]
+plot(scores[ , 1], scores[ , 2], col = as.factor(dat1$path.group))
+
+# pc3d package was removed from CRAN
+#library(pca3d)
+#pca2d(pca, group = dat1$path.group, legend = "bottomright")
+#box(which = "plot", lty = "solid")
+
 # CRCs are at visibly higher values along PC1
 
 
