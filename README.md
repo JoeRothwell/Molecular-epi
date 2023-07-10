@@ -1,6 +1,6 @@
 # Data analysis for molecular epidemiology projects
 
-This repository is the codebase for molecular epidemiology projects. See the wiki for further details and descriptions of analyses.
+This repository is the codebase for molecular epidemiology projects on colorectal cancer, usually in the EPIC cohort. Code for other cancer studies was originally stored here, but this have now been moved to separate repos. See the wiki for further details and descriptions of analyses.
 
 ---
 
@@ -8,23 +8,21 @@ This repository is the codebase for molecular epidemiology projects. See the wik
 
 The aim of this study was to determine a metabolic signature of cancer-preventing or cancer-promoting lifestyle according to the WCRF score as described by Romaguera et al (2012). PLS was used to determine the signature in a large group of control subjects from various EPIC case-control studies, for both Biocrates compounds and fatty acids. Once derived, colorectal cancer case-control status was modelled from these signatures, in the form of predicted scores, and compared to models using the original calculated scores to find if metabolic signature better predicts CRC than calculated score only.
 
----
+#### Reference
 
-#### Association of breast cancer and plasma metabolites in the E3N cohort
-
-The aim of the study was to search for associations between plasma metabolite profiles and breast cancer risk in 1590 subjects from the E3N nested case-control study using 1H Nuclear Magnetic Resonance (NMR) untargeted metabolomics.
+(1) Rothwell et al. (2020) Metabolic Signatures of Healthy Lifestyle Patterns and Colorectal Cancer Risk in a European Cohort. *Clinical Gastroenterology and Hepatology* 2022 May;20(5):e1061-e1082. doi: 10.1016/j.cgh.2020.11.045. Epub 2020 Dec 29.
 
 ---
 
-#### Colorectal cancer and type 2 diabetes in the UK Biobank cohort
+#### Adenoma and colorectal cancer in a Czech and Irish cross-sectional study
 
-The aim of the study was to calculate associations between colorectal cancer, biomarkers of colorectal cancer and type 2 diabetes in the UK Biobank cohort.
+A study of precancerous colorectal lesions (adenoma and polyp) as well as colorectal cancer in a hospital based cross-sectional study.
 
----
+#### Reference
 
-#### A metabolomics study on liver cancer and coffee drinking in the ATBC study
+(1) Rothwell et al. (In Preparation) Endogenous metabolic profiles associated with colorectal neoplasia: a targeted metabolomics study.
 
-Investigates associations between plasma metabolites, as identified by untargeted metabolomics, liver cancer and coffee drinking. Code here subsets and feature filters raw metabolomics data for the ATBC coffee study.
+
 
 
 
