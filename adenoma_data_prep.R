@@ -195,3 +195,27 @@ mat1 <- mat %>% select_if(missvec == T | metvec == T) %>% mutate(ct = ifelse(pat
 # Impute half min value and subset full matrix
 mat2 <- na.aggregate(as.matrix(mat1[, -c(1:10, ncol(mat1))]), function(x) min(x)/2)
 
+
+
+# N for adenoma/CRc models
+
+dim(dat1)
+adenoma.df <- dat1[adenoma, ]
+crc.df <- dat1[crc, ]
+crc.cr.df <- dat1[crc.cr, ]
+polyp.df <- dat1[polyp, ]
+
+table(path = adenoma.df$path.group)
+table(country = adenoma.df$country, path = adenoma.df$path.group)
+
+table(path = crc.df$path.group)
+table(country = crc.df$country, path = crc.df$path.group)
+
+table(path = crc.cr.df$path.group)
+table(country = crc.cr.df$country, path = crc.cr.df$path.group)
+
+table(path = polyp.df$path.group)
+table(country = polyp.df$country, path = polyp.df$path.group)
+
+
+
