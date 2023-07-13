@@ -44,21 +44,21 @@ ggplot() + geom_point(data=fits1, aes(compound, log10(p.value)), colour = "red")
 # Warning, better predictions without this adjustment for country!!!
 adj1   <- function(x, dat) residuals(lm(x ~ batch, data = dat))
 
-adjmat1 <- apply(mat2a[adenoma, ], 2, adj1, mat1[adenoma, ])
-adjmat2 <- apply(mat2a[crc, ], 2, adj1, mat1[crc, ])
-adjmat3 <- apply(mat2a[polyp, ], 2, adj1, mat1[polyp, ])
+adjmat1 <- apply(mat2a[adenoma, ], 2, adj1, dat1[adenoma, ])
+adjmat2 <- apply(mat2a[crc, ], 2, adj1, dat1[crc, ])
+adjmat3 <- apply(mat2a[polyp, ], 2, adj1, dat1[polyp, ])
 
 # Bind case-control status to adjusted (or unadjusted) matrix
-plsdat1 <- bind_cols(path.group = as.factor(mat1$ct), mat2a)[adenoma, ]
-plsdat2 <- bind_cols(path.group = as.factor(mat1$ct), mat2a)[crc, ]
-plsdat3 <- bind_cols(path.group = as.factor(mat1$ct), mat2a)[polyp, ]
+plsdat1 <- bind_cols(path.group = as.factor(dat1$ct), mat2a)[adenoma, ]
+plsdat2 <- bind_cols(path.group = as.factor(dat1$ct), mat2a)[crc, ]
+plsdat3 <- bind_cols(path.group = as.factor(dat1$ct), mat2a)[polyp, ]
 
 # Predictive model by PLS
 # Start with a sensible number of components eg 10
-library(caret)
-# Adenoma
-# Split into training and test sets
+
+# Adenoma. First split into training and test sets
 set.seed(111)
+library(caret)
 inTrain <- createDataPartition(y = plsdat1$path.group, p = 0.75, list = F)
 training <- plsdat1[inTrain, ]
 testing <- plsdat1[-inTrain, ]

@@ -7,9 +7,8 @@ library(zoo)
 # Put datasets together: compound metadata, main dataset and SCFA
 # Get standardised compound names for PLS that match those in adenoma data
 cmpd.meta <- read_csv("Biocrates_cmpd_metadata.csv") %>%
-  separate(Compound, into = c("Compound.cl", "Compound.str"),
-           remove = F, extra = "merge", fill = "right") %>%
-  mutate(cmpd.low = str_to_lower(Compound.str)) %>% 
+  separate(Compound, into = c("Cmpd.cl", "Cmpd.str"), remove = F, extra = "merge", fill = "right") %>%
+  mutate(cmpd.low = str_to_lower(Cmpd.str)) %>% 
   mutate(cmpd.low = str_replace(cmpd.low, "lyso", "lyso_")) %>%
   mutate(cmpd.low = str_replace(cmpd.low, "c4_oh_", "c4_oh")) 
 
@@ -30,11 +29,14 @@ missmap(scfa, rank.order = F, x.cex = 1)
 dat0 <- alldata %>% left_join(scfa, by = "id") #%>% select(-id, -pathology)
 
 
-
 ### Pathology codings
-# 1 = Cancer; 2 = High Grade Dysplasia; 3 = Adenoma (TA, TVA, VA);  4 = Polyp (HP or small TA); 
-# 5 = normal (after colonoscopy); 6 = blood donor control
 table(dat0$pathology_summary)
+
+# 1 = Cancer; to be coded as "CRC"
+# 2 = High grade dysplasia (HGD); 3 = adenoma (TA, TVA, VA); to be coded as "adenoma"
+# 4 = Polyp (hyperplastic polyp HP or small tubulovillous adenoma); to be coded as "polyp"
+# 5 = Normal after colonoscopy, 6 = blood donor control; to be coded as "normal"
+
 table(dat0$country, dat0$pathology_summary)
 # 217 subjects in Ireland, 172 in CR. CR only has colorectal cancer as pathology (125)
 
@@ -61,15 +63,16 @@ table(dat$path.group, dat$country) # only CRC and normal for country 2 (CR)
 
 # Sensitivity analyses:
 # Remove a) normals with inflammatory conditions, b) polyps that are not hyperplastic polyps
+dat.reset <- dat
 dat <- dat %>% filter(pathsum %in% c(1:6) | norm.class == 1)
 dat <- dat %>% filter(pathsum %in% c(1:6) | histology_of_adenoma %in% 7)
 
 
 # Convert to factor and add binary variable for adenoma
-dat <- dat %>% mutate(across(all_of(varlist), as.factor)) %>% 
-  mutate(ct = case_when(pathsum %in% 2:3 ~ 1, pathsum %in% 5:6 ~ 0))
+dat <- dat %>% mutate(across(all_of(varlist), as.factor)) #%>% 
+  #mutate(ct = case_when(pathsum %in% 2:3 ~ 1, pathsum %in% 5:6 ~ 0))
 
-table(dat$ct)
+#table(dat$ct)
 
 # Metabolite selection (From Magda sheet) (377 subjects)
 # Recode 998 and 999 with missing, remove missing > 40%
@@ -99,11 +102,11 @@ dat1 <- dat %>% mutate(across(lyso_pc_a_c16_0 : c9, as.numeric))
 missvec <- sapply(dat1, function(x) sum(is.na(x)) < 80)
 
 # Logical vector of metabolite/non-metabolite columns
-metvec <- 1:ncol(dat1) %in% 1:12
+metab <- 1:ncol(dat1) %in% 1:12
 
 # Keep column if participant data or metabolite with less than 21% missing
 # code normal = 0, pathology = 1 for logistic regression
-dat1 <- dat1 %>% select_if(missvec == T | metvec == T) %>% mutate(ct = ifelse(pathsum %in% 5:6, 0, 1))
+dat1 <- dat1 %>% select_if(missvec == T | metab == T) %>% mutate(ct = ifelse(pathsum %in% 5:6, 0, 1))
 
 missmap(dat1, rank.order = F, x.cex = 1)
 
@@ -111,14 +114,12 @@ missmap(dat1, rank.order = F, x.cex = 1)
 mat <- dat1 %>% select(lyso_pc_a_c16_0 : c5)
 # mat <- dat1 %>% select(lyso_pc_a_c16_0 : c9)
 mat2 <- na.aggregate(as.matrix(dat1[ , -c(1:12, ncol(dat1))]), function(x) min(x)/2)
+mat2a <- mat2 %>% scale
 
 # Replace matrix names with standardised ones (see match_cmpd_names.R)
 matnames <- data.frame(cmpd.low = colnames(mat2), ord = 1:length(colnames(mat2)))
-
 library(fuzzyjoin)
 df1 <- stringdist_right_join(cmpd.meta, matnames, by = "cmpd.low", max_dist = 0.5)
-# mat2a <- mat2 %>% log2 %>% scale
-mat2a <- mat2 %>% scale
 colnames(mat2a) <- df1$Compound
 
 # Subsets for all, normal vs adenoma, CRC or polyp
@@ -170,14 +171,14 @@ plot(dend, horiz = F)
 
 # Get metadata and SCFA only. Remove 11 missings using NA glu (no peak detected)
 mat <- dat %>% select(pathsum, path.group, bmi, diabetes, country:age, batch, alcohol, alcohol_drinks_week, 
-                      smoke, lyso_pc_a_c16_0:c9, 
-                      acetic_acid_m_m:valeric_acid_m_m) %>%
-  filter(if_all(acetic_acid_m_m:valeric_acid_m_m, ~ !is.na(.)))
+                      smoke, lyso_pc_a_c16_0 : c9, 
+                      acetic_acid_m_m : valeric_acid_m_m) %>%
+  filter(if_all(acetic_acid_m_m : valeric_acid_m_m, ~ !is.na(.)))
 
 
 # Convert character columns to numeric, remove metabolites with more than 21% missings (80),
-mat <- mat %>% mutate_at(.vars = vars(acetic_acid_m_m:valeric_acid_m_m), .funs = as.numeric)
-mat <- mat %>% mutate_at(.vars = vars(lyso_pc_a_c16_0:valeric_acid_m_m), .funs = as.numeric)
+mat <- mat %>% mutate_at(.vars = vars(acetic_acid_m_m : valeric_acid_m_m), .funs = as.numeric)
+mat <- mat %>% mutate_at(.vars = vars(lyso_pc_a_c16_0 : valeric_acid_m_m), .funs = as.numeric)
 
 # Get correlations for all compounds or just SCFA
 library(corrplot)
@@ -187,8 +188,8 @@ corrplot(cormat, method = "square", tl.col = "black", order = "hclust")
 
 # Remove metabolites with more than 21% missings (missings == T OR metadata == T)
 missvec <- sapply(mat, function(x) sum(is.na(x)) < 80)
-metvec <- 1:ncol(mat) %in% 1:10
-mat1 <- mat %>% select_if(missvec == T | metvec == T) %>% mutate(ct = ifelse(pathsum %in% 5:6, 0, 1))
+metab <- 1:ncol(mat) %in% 1:10
+mat1 <- mat %>% select_if(missvec == T | metab == T) %>% mutate(ct = ifelse(pathsum %in% 5:6, 0, 1))
 
 #missmap(mat1, rank.order = F, x.cex = 1)
 
